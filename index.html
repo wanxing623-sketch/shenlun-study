@@ -884,6 +884,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     wsLayoutColumns();wsUpdatePage();
   }
   function wsSetExam(ex){
+    if(WS.exam&&WS.exam.id!==ex.id){LS.removeItem('sh_ws_'+WS.exam.id+'_hl');LS.removeItem('sh_ws_'+ex.id+'_hl')}
     WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;
@@ -894,7 +895,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     const grp=(window.SH_EXAM_INDEX.find(x=>x.id===id)||{}).grp||'gk';
     await wsLoadGroup(grp);
     const ex=wsGetExam(id);
-    if(ex) wsSetExam(ex);
+    if(ex){wsSetExam(ex);toast('已切换试卷，标注已自动清零，从干净的卷面开始')}
   });
   /* annotation interactions */
   $('#ws-material').addEventListener('click',e=>{

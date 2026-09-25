@@ -1138,6 +1138,12 @@ const GRADE=(function(){
     return {key:'E',name:'深度论证官',score:score,src:'SLB 万能对策识别 + 大作文论据加分项',
       headline:issues.length?'具体性与论证深度待加强':'内容具体，论证有支撑',details,issues,sugg};
   }
+  function inferMax(q,type){
+      if(q&&typeof q.sc==='number'&&q.sc>0)return q.sc;
+      const m=String(q&&q.t||'').match(/[（(]\s*(\d{1,3})\s*分\s*[)）]/);
+      if(m){const v=+m[1];if(v>0&&v<=100)return v}
+      return {guina:15,zonghe:20,duice:20,zhixing:25,zuowen:40}[type]||20;
+    }
   function grade(q,exam,ans){
     const type=qType(q);
     q._type=type;
@@ -1145,7 +1151,7 @@ const GRADE=(function(){
     const w=WEIGHTS[type];
     let comp=0;for(const s of skills)comp+=s.score*w[s.key];
     comp=Math.round(comp);
-    const max=q.sc||100;
+    const max=inferMax(q,type);
     const final=Math.round(comp/100*max*10)/10;
     let band;
     if(type==='zuowen')band=comp>=85?'一类文':comp>=70?'二类文':comp>=55?'三类文':'四类文';
@@ -1176,7 +1182,7 @@ const GRADE=(function(){
     L.push('—— 本地规则引擎批改（评分知识来自开源考公项目 SLB / kaogong-skill / kaogong-formalizer），仅供参考');
     return L.join('\n');
   }
-  return {grade,toText,qType,TYPE_NAME,norm,W:WEIGHTS};
+  return {grade,toText,qType,TYPE_NAME,norm,W:WEIGHTS,inferMax};
 })();
 window.GRADE=GRADE;
 
@@ -1473,7 +1479,8 @@ window.GRADE=GRADE;
     }).join('');
     $$('#ws-q-tabs button').forEach(b=>b.addEventListener('click',()=>{wsFlushSave();WS.qIdx=+b.dataset.q;wsRenderQuestion();wsLoadAnswer();wsShowSavedReport()}));
     let html='<h3>'+esc(q.t)+'</h3><div class="ws-score">';
-    if(q.sc) html+='<span class="pill orange">'+q.sc+' 分</span>';
+    const scMax=(window.GRADE?GRADE.inferMax(q,GRADE.qType(q)):(q.sc||0));
+    if(scMax) html+='<span class="pill orange"'+(q.sc?'':' title="题目标注分值缺失，此为按题干/题型推断的满分"')+'>'+scMax+' 分</span>';
     if(q.lm) html+='<span class="pill teal">限 '+q.lm+' 字</span>';
     if(!q.lm) html+='<span class="pill">字数不限</span>';
     html+='</div>';

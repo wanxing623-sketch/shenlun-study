@@ -390,7 +390,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 .about-line b{text-align:right}
 .settings-note{font-size:11.5px;color:var(--muted);line-height:1.9;margin:12px 0 0}
 /* ========== 提示 ========== */
-.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--side);color:var(--side-ink);padding:10px 20px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:80;max-width:88vw;box-shadow:var(--shadow)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--side);color:var(--side-ink);padding:10px 20px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:140;max-width:88vw;box-shadow:var(--shadow)}
 .toast.show{opacity:1;transform:translateX(-50%)}
 /* ========== 响应式 ========== */
 @media (max-width:1100px){
@@ -451,7 +451,22 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .tabbar button{min-height:54px}
 }
 /* ===== 批改报告 ===== */
-#ws-grade{margin-top:12px}
+#ws-grade{position:fixed;inset:0;z-index:110;display:grid;place-items:center;padding:18px}
+#ws-grade[hidden]{display:none}
+#ws-grade .grm-mask{position:absolute;inset:0;background:rgba(10,14,20,.52);opacity:0;transition:opacity .2s}
+#ws-grade.show .grm-mask{opacity:1}
+#ws-grade .grm-box{position:relative;width:min(780px,100%);max-height:min(88dvh,920px);display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);transform:translateY(16px) scale(.98);opacity:0;transition:.22s cubic-bezier(.22,.8,.3,1);overflow:hidden}
+#ws-grade.show .grm-box{transform:none;opacity:1}
+.grm-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line);flex:none;background:var(--surface)}
+.grm-head b{font-size:14.5px}
+.grm-head .pill{font-size:11px}
+.grm-x{margin-left:auto;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font-size:14px;cursor:pointer;display:grid;place-items:center;font-family:inherit}
+.grm-x:hover{color:var(--ink);border-color:var(--line-strong)}
+.grm-body{overflow-y:auto;padding:16px;scrollbar-width:thin}
+@media (max-width:760px){#ws-grade{padding:0;place-items:end stretch}.grm-box{width:100%;max-height:94dvh;border-radius:18px 18px 0 0}.grm-body{padding:13px}}
+.ws-gradecue{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);background:var(--accent-soft);border:1px dashed var(--line-strong);border-radius:10px;padding:7px 12px;margin-top:8px;flex-wrap:wrap}
+.ws-gradecue b{color:var(--accent)}
+.ws-gradecue .mini-btn{margin-left:auto;padding:3px 11px;font-size:11.5px}
 .gr-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 15px;box-shadow:var(--shadow)}
 .gr-head{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
 .gr-left{display:flex;align-items:center;gap:16px;min-width:230px;flex:1}
@@ -623,6 +638,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     <div class="ws-qwrap"><div class="ws-question" id="ws-question"></div></div>
     <div class="ws-answer">
       <textarea id="ws-answer-input" placeholder="在这里作答……建议先在材料上标注要点，再组织答案。" aria-label="作答区"></textarea>
+      <div class="ws-gradecue" id="ws-gradecue" hidden></div>
       <div class="ws-ansfoot">
         <span class="ws-count" id="ws-count">0 字</span>
         <span id="ws-save-status">自动保存已开启</span>
@@ -631,7 +647,13 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
         <button class="mini-btn" id="ws-copy-ans">复制作答</button>
         <button class="mini-btn" id="ws-clear-ans">清空本题</button>
       </div>
-      <div id="ws-grade" hidden></div>
+      <div id="ws-grade" hidden>
+          <div class="grm-mask"></div>
+          <div class="grm-box" role="dialog" aria-modal="true" aria-label="申论批改报告">
+            <div class="grm-head"><b>📝 申论批改报告</b><span class="pill orange" id="grm-type"></span><button class="grm-x" id="grm-close" aria-label="关闭报告">✕</button></div>
+            <div class="grm-body"></div>
+          </div>
+        </div>
     </div>
   </div>
 </div>
@@ -1203,20 +1225,29 @@ window.GRADE=GRADE;
   function wsGoPage(dir){const box=$('#ws-material');if(!box)return;wsSnapTo(wsPages().now-1+dir)}
   function wsGradeStore(){return JSON.parse(LS.getItem('sh_ws_grade_'+WS.exam.id)||'{}')}
   function wsShowSavedReport(){
-    const p=$('#ws-grade');if(!p||!WS.exam)return;
+    const cue=$('#ws-gradecue');if(!cue||!WS.exam)return;
     const r=wsGradeStore()[WS.exam.q[WS.qIdx].no];
-    if(r){wsRenderReport(r,false)}else p.hidden=true;
+    if(r){cue.hidden=false;cue.innerHTML='<span>上次批改：<b>'+r.final+'</b> 分 · '+r.band+'（'+r.typeName+'）</span><button class="mini-btn" id="ws-gradecue-open">查看报告</button>';$('#ws-gradecue-open').addEventListener('click',()=>wsShowReport(r))}
+    else cue.hidden=true;
   }
+  function wsModalOpen(){const p=$('#ws-grade');if(!p)return;p.hidden=false;requestAnimationFrame(()=>p.classList.add('show'))}
+  function wsModalClose(){const p=$('#ws-grade');if(!p||p.hidden)return;p.classList.remove('show');setTimeout(()=>{p.hidden=true},220)}
+  function wsShowReport(r){wsModalOpen();$('#grm-type').textContent=r.typeName;wsRenderReport(r,false);const b=$('#ws-grade .grm-body');if(b)b.scrollTop=0}
+  $('#grm-close').addEventListener('click',wsModalClose);
+  $('#ws-grade .grm-mask').addEventListener('click',wsModalClose);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#ws-grade').hidden)wsModalClose()});
   $('#ws-grade-btn').addEventListener('click',()=>{
     if(!WS.exam||WS.grading)return;
     const txt=$('#ws-answer-input').value.trim();
     if(GRADE.norm(txt).length<20){toast('答案还太短，先写到 20 字以上再提交批改');return}
     const q=WS.exam.q[WS.qIdx];
-    const panel=$('#ws-grade');panel.hidden=false;
     WS.grading=true;
+    wsModalOpen();
+    $('#grm-type').textContent=GRADE.TYPE_NAME[GRADE.qType(q)]||'';
     const crew=['① 采点覆盖官','② 结构逻辑官','③ 规范表达官','④ 格式卷面官','⑤ 深度论证官'];
-    panel.innerHTML='<div class="gr-card"><div class="gr-working">'+crew.map((n,i)=>'<div class="row" id="gw-'+i+'"><span class="dot"></span>'+n+' 正在阅卷…</div>').join('')+'</div></div>';
-    panel.scrollIntoView&&panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    const body=$('#ws-grade .grm-body');
+    body.innerHTML='<div class="gr-card"><div class="gr-working">'+crew.map((n,i)=>'<div class="row" id="gw-'+i+'"><span class="dot"></span>'+n+' 正在阅卷…</div>').join('')+'</div></div>';
+    body.scrollTop=0;
     const report=GRADE.grade(q,WS.exam,txt);
     let i=0;
     const step=()=>{
@@ -1226,14 +1257,14 @@ window.GRADE=GRADE;
         WS.grading=false;
         wsRenderReport(report,true);
         const all=wsGradeStore();all[q.no]=report;LS.setItem('sh_ws_grade_'+WS.exam.id,JSON.stringify(all));
-        wsRenderQuestion();
+        wsRenderQuestion();wsShowSavedReport();
         toast('五位阅卷官批改完成：'+report.final+' / '+report.max+' 分（'+report.band+'）');
       }
     };
     setTimeout(step,120);
   });
   function wsRenderReport(r,fresh){
-    const panel=$('#ws-grade');panel.hidden=false;
+    const body=$('#ws-grade .grm-body');if(!body)return;
     const lv=s=>s.score>=85?4:s.score>=70?3:s.score>=55?2:1;
     const icos={A:'采',B:'构',C:'表',D:'卷',E:'论'};
     const sk=r.skills.map(s=>{
@@ -1262,7 +1293,7 @@ window.GRADE=GRADE;
     const data=[0,1,2,3,4].map(i=>pt(i,rv(i)).map(v=>v.toFixed(1)).join(',')).join(' ');
     const dots=[0,1,2,3,4].map(i=>{const p=pt(i,rv(i));return '<circle class="dt" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.2"/>'}).join('');
     const C=2*Math.PI*52,C1=C.toFixed(1),OFF=(C*(1-Math.min(1,r.final/r.max))).toFixed(1);
-    panel.innerHTML='<div class="gr-card">'
+    body.innerHTML='<div class="gr-card">'
       +'<div class="gr-head"><div class="gr-left">'
       +'<div class="gr-ringwrap"><svg class="gr-ring ring" viewBox="0 0 120 120" aria-hidden="true">'
       +'<defs><linearGradient id="grgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--brand)"/><stop offset="1" style="stop-color:var(--ok)"/></linearGradient></defs>'
@@ -1279,8 +1310,8 @@ window.GRADE=GRADE;
       +'<p class="gr-note">批改引擎为本地规则评分（评分知识取自开源考公项目 SLB 批改标准 / kaogong-skill 题型标准 / kaogong-formalizer 规范词映射），与真实阅卷存在差距，仅供参考。同题重新批改会覆盖本次结果。</p>'
       +'</div>';
     requestAnimationFrame(()=>{
-      panel.querySelectorAll('.gr-bar i').forEach(b=>b.style.width=b.dataset.w+'%');
-      const fg=panel.querySelector('.gr-ring .fg');if(fg)fg.style.strokeDashoffset=fg.dataset.off;
+      body.querySelectorAll('.gr-bar i').forEach(b=>b.style.width=b.dataset.w+'%');
+      const fg=body.querySelector('.gr-ring .fg');if(fg)fg.style.strokeDashoffset=fg.dataset.off;
     });
     $('#gr-copy').addEventListener('click',()=>copy(GRADE.toText(r)));
     $('#gr-again').addEventListener('click',()=>{$('#ws-grade-btn').click()});
@@ -1377,7 +1408,7 @@ window.GRADE=GRADE;
     WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;
-    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;const gp=$('#ws-grade');if(gp){gp.hidden=true;gp.innerHTML=''}wsShowSavedReport()
+    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;wsModalClose();const gp=$('#ws-grade .grm-body');if(gp)gp.innerHTML='';wsShowSavedReport()
   }
   $('#ws-exam').addEventListener('change',async e=>{
     const id=e.target.value;

@@ -450,6 +450,43 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .review-item,.recent-row{padding:13px}
   .tabbar button{min-height:54px}
 }
+/* ===== 批改报告 ===== */
+#ws-grade{margin-top:12px;border-top:1px dashed var(--line-strong);padding-top:14px}
+.gr-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+.gr-score b{font-size:34px;font-weight:800;color:var(--brand);line-height:1}
+.gr-score span{color:var(--muted);font-size:12px;margin-left:4px}
+.gr-band{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.gr-band .pill{font-size:11px;padding:4px 10px}
+.gr-band .pill.main{font-size:12.5px}
+.gr-skills{display:grid;gap:10px;margin:14px 0}
+.gr-skill{border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--surface-2)}
+.gr-skill-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gr-skill-head b{font-size:13px}
+.gr-skill-head .pill{margin-left:auto}
+.gr-verdict{font-size:11.5px;color:var(--muted);margin:4px 0 7px}
+.gr-bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.gr-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--ok));border-radius:99px;transition:width .6s ease}
+.gr-list{margin:0;padding-left:2px;font-size:12px;color:var(--muted);line-height:1.85;list-style:none}
+.gr-list li::before{content:"·";margin-right:6px;color:var(--faint)}
+.gr-list li.warn::before{content:"▲";color:var(--accent);font-size:9px}
+.gr-list li.fix::before{content:"→";color:var(--ok)}
+.gr-src{font-size:10px;color:var(--faint);margin:6px 0 0}
+.gr-top{background:var(--accent-soft);border-radius:12px;padding:12px 15px;font-size:12.5px}
+.gr-top b{color:var(--accent)}
+.gr-top ol{margin:7px 0 0;padding-left:18px;line-height:1.95;color:var(--ink)}
+.gr-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.gr-note{font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.8}
+.gr-working{display:flex;flex-direction:column;gap:9px;padding:8px 2px}
+.gr-working .row{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+.gr-working .row .dot{width:8px;height:8px;border-radius:50%;background:var(--line-strong);flex:none}
+.gr-working .row.on .dot{background:var(--gold);animation:grpulse 1s infinite}
+.gr-working .row.done{color:var(--muted)}
+.gr-working .row.done .dot{background:var(--ok)}
+@keyframes grpulse{50%{opacity:.35}}
+.mini-btn.accent{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.mini-btn.accent:hover{background:var(--brand-hover);color:var(--on-brand)}
+.q-tabs button .mini.gr{color:var(--accent);font-weight:800}
+
 /* ========== 打印 ========== */
 @media print{
   .sidebar,.topbar,.tabbar,.ws-brush,.ws-timer,.scrim,.case-drawer,.toast,.head-actions,.ws-mat-foot,.ws-ansfoot{display:none!important}
@@ -551,9 +588,11 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
         <span class="ws-count" id="ws-count">0 字</span>
         <span id="ws-save-status">自动保存已开启</span>
         <span class="grow"></span>
+        <button class="mini-btn accent" id="ws-grade-btn">✓ 提交批改</button>
         <button class="mini-btn" id="ws-copy-ans">复制作答</button>
         <button class="mini-btn" id="ws-clear-ans">清空本题</button>
       </div>
+      <div id="ws-grade" hidden></div>
     </div>
   </div>
 </div>
@@ -703,6 +742,317 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
  function globalSearch(q){const box=$('#global-results');q=q.trim().toLowerCase();if(!q){box.innerHTML='<div class="gs-empty">输入关键词，跨规范词、对策和案例检索</div>';box.classList.add('open');return}const vs=DATA.vocab.map((x,i)=>({...x,id:i})).filter(x=>(x.term+x.scene).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene}));const ss=DATA.strategies.filter(x=>(x.title+x.text).toLowerCase().includes(q)).slice(0,2).map(x=>({type:'strategy',id:x.id,title:x.title,sub:x.text}));const cs=DATA.cases.map((x,i)=>({...x,id:i})).filter(x=>(x.title+x.keywords+x.case+x.topics).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'case',id:x.id,title:x.title,sub:x.case}));const items=[...vs,...ss,...cs];box.innerHTML=items.length?items.map(x=>`<button class="global-result" data-global="${x.type}:${x.id}"><span class="result-type">${x.type==='vocab'?'规范词':x.type==='strategy'?'对策':'案例'}</span><span><b>${hi(x.title,q)}</b><small>${esc(x.sub)}</small></span></button>`).join(''):'<div class="gs-empty">没有找到匹配内容，可以换一个更短的关键词</div>';box.classList.add('open');$$('[data-global]').forEach(b=>b.addEventListener('click',()=>{const [t,id]=b.dataset.global.split(':');box.classList.remove('open');$('#global-search').value='';if(t==='vocab'){openView('vocab');selectVocab(+id)}else if(t==='strategy'){openView('strategy');selectStrategy(+id)}else{openView('cases');openCase(+id)}}))}
  $('#global-search').addEventListener('focus',e=>globalSearch(e.target.value));$('#global-search').addEventListener('input',e=>globalSearch(e.target.value));document.addEventListener('click',e=>{if(!e.target.closest('.search'))$('#global-results').classList.remove('open')});
 /* ================= 真题作答台 ================= */
+/* ================= 五阅卷官批改引擎 =================
+ * 评分知识来源（GitHub 开源项目）：
+ *  · SLB (Jinghe1279/SLB) GRADING_STANDARD.md —— 分题型评分细则、按点给分/采意不采点、万能对策识别、大作文分档
+ *  · kaogong-skill (KeWang0622/kaogong-skill) —— 题型判定、答题结构标准（对策=主体+手段+内容+目的）
+ *  · kaogong-formalizer (heihei999/kaogong-formalizer) —— 口语→规范词映射（7 家机构交叉验证）
+ * 全部为本地规则引擎，无网络请求，结果仅供参考。
+ */
+const GRADE=(function(){
+  const ORAL=[["干部与群众拉家常、去到群众家里",["密切联系群众","深入基层"]],["某事牵涉多家单位/部门",["多头管理","政出多门"]],["某件事谁来主管、谁来执行等不明确",["管理权责不明"]],["教育过分重视升学率、实用性",["教育功利化"]],["媒体报道后，立马查找、解决问题",["发挥媒体的监督功能"]],["希望满足市场需求",["以市场为导向"]],["通过投入大量资金对某地进行扶贫",["加大扶贫资金投入","\"输血式\"扶贫"]],["治理河道、兴建水利、改造公路等",["基础设施建设"]],["城乡一体化发展/兼顾城乡",["城乡协调发展"]],["加大政策财政扶持力度/政策倾斜",["政策扶持"]],["缺少规范管理，民主公开操作性不足",["公开不足"]],["通过群众监督干部行为",["民主监督"]],["国家政策，基层不落实也没有人管",["缺乏监管","落实难"]],["官员、相关负责人的责任予以追究",["问责制"]],["提高风险意识/建立预警机制",["风险意识","忧患意识"]],["成立专项领导小组、共治小组",["成立专项领导小组"]],["精简办事流程，提高工作效率",["流程优化"]],["挨家挨户走一遍",["入户走访"]],["群众满意度测评",["群众监督"]],["村党组织/党支部建设落后",["党建落后"]],["成立专门机构、完善组织机构",["完善机构"]],["利用互联网大数据进行管理",["数字化管理"]],["定期展示工作动态",["提高透明度"]],["多主体共同解决一件事",["多元共治"]],["轻易承诺，因各种问题无法兑现",["空头支票"]],["管理方面拖了\"后腿\"",["管理滞后","迟缓","缓慢"]],["执法过程中文明用语，依法依规办事",["人性化执法","文明执法"]],["划定保护区域网格，立起保护标志",["网格化管理"]],["由领导牵头，一起做好某事",["成立专项领导小组","共治小组"]],["用打、砸、抢、骂形式治理商贩",["长效管理（反面：暴力执法）"]],["做什么事觉得艰难而后放弃",["遇到困难容易放弃","抗挫折能力弱"]],["做某件事为了收礼",["以敛财为目的"]],["……和……不应该厚此薄彼/并重",["兼顾……和……","统筹兼顾","全局意识"]],["遇到困难仍然坚守岗位",["爱岗敬业","恪尽职守"]],["迫切希望达到目的",["功利","急功近利"]],["会玩些\"小花样\"，动脑筋，点子多",["创新能力强","有创意"]],["对……不认同，不觉得某事是好的",["认同感低","认同感不高"]],["以前是某种主流观念，现在不再持有",["转变观念","转变思想"]],["夜以继日、合力奋战，攻克难关",["刻苦钻研"]],["喜欢招大商、大项目、形象工程",["脱离实际","贪大求洋","好大喜功"]],["签订合同之后又不履行",["合同意识差","不讲信用","缺乏契约精神"]],["某个东西大家都不知道、没听过",["知名度不高"]],["根本不把交通规则当回事",["缺乏安全意识"]],["看到大家努力，自己也努力做",["公众觉悟","责任意识"]],["送礼不接受/做事不是为了收礼",["不图回报","无私奉献"]],["让他们放手去干/让想法落到实处",["调动","发挥人的主观能动性"]],["为了工作创下三个月没回家的记录",["舍小家为大家"]],["你越让我干什么，我越不干什么",["逆反心理"]],["把私人东西夸大宣传",["夸大宣传"]],["有……鼓励机制",["建立……机制"]],["将别人的经验改进成适合自己的方法",["根据实际情况改进"]],["告别传统粗放式的土地管理方式",["土地精细化管理"]],["\"睁一只眼闭一只眼\"",["执法不严"]],["多个部门共同解决一件事",["协调","联动","合力"]],["成立专项小组",["成立专项领导小组"]],["责任不清、多头管理",["责任主体不明","权责不明"]],["信息不沟通、各自行事",["信息闭塞","信息壁垒","缺乏沟通机制"]],["加强相关组织联系、互通信息",["信息共享","打破信息壁垒","加强沟通"]],["政策坚持推行，不搞\"一阵风\"",["常态化","系统化","常态机制"]],["一项政策顾及以后",["前瞻性","预见性"]],["政府充分听取专家群众意见",["科学决策","民主决策"]],["党员、党组织、党委带领群众发展",["党建引领"]],["群众指出问题之后能积极解决",["解决问题","不走过场"]],["政府拒绝透露某些应公开信息",["未尊重群众知情权"]],["随便什么人都能做、不加甄别",["准入门槛低"]],["该登记注册的没登记且数量大",["政策宽松","监管不力"]],["聘请专家、培养某方面的人才",["人才队伍建设"]],["自发做某事",["自发","自愿","自觉性；积极主动性"]],["做好一件事有奖励，做不好有惩罚",["奖罚结合","有奖有罚","奖惩制度"]],["增加在家门口的工作机会",["增加就业岗位"]],["大学生/务工人员从城市回到乡村",["人才回流"]],["缺乏晋升空间/渠道",["晋升渠道"]],["百姓自己管自己的事情",["村民自治"]],["民众缺乏参与意识、积极性不高",["参与意识低"]],["加强培训，提高专业技能",["技能培训"]],["不懂……不会……",["知识匮乏"]],["发挥模范带头作用",["模范带头"]],["执法好不好，看看记录仪就知道",["执法记录规范化"]],["执法全过程都必须使用执法记录仪",["执法言行规范化"]],["一个人→一群人、个体→企业",["规模化","产业化"]],["事情还没有定论就开始做",["盲目投入","蛮干"]],["农产品经过加工包装后售卖",["增加产品附加值"]],["创新别家没有、独一无二的技术",["提高核心竞争力"]],["产品销往国外",["开拓国际市场","走出去战略"]],["一味迎合大众",["过度市场化"]],["鼓励公司、社会组织等投入金钱",["鼓励社会资本投入"]],["企业想在短期内获得高经济回报",["片面","过度追求短期利益"]],["原来只在本地销售，现在面向全国",["拓宽销售市场"]],["亲自去到某地了解情况",["实地走访","深入一线"]],["村里创办企业、公司",["创办集体企业"]],["通过加工处理，使产品更加优质",["提升产品品质"]],["企业产品不与业内对手雷同",["错位竞争"]],["短期内挣了钱，几年后光景大不相同",["不可持续"]],["发展创意农业/生态农业等",["新业态"]],["农村招商项目长期落不了地",["空头招商"]],["产品副产品变得多种多样",["丰富种类"]],["不能牺牲当地老百姓健康来建设项目",["重视健康"]],["资源禀赋好/充分利用自然资源",["资源禀赋"]],["出台相应的行业规范，规范市场秩序",["规范市场"]],["农产品营销渠道/销路单一",["渠道单一"]],["村集体收入来源单一",["收入单一"]],["扶贫项目单一",["项目单一"]],["加强品牌建设/实施品牌化发展",["品牌建设"]],["不同企业分别有不同优势，进行合作",["优势互补"]],["修建广场、宣传栏、阅览室等",["完善文化设施","加强基础设施建设"]],["让优秀文化融入普通老百姓的生活",["活化文化"]],["竹林和幼林下养兔、养鸡、养鸭等",["林下经济"]],["塑料袋、泡沫盒等废弃物污染环境",["乱排乱放"]],["某地文化站/图书馆等形同虚设",["设施利用率不足"]],["文化产品进口多、出口少",["文化逆差"]],["群众抵制不健康的外来文化",["文化自觉","文化自信"]],["越来越多人开始攀比、追求一夜暴富",["不良的社会风气"]],["无法查阅到相关信息",["信息公开不够透明"]]]; // [口语, [规范词...]]
+  const STOP=new Set(('的 了 和 是 在 我 有 就 不 人 都 一个 我们 他们 你们 这 那 也 对 说 要 会 与 及 等 为 以 于 由 从 其 之 被 把 让 使 很 更 最 又 再 还 并 但 而 或 通过 进行 可以 一些 这个 那个 相关 有关 情况 方面 工作 问题 许多 一个个 之后 以后 目前 当前 进一步 不断 更加').split(' '));
+  const GENERIC=/^(问题|情况|方面|工作|进行|加强|提高|发展|建设|管理|服务|体系|机制|制度|方式|模式|水平|能力)$/;
+  const FILLERS=/我觉得|我认为|我个人|非常|特别地?|相当|越来越好|应该说|众所周知|可以说|总的来说|搞|弄好|抓好抓实|花大力气|说白了|反正|感觉|大家|啦|呗|挺/g;
+  const WANNU=['加强宣传教育','加大宣传力度','完善法律法规','健全法律法规','加大资金投入','加大投入力度','提高思想认识','提高认识','加强监督管理','加强监管力度','建立健全机制','完善相关制度','完善体制机制','加强人才队伍建设','引起重视','高度重视'];
+  const HOT=['中国式现代化','高质量发展','新质生产力','共同富裕','乡村振兴','数字中国','全过程人民民主','命运共同体','碳达峰','碳中和','基层治理','放管服','供给侧','营商环境','绿色发展'];
+  const SUBJ=/政府|部门|街道|社区|村委会|村两委|党员干部|企业|学校|医院|平台|社会组织|志愿者|网格员|专门机构|领导小组|工作组|监管部门|执法(机关|部门)|主流媒体/g;
+  const MEANS=/通过|依托|借助|建立|设立|组建|开展|组织|实施|推行|出台|搭建|引入|开设|举办|完善|修订|整合|搭建平台|购买服务|委托|签约|考核|督查|公示/g;
+  const CONN=/因此|所以|由于|究其原因|一方面|另一方面|同时|此外|与此同时|综上|由此可见|这意味着|不仅|而且/g;
+  const GENRES=[
+    {k:/倡议书|公开信|宣传稿/,name:'倡议/宣传类',els:[['title','标题'],['salut','称谓'],['close','结尾号召'],['sign','落款']]},
+    {k:/讲话稿|发言稿|主持词|演讲/,name:'讲话类',els:[['title','标题'],['salut','称谓'],['open','开场'],['close','结束语']]},
+    {k:/短评|时评|评论|按语/,name:'评论类',els:[['title','标题'],['view','亮明观点']]},
+    {k:/编者按/,name:'编者按',els:[['body','直接入文（编者按无标题）']]},
+    {k:/通知|通告|通报/,name:'通知类',els:[['title','标题'],['salut','主送机关'],['sign','落款']]},
+    {k:/调[研查]|汇报|报告(?!人)/,name:'报告类',els:[['title','标题'],['goal','背景目的'],['measures','情况与建议分条']]},
+    {k:/工作方案|活动方案|方案/,name:'方案类',els:[['title','标题'],['goal','目的意义'],['measures','措施分条'],['sign','落款']]},
+    {k:/建议书|意见/,name:'建议类',els:[['title','标题'],['salut','称谓'],['measures','建议分条'],['sign','落款']]},
+  ];
+  const cnNum=n=>['一','二','三','四','五','六','七','八','九','十'][n-1]||String(n);
+  const norm=t=>String(t||'').replace(/[\s，。；：、！？“”‘’（）《》〈〉·—…,.:;!?()'"-]/g,'');
+  function qType(q){
+    const t=q.t||'';
+    if(/写一篇(文章|文章。)|自拟题目|为题[，,]写一篇|写一篇议论文/.test(t))return 'zuowen';
+    if(/倡议书|公开信|讲话稿|发言稿|短评|时评|评论|编者按|简报|通知|通告|报告|汇报|工作方案|建议书|宣传稿|提纲|主持词|导学|解说词|新闻稿/.test(t))return 'zhixing';
+    if(/对策|建议|措施|如何解决|提出解决|整治方案/.test(t))return 'duice';
+    if(/谈谈|理解|看法|分析|评价|启示|原因/.test(t))return 'zonghe';
+    return 'guina';
+  }
+  const TYPE_NAME={guina:'归纳概括',zonghe:'综合分析',duice:'提出对策',zhixing:'贯彻执行',zuowen:'文章写作'};
+  const WEIGHTS={guina:{A:.55,B:.15,C:.15,D:.10,E:.05},zonghe:{A:.30,B:.30,C:.10,D:.10,E:.20},duice:{A:.25,B:.20,C:.10,D:.10,E:.35},zhixing:{A:.25,B:.15,C:.15,D:.30,E:.15},zuowen:{A:.15,B:.20,C:.20,D:.15,E:.30}};
+
+  function refMats(q,exam){
+    const m=[...q.t.matchAll(/给定资料\s*([0-9一二三四五六七八九十１-９]+)/g)].map(x=>x[1]);
+    const idxs=[];
+    const cn={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,'１':1,'２':2,'３':3,'４':4,'５':5,'６':6,'７':7,'８':8,'９':9};
+    for(const x of m){const n=/\d/.test(x)?parseInt(x):cn[x];if(n&&n<=exam.m.length&&!idxs.includes(n-1))idxs.push(n-1)}
+    if(!idxs.length)for(let i=0;i<exam.m.length;i++)idxs.push(i);
+    return idxs;
+  }
+  function keyTerms(text,qtext){
+    const freq=Object.create(null);
+    const segs=norm(text).split('|');
+    const raw=text.replace(/[\d\s，。；：、“”‘’（）()【】《》—…,.:;!?-]+/g,'|').split('|');
+    for(const seg of raw){
+      if(seg.length<2)continue;
+      for(let n=2;n<=4;n++)for(let i=0;i+n<=seg.length;i++){
+        const g=seg.slice(i,i+n);
+        if(STOP.has(g)||/^[一二三四五六七八九十百千万亿日月年]+$/.test(g))continue;
+        freq[g]=(freq[g]||0)+1;
+      }
+    }
+    let cand=Object.keys(freq).filter(g=>freq[g]>=3&&!GENERIC.test(g)&&!/[的地得了着]/.test(g));
+    cand.sort((a,b)=>freq[b]*b.length-freq[a]*a.length);
+    const picked=[];
+    for(const g of cand){
+      if(picked.some(p=>p.includes(g)||g.includes(p)))continue;
+      picked.push(g);
+      if(picked.length>=16)break;
+    }
+    const qt=norm(qtext);
+    return picked;
+  }
+  function copyRatio(ans,matText){
+    const a=norm(ans);if(a.length<18)return 0;
+    const m=norm(matText);let hit=0,tot=0;
+    for(let i=0;i+16<=a.length;i+=5){
+      tot++;
+      if(m.includes(a.slice(i,i+16)))hit++;
+    }
+    return tot?hit/tot:0;
+  }
+  function items(ans){
+    const lines=String(ans||'').split(/\n+/).flatMap(l=>l.split(/(?=[一二三四五六七八九十]+、|\d+[.、．])|；/)).map(s=>s.trim()).filter(s=>s.length>=4);
+    const numbered=String(ans||'').match(/(^|\n)\s*(\d+[.、．]|[一二三四五六七八九十]+、|一是|二是|三是|四是|五是)/g)||[];
+    return {list:lines,n:numbered.length};
+  }
+  // ---------- Skill A 采点覆盖官 ----------
+  function skillA(q,exam,ans){
+    const idxs=refMats(q,exam);
+    const matText=idxs.map(i=>exam.m[i].p.join('')).join('');
+    const terms=keyTerms(matText,q.t);
+    const a=norm(ans);
+    const hit=[],miss=[];
+    for(const t of terms)(a.includes(t)?hit:miss).push(t);
+    const cov=terms.length?hit.length/terms.length:0;
+    const cr=copyRatio(ans,matText);
+    let score=35+Math.round(63*Math.pow(cov,1.05));
+    const issues=[],details=[];
+    details.push('从材料提取 '+terms.length+' 个关键采点，命中 '+hit.length+' 个（覆盖率 '+(cov*100|0)+'%）');
+    if(cr>0.45){score=Math.min(score,62);issues.push('照抄材料比例约 '+(cr*100|0)+'%：阅卷规则是照抄超 50% 的要点最高得一半分，请用归纳语言改写（采意不采点）');}
+    else if(cr>0.25)issues.push('有 '+(cr*100|0)+'% 内容与材料原文高度重合，建议压缩转述');
+    if(cov<0.35)issues.push('覆盖率偏低：遗漏的关键采点见下方清单，逐个回材料找对应表述');
+    if(miss.length)details.push('遗漏采点（按重要度）：'+miss.slice(0,6).join('、'));
+    if(hit.length)details.push('已覆盖：'+hit.slice(0,8).join('、'));
+    const sugg=[];
+    if(miss.length)sugg.push('回给定资料'+(idxs.map(i=>i+1).join('、'))+'补齐遗漏要点：'+miss.slice(0,4).join('、'));
+    if(cr>0.3)sugg.push('把照抄原文的句子改写成"关键词+归纳动词"的自己的话');
+    return {key:'A',name:'采点覆盖官',score:Math.max(5,Math.min(98,score)),src:'SLB 批改标准 · 按点给分，采意不采点',
+      headline:'关键采点覆盖率 '+(cov*100|0)+'%'+(cr>0.3?'，照抄率 '+(cr*100|0)+'% 需注意':''),
+      details,issues,sugg};
+  }
+  // ---------- Skill B 结构逻辑官 ----------
+  function skillB(q,exam,ans){
+    const type=q._type;
+    const lines=String(ans||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const it=items(ans);
+    let score=42;const details=[],issues=[],sugg=[];
+    if(it.n>=3){score+=18;details.push('分条作答 '+it.n+' 条，条理清晰，符合阅卷偏好');}
+    else if(it.n>=1){score+=8;issues.push('仅有 '+it.n+' 处分条标记，建议明确分条（1. 2. 3. 或 一、二、三、）');}
+    else{issues.push('通篇未分条：阅卷标准中"条理不清、没有分条作答"要扣 1–2 分');sugg.push('按"序号+关键词+具体阐述"分条重组答案');}
+    const firstSen=(String(ans||'').split(/[。！？\n]/)[0]||'');
+    if(/(主要|总体|共有|包括|如下|以下|表现|原因|在于)/.test(firstSen)&&firstSen.length>8){score+=10;details.push('开篇有总括句，先总后分');}
+    else{issues.push('缺少总括句：第一句直接进入细节，建议先用一句话总括（如"主要有以下三方面原因："）');}
+    const conns=(String(ans||'').match(CONN)||[]).length;
+    if(conns>=3){score+=8;details.push('使用逻辑连接词 '+conns+' 处，链条清楚');}
+    else issues.push('逻辑连接词不足（'+conns+' 处），层次感弱');
+    if(type==='zonghe'){
+      const hasWhat=/是指|含义|意在强调|反映的是|指的是/.test(ans),hasWhy=/原因|由于|源于|究其|背景|因为/.test(ans),hasHow=/应当|应该|建议|需要|要|应/.test(ans);
+      const layers=[hasWhat,hasWhy,hasHow].filter(Boolean).length;
+      score+=layers*7;details.push('逻辑链「是什么/为什么/怎么办」覆盖 '+layers+'/3 层');
+      if(layers<3){issues.push('分析链缺 '+(3-layers)+' 层：标准结构为 是什么→为什么→怎么办');sugg.push('补全逻辑链缺口的那个层次，每层都要有材料依据');}
+    }
+    if(type==='duice'||type==='zhixing'){
+      const withSubj=(String(ans||'').match(new RegExp(SUBJ.source,'g'))||[]).length;
+      if(withSubj>=2){score+=8;details.push('出现执行主体 '+withSubj+' 处，责任落点明确');}
+      else issues.push('对策缺少执行主体：每条应有"谁来做"（部门/机构/平台…）');
+    }
+    if(type==='zuowen'){
+      const paras=lines.length;
+      if(paras>=5){score+=14;details.push('全文 '+paras+' 段，结构完整');}else issues.push('仅 '+paras+' 段：议论文建议 5 段以上（开头-分论点×3-结尾）');
+      const body=lines.slice(1,-1);
+      const pivots=body.filter(p=>/^[^，。]{4,18}[，。]/.test(p)&&/是|要|应|需|方能|才能|离不开/.test(p.slice(0,20))).length;
+      if(pivots>=2){score+=12;details.push('识别到 '+pivots+' 个观点句领起的分论点段');}
+      else issues.push('分论点不明显：每段首句应是观点句（如"XX 是 XX 的根基"）');
+      const tail=lines[lines.length-1]||'';
+      if(/让我们|愿|相信|唯有|方能|未来/.test(tail)){score+=6;details.push('结尾有升华/号召');}
+      else issues.push('结尾平淡：可用"让我们/唯有…方能…"式升华收束');
+    }
+    return {key:'B',name:'结构逻辑官',score:Math.max(5,Math.min(98,score)),src:'kaogong-skill 题型结构标准 + SLB 逻辑链要求',
+      headline:it.n>=3?'分条清晰，层次完整':'结构与条理还有明显提升空间',details,issues,sugg};
+  }
+  // ---------- Skill C 规范表达官 ----------
+  function skillC(q,exam,ans){
+    const a=String(ans||'');
+    const vocabTerms=DATA.vocab.map(x=>x.term);
+    const formalExtra=[];for(const[,fs]of ORAL)for(const f of fs)formalExtra.push(f);
+    const OFFICIAL=['压实主体责任','压实责任','长效机制','健全机制','完善机制','强化监督','督查问责','畅通渠道','补齐短板','激发活力','统筹推进','形成合力','精细化管理','源头治理','多方参与','齐抓共管','宣传引导','舆论引导','顶层设计','分类施策','因地制宜','以人为本','服务下沉','网格化管理','一站式服务','放管服','营商环境','长效治理','常态化管理','公开透明','阳光运行','权责清单','容错纠错','问计于民','政企联动','城乡一体化'];
+    const dict=[...new Set([...vocabTerms,...formalExtra,...OFFICIAL])].filter(t=>t.length>=3&&t.length<=16);
+    const na=norm(a);
+    const hits=[];
+    for(const t of dict){if(na.includes(norm(t))&&!hits.some(h=>h.includes(t)||t.includes(h)))hits.push(t);if(hits.length>=24)break;}
+    const density=hits.length/Math.max(1,na.length/100);
+    let score=48+Math.min(40,Math.round(hits.length*5.5+density*6));
+    const oralHits=[];
+    for(const[o,fs]of ORAL){
+      const on=norm(o);
+      if(on.length>=4&&na.includes(on))oralHits.push([o,fs]);
+      if(oralHits.length>=6)break;
+    }
+    const fill=(a.match(FILLERS)||[]).length;
+    let penalty=oralHits.length*7+fill*4;
+    score=Math.max(25,Math.min(96,score-penalty));
+    const details=[],issues=[],sugg=[];
+    details.push('命中规范词/官方表述 '+hits.length+' 处'+(hits.length?'：'+hits.slice(0,8).join('、')+(hits.length>8?' 等':''):''));
+    if(oralHits.length){issues.push('发现 '+oralHits.length+' 处口语化表述');oralHits.forEach(([o,fs])=>sugg.push('「'+o+'」→ 改为「'+fs[0]+(fs[1]?'/'+fs[1]:'')+'」'));}
+    if(fill)issues.push('口语填充词 '+fill+' 处（如"我觉得/非常/搞"）：申论要求语体规范，应删除');
+    if(hits.length<3&&na.length>60){issues.push('规范表达密度低：多用词库里的规范词替代白描');sugg.push('去规范词库按场景找词，替换答案中的白话描述');}
+    if(hits.length>=8)details.push('规范表达扎实，继续保持');
+    return {key:'C',name:'规范表达官',score:score,src:'kaogong-formalizer 口语→规范词映射 + 本地 420 词库',
+      headline:oralHits.length?('发现 '+oralHits.length+' 处口语化，可替换为规范词'):'表达规范度良好',details,issues,sugg};
+  }
+  // ---------- Skill D 格式卷面官 ----------
+  function skillD(q,exam,ans){
+    const type=q._type,lim=q.lm||0,n=norm(ans).length;
+    let score=100;const details=[],issues=[],sugg=[];
+    if(lim){
+      const ratio=n/lim;
+      if(n>lim){const pen=Math.min(22,Math.round((n-lim)/lim*55));score-=pen;issues.push('超出字数 '+lim+' 字限制 '+(n-lim)+' 字（约扣 '+pen+' 分当量）：删减修饰与重复，保留要点主干');}
+      else if(ratio<0.6){const pen=Math.min(38,Math.round((1-ratio)*70));score-=pen;issues.push('仅写 '+n+' 字，不足限值的 60%：内容单薄是硬伤，按要点给分会大面积失分');sugg.push('按每 2–3 分一个要点补足内容，目标写到位数的 85%–95%');}
+      else if(ratio<0.85){score-=8;issues.push('字数 '+n+'/'+lim+'：还有约 '+(lim-Math.round(n))+' 字空间，可再补 1–2 个要点');}
+      else details.push('字数 '+n+'/'+lim+'，控制得当');
+    }else if(type==='zuowen'){
+      if(n<800){score-=30;issues.push('作文仅 '+n+' 字：不足 800 字按阅卷惯例要降档，务必写足');}
+      else details.push('作文 '+n+' 字，篇幅达标');
+    }
+    const lines=String(ans||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const firstLine=lines[0]||'';
+    let genre=null;
+    for(const g of GENRES)if(g.k.test(q.t)){genre=g;break}
+    if(genre&&type==='zhixing'){
+      details.push('识别文种：'+genre.name);
+      for(const[key,label]of genre.els){
+        let ok=false;
+        if(key==='title')ok=firstLine.length<=25&&firstLine.length>=2&&!/[。；]/.test(firstLine)&&lines.length>1;
+        if(key==='salut')ok=/^[^\s，。：]{1,14}[：:]\s*$/m.test(ans)||/各位|亲爱的|^市民|^村民|^居民|^同学们|^朋友们/m.test(ans);
+        if(key==='sign')ok=/(20\d{2}年)?\d{1,2}月\d{1,2}日/.test(ans.slice(-60))||/(局|办公室|委员会|中心|政府|村委会|社区|公司)\s*$/.test(lines[lines.length-1]||'');
+        if(key==='open')ok=/大家好|各位|今天|很荣幸/.test(ans.slice(0,90));
+        if(key==='close')ok=/谢谢|让我们|祝愿|希望|号召/.test(ans.slice(-120));
+        if(key==='view')ok=/^(我认为|笔者认为)|说明|表明|观点/.test(firstLine)||/说明|表明|可见|本质/.test(ans.slice(0,120));
+        if(key==='goal')ok/=/为了|旨在|目的|围绕|按照/.test(ans.slice(0,150));
+        if(key==='measures')ok=items(ans).n>=2;
+        if(key==='body')ok=true;
+        if(ok)details.push('✓ '+label+' 完整');
+        else{score-=13;issues.push('缺'+label+'：'+genre.name+'的格式要素「'+label+'」未检出（格式分一般占 5–8 分）');}
+      }
+    }
+    if(type==='zuowen'){
+      const hasTitle=firstLine.length<=25&&!/[。；！]/.test(firstLine)&&firstLine.length>=2;
+      if(hasTitle)details.push('✓ 有标题');
+      else{score-=15;issues.push('缺标题或首行不像标题：作文无标题按惯例扣 2 分');sugg.push('第一行单独写标题，可用"主标题＋副标题"式');}
+    }
+    const punct=(String(ans||'').match(/[，。；：、]/g)||[]).length/Math.max(1,n);
+    if(punct>0.3){score-=8;issues.push('标点密度偏高（卷面整洁度）：多为短句碎片，建议合并成完整表达');}
+    if(/\.{3,}|……\s*。/.test(ans)){score-=6;issues.push('答案中残留省略号：正式作答不能写"…"，需写完整');}
+    score=Math.max(10,Math.min(100,score));
+    return {key:'D',name:'格式卷面官',score:score,src:'SLB 贯彻执行格式分项 + 卷面整洁标准',
+      headline:issues.length?('检出 '+issues.length+' 个格式/字数问题'):'格式规范，字数控制好',details,issues,sugg};
+  }
+  // ---------- Skill E 深度论证官 ----------
+  function skillE(q,exam,ans){
+    const type=q._type;
+    const a=String(ans||'');const na=norm(a);
+    const it=items(a);
+    let score=52;const details=[],issues=[],sugg=[];
+    if(type==='duice'||type==='zhixing'){
+      const wannu=a.split(/[；\n]/).map(s=>s.trim()).filter(s=>WANNU.some(w=>norm(s).includes(norm(w))&&norm(s).length<norm(w).length+10));
+      const total=it.list.length||1;
+      const badRatio=Math.min(1,wannu.length/total);
+      score-=Math.round(42*badRatio);
+      if(wannu.length)issues.push('检出 '+wannu.length+' 条疑似万能对策（如「'+wannu[0].slice(0,18)+'」）：阅卷规则——万能对策每条最多得 1 分');
+      const withBoth=(na.match(SUBJ)||[]).length>=2&&(na.match(MEANS)||[]).length>=2;
+      const withMeans=(na.match(MEANS)||[]).length;
+      const withNum=/\d|%|成以上|逐年/.test(a);
+      if(withMeans>=3){score+=14;details.push('具体手段词 '+withMeans+' 处（建立/开展/引入…），操作性强');}
+      else{issues.push('手段表述笼统：每条对策按「主体＋手段＋内容＋目的」公式展开');sugg.push('套用公式改写一条试试："XX部门（主体）应通过XX（手段），实现XX（内容），从而XX（目的）"');}
+      if(withBoth){score+=10;details.push('主体与手段齐备');}
+      if(withNum){score+=8;details.push('有数量/程度化表达，更显具体');}
+    }
+    if(type==='zuowen'){
+      const examText=exam.m.map(m=>m.p.join('')).join('');
+      const keyT=keyTerms(examText,q.t);
+      const used=keyT.filter(t=>na.includes(t));
+      const quotes=(a.match(/[「“][^」”]{4,26}[」”]/g)||[]).length;
+      const hot=HOT.filter(h=>a.includes(h));
+      const nums=(a.match(/\d+(?:\.\d+)?[%万余]?(?:多年|年|人|户|个)?/g)||[]).length;
+      let ev=used.length*4+Math.min(12,nums*4)+quotes*6;
+      score+=Math.min(34,ev)+Math.min(12,hot.length*6);
+      details.push('调用材料关键词 '+used.length+' 个、数据表达 '+nums+' 处、引言 '+quotes+' 处、时政热词 '+hot.length+' 个'+(hot.length?'（'+hot.slice(0,3).join('、')+'）':''));
+      if(used.length<2)issues.push('与材料的呼应少：大作文虽不能照抄，但论点须从材料立意中来，可化用材料关键词');
+      if(nums===0&&quotes===0)issues.push('全文无论据支撑：缺数据、缺例证、缺引言，论证单薄会被压到三档');sugg.push('每个分论点配一个论据：材料案例的转述 / 政策数据 / 名言');
+      if(hot.length>=2)details.push('时政热词运用恰当，是加分项');
+    }
+    if(type==='guina'||type==='zonghe'){
+      const pureFacts=(a.match(/\d+(?:\.\d+)?[%万余年]?/g)||[]).length;
+      if(pureFacts>=2){score+=6;details.push('保留 '+pureFacts+' 处关键数据，归纳更准确');}
+      if(/本质|深层次|根源|实质|背后/.test(a)){score+=10;details.push('有透过现象看本质的表述');}
+      else issues.push('停留在表面现象：可用"其本质是/深层次原因在于"提炼一层');
+    }
+    score=Math.max(15,Math.min(98,Math.round(score)));
+    return {key:'E',name:'深度论证官',score:score,src:'SLB 万能对策识别 + 大作文论据加分项',
+      headline:issues.length?'具体性与论证深度待加强':'内容具体，论证有支撑',details,issues,sugg};
+  }
+  function grade(q,exam,ans){
+    const type=qType(q);
+    q._type=type;
+    const skills=[skillA(q,exam,ans),skillB(q,exam,ans),skillC(q,exam,ans),skillD(q,exam,ans),skillE(q,exam,ans)];
+    const w=WEIGHTS[type];
+    let comp=0;for(const s of skills)comp+=s.score*w[s.key];
+    comp=Math.round(comp);
+    const max=q.sc||100;
+    const final=Math.round(comp/100*max*10)/10;
+    let band;
+    if(type==='zuowen')band=comp>=85?'一类文':comp>=70?'二类文':comp>=55?'三类文':'四类文';
+    else band=comp>=80?'优秀':comp>=65?'良好':comp>=50?'合格':'待提高';
+    const ranked=[...skills].sort((x,y)=>x.score-y.score);
+    const top=[...new Set(ranked.slice(0,3).flatMap(s=>[...s.sugg,...s.issues]))].slice(0,4);
+    return {type,typeName:TYPE_NAME[type],comp,final,max,band,skills,top,at:new Date().toISOString(),n:norm(ans).length};
+  }
+  function toText(r){
+    const L=[];
+    L.push('申论批改报告 · '+r.typeName+' · 总分 '+r.final+'/'+r.max+' 分（'+r.band+'）');
+    L.push('＝'.repeat(24));
+    for(const s of r.skills){
+      L.push('');
+      L.push('【'+s.name+'】 '+s.score+' 分');
+      L.push('  '+s.headline);
+      for(const d of s.details)L.push('  · '+d);
+      for(const i of s.issues)L.push('  ▲ '+i);
+      for(const g of s.sugg)L.push('  → 建议：'+g);
+      L.push('  （标准来源：'+s.src+'）');
+    }
+    L.push('');
+    L.push('【优先改进】');
+    r.top.forEach((t,i)=>L.push((i+1)+'. '+t));
+    L.push('');
+    L.push('—— 本地规则引擎批改（评分知识来自开源考公项目 SLB / kaogong-skill / kaogong-formalizer），仅供参考');
+    return L.join('\n');
+  }
+  return {grade,toText,qType,TYPE_NAME,norm};
+})();
+window.GRADE=GRADE;
+
   const WS={exam:null,matIdx:0,qIdx:0,brush:'y',loaded:new Set(),timer:null,ann:null,saveT:null};
   function wsLoadGroup(grp){
     return new Promise(res=>{
@@ -797,6 +1147,56 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     setTimeout(()=>{if(Math.abs(box.scrollLeft-target)>0.5)box.scrollLeft=target;wsUpdatePage()},400);
   }
   function wsGoPage(dir){const box=$('#ws-material');if(!box)return;wsSnapTo(wsPages().now-1+dir)}
+  function wsGradeStore(){return JSON.parse(LS.getItem('sh_ws_grade_'+WS.exam.id)||'{}')}
+  function wsShowSavedReport(){
+    const p=$('#ws-grade');if(!p||!WS.exam)return;
+    const r=wsGradeStore()[WS.exam.q[WS.qIdx].no];
+    if(r){wsRenderReport(r,false)}else p.hidden=true;
+  }
+  $('#ws-grade-btn').addEventListener('click',()=>{
+    if(!WS.exam||WS.grading)return;
+    const txt=$('#ws-answer-input').value.trim();
+    if(GRADE.norm(txt).length<20){toast('答案还太短，先写到 20 字以上再提交批改');return}
+    const q=WS.exam.q[WS.qIdx];
+    const panel=$('#ws-grade');panel.hidden=false;
+    WS.grading=true;
+    const crew=['① 采点覆盖官','② 结构逻辑官','③ 规范表达官','④ 格式卷面官','⑤ 深度论证官'];
+    panel.innerHTML='<div class="gr-working">'+crew.map((n,i)=>'<div class="row" id="gw-'+i+'"><span class="dot"></span>'+n+' 正在阅卷…</div>').join('')+'</div>';
+    panel.scrollIntoView&&panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    const report=GRADE.grade(q,WS.exam,txt);
+    let i=0;
+    const step=()=>{
+      if(i>0){const prev=$('#gw-'+(i-1));if(prev){prev.classList.remove('on');prev.classList.add('done');prev.innerHTML='<span class="dot"></span>'+crew[i-1]+' · 完成'}}
+      if(i<crew.length){const cur=$('#gw-'+i);if(cur)cur.classList.add('on');i++;WS.gradingT=setTimeout(step,300+Math.random()*260)}
+      else{
+        WS.grading=false;
+        wsRenderReport(report,true);
+        const all=wsGradeStore();all[q.no]=report;LS.setItem('sh_ws_grade_'+WS.exam.id,JSON.stringify(all));
+        wsRenderQuestion();
+        toast('五位阅卷官批改完成：'+report.final+' / '+report.max+' 分（'+report.band+'）');
+      }
+    };
+    setTimeout(step,120);
+  });
+  function wsRenderReport(r,fresh){
+    const panel=$('#ws-grade');panel.hidden=false;
+    const sk=r.skills.map(s=>{
+      const li=d=>'<li class="'+(d[0]==='▲'?'warn':d[0]==='→'?'fix':'')+'">'+esc(d.replace(/^[▲→]\s*/,''))+'</li>';
+      return '<div class="gr-skill"><div class="gr-skill-head"><b>'+s.name+'</b><span class="pill '+(s.score>=75?'teal':s.score>=50?'orange':'')+'">'+s.score+' 分</span></div>'
+        +'<div class="gr-verdict">'+esc(s.headline)+'</div><div class="gr-bar"><i data-w="'+s.score+'"></i></div>'
+        +'<ul class="gr-list">'+s.details.map(li).join('')+s.issues.map(d=>li('▲ '+d)).join('')+s.sugg.map(d=>li('→ '+d)).join('')+'</ul>'
+        +'<p class="gr-src">标准来源：'+esc(s.src)+'</p></div>';
+    }).join('');
+    panel.innerHTML='<div class="gr-head"><div class="gr-score"><b>'+r.final+'</b><span>/ '+r.max+' 分</span></div>'
+      +'<div class="gr-band"><span class="pill main orange">'+r.band+'</span><span class="pill">'+r.typeName+'</span><span class="pill teal">五位阅卷官联评</span><span class="pill">'+(r.n||0)+' 字</span></div></div>'
+      +'<div class="gr-skills">'+sk+'</div>'
+      +(r.top.length?'<div class="gr-top"><b>优先改进（按影响从大到小）</b><ol>'+r.top.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol></div>':'')
+      +'<div class="gr-actions"><button class="mini-btn accent" id="gr-copy">复制完整报告</button><button class="mini-btn" id="gr-again">重新批改</button></div>'
+      +'<p class="gr-note">批改引擎为本地规则评分（评分知识取自开源考公项目 SLB 批改标准 / kaogong-skill 题型标准 / kaogong-formalizer 规范词映射），与真实阅卷存在差距，仅供参考。同题重新批改会覆盖本次结果。</p>';
+    requestAnimationFrame(()=>{panel.querySelectorAll('.gr-bar i').forEach(b=>b.style.width=b.dataset.w+'%')});
+    $('#gr-copy').addEventListener('click',()=>copy(GRADE.toText(r)));
+    $('#gr-again').addEventListener('click',()=>{$('#ws-grade-btn').click()});
+  }
   $('#ws-page-prev').addEventListener('click',()=>wsGoPage(-1));
   $('#ws-page-next').addEventListener('click',()=>wsGoPage(1));
   let wsSnapT=null;
@@ -823,10 +1223,11 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     const q=WS.exam.q[WS.qIdx];
     $('#ws-q-tabs').innerHTML=WS.exam.q.map((x,i)=>{
       const n=(wsLS()[WS.exam.id]||{})[x.no];
-      const wc=n?n.replace(/\s/g,'').length+'字':'';
-      return `<button class="${i===WS.qIdx?'active':''}" data-q="${i}">题 ${i+1}${wc?`<span class="mini">${wc}</span>`:''}</button>`;
+      const g=(WS.exam?wsGradeStore():{})[x.no]||null;
+      const wc=(n?n.replace(/\s/g,'').length+'字':'')+(g&&g.final!=null?' · 批'+g.final+'分':'');
+      return `<button class="${i===WS.qIdx?'active':''}" data-q="${i}">题 ${i+1}${wc?`<span class="mini${g?' gr':''}">${wc}</span>`:''}</button>`;
     }).join('');
-    $$('#ws-q-tabs button').forEach(b=>b.addEventListener('click',()=>{wsFlushSave();WS.qIdx=+b.dataset.q;wsRenderQuestion();wsLoadAnswer()}));
+    $$('#ws-q-tabs button').forEach(b=>b.addEventListener('click',()=>{wsFlushSave();WS.qIdx=+b.dataset.q;wsRenderQuestion();wsLoadAnswer();wsShowSavedReport()}));
     let html='<h3>'+esc(q.t)+'</h3><div class="ws-score">';
     if(q.sc) html+='<span class="pill orange">'+q.sc+' 分</span>';
     if(q.lm) html+='<span class="pill teal">限 '+q.lm+' 字</span>';
@@ -888,7 +1289,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;
-    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}
+    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;const gp=$('#ws-grade');if(gp){gp.hidden=true;gp.innerHTML=''}wsShowSavedReport()
   }
   $('#ws-exam').addEventListener('change',async e=>{
     const id=e.target.value;

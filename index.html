@@ -318,7 +318,8 @@ body.large-type .data-card p,body.large-type .review-item p,body.large-type .ws-
 .brush.active{opacity:1;border-color:var(--ink);transform:scale(1.1)}
 .brush.by{background:#c99a2e}.brush.bg{background:#4f8a5f}.brush.bb{background:#41729c}.brush.bo{background:#c2604a}
 .brush.bx{background:#8b9aa3}
-.ws-material{overflow-x:auto;overflow-y:hidden;padding:18px clamp(14px,2vw,26px) 22px;font-size:15.5px;line-height:2.02;flex:1;min-height:0;text-align:justify;overscroll-behavior-x:contain;column-fill:auto;column-gap:34px;column-rule:1px solid var(--line);scroll-behavior:smooth}
+.ws-material{overflow-x:auto;overflow-y:hidden;padding:18px clamp(14px,2vw,26px) 22px;font-size:15.5px;line-height:2.02;flex:1;min-height:0;text-align:justify;overscroll-behavior-x:contain;column-fill:auto;column-gap:34px;column-rule:1px solid var(--line);scroll-behavior:auto;scrollbar-width:none;-ms-overflow-style:none}
+.ws-material::-webkit-scrollbar{display:none}
 .ws-material p{margin:0 0 1em;text-indent:2em}
 .ws-material p.noind{text-indent:0}
 .ws-material .src{font-size:12px;color:var(--brand);font-weight:700;margin:0 0 10px}
@@ -762,10 +763,10 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
       }
       html+='</p>';
     });
-    const keepX=box.scrollLeft;
+    const keepPage=Math.round(box.scrollLeft/(WS.step||1));
     box.innerHTML=html;
     wsLayoutColumns();
-    box.scrollLeft=keepX;
+    box.scrollLeft=keepPage*(WS.step||1);
     wsUpdatePage();
     const cnt=wsGetAnn().ops.filter(o=>o.m===WS.matIdx&&o.c!=='x').length;
     $('#ws-hl-count').textContent='标注 '+cnt+' 处';
@@ -774,32 +775,39 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
   function wsLayoutColumns(){
     const box=$('#ws-material');if(!box)return;
     const gap=parseFloat(getComputedStyle(box).columnGap)||34;
-    WS.colW=Math.max(240,wsInnerW(box)-gap);WS.colGap=gap;
-    box.style.columnWidth=WS.colW+'px';box.style.columnGap=gap+'px';
+    const innerW=Math.max(220,wsInnerW(box));
+    WS.colGap=gap;WS.step=innerW+gap;
+    box.style.columnWidth=innerW+'px';box.style.columnGap=gap+'px';
   }
   function wsPages(){
-    const box=$('#ws-material');if(!box)return{now:1,total:1,step:1};
-    const step=WS.colW+WS.colGap;
+    const box=$('#ws-material');
+    if(!box||!WS.step)return{now:1,total:1,step:1};
+    const step=WS.step;
     const total=Math.max(1,Math.round((box.scrollWidth+WS.colGap)/step));
-    const now=Math.min(total,Math.round(box.scrollLeft/step)+1);
+    const now=Math.max(1,Math.min(total,Math.round(box.scrollLeft/step)+1));
     return{now,total,step};
   }
   function wsUpdatePage(){const p=wsPages();const el=$('#ws-page-ind');if(el)el.textContent='第 '+p.now+' / '+p.total+' 页'}
-  function wsGoPage(dir){
+  function wsSnapTo(pageIdx,instant){
     const box=$('#ws-material');if(!box)return;
-    const target=box.scrollLeft+dir*wsPages().step;
+    const p=wsPages();
+    const target=Math.max(0,Math.min(p.total-1,pageIdx))*p.step;
+    if(instant||Math.abs(box.scrollLeft-target)<2){box.scrollLeft=target;wsUpdatePage();return}
     if(box.scrollTo)box.scrollTo({left:target,behavior:'smooth'});else box.scrollLeft=target;
+    setTimeout(()=>{if(Math.abs(box.scrollLeft-target)>0.5)box.scrollLeft=target;wsUpdatePage()},400);
   }
+  function wsGoPage(dir){const box=$('#ws-material');if(!box)return;wsSnapTo(wsPages().now-1+dir)}
   $('#ws-page-prev').addEventListener('click',()=>wsGoPage(-1));
   $('#ws-page-next').addEventListener('click',()=>wsGoPage(1));
   let wsSnapT=null;
   const wsMatBox=$('#ws-material');
-  wsMatBox.addEventListener('scroll',()=>{wsUpdatePage();clearTimeout(wsSnapT);wsSnapT=setTimeout(()=>{const p=wsPages();const target=(p.now-1)*p.step;if(Math.abs(wsMatBox.scrollLeft-target)>4){if(wsMatBox.scrollTo)wsMatBox.scrollTo({left:target,behavior:'smooth'});else wsMatBox.scrollLeft=target}},220)});
+  wsMatBox.addEventListener('scroll',()=>{wsUpdatePage();clearTimeout(wsSnapT);wsSnapT=setTimeout(()=>wsSnapTo(wsPages().now-1,true),230)});
   wsMatBox.addEventListener('wheel',e=>{
-    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();wsMatBox.scrollLeft+=e.deltaY;if(wsMatBox.scrollTo)clearTimeout(wsSnapT)}
+    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();wsMatBox.scrollLeft+=e.deltaY}
   },{passive:false});
-  if(window.ResizeObserver){new ResizeObserver(()=>{wsLayoutColumns();wsUpdatePage()}).observe(wsMatBox)}
-  else window.addEventListener('resize',()=>{wsLayoutColumns();wsUpdatePage()});
+  function wsPreservePage(fn){const box=$('#ws-material');const now=wsPages().now;fn();wsLayoutColumns();if(box){box.scrollLeft=(now-1)*(WS.step||1);wsUpdatePage()}}
+  if(window.ResizeObserver){new ResizeObserver(()=>{wsPreservePage(()=>{})}).observe(wsMatBox)}
+  else window.addEventListener('resize',()=>wsPreservePage(()=>{}));
   function wsMatTabs(){
     $('#ws-mat-tabs').innerHTML=WS.exam.m.map((m,i)=>`<button class="${i===WS.matIdx?'active':''}" data-mat="${i}">资料 ${i+1}</button>`).join('');
     $$('#ws-mat-tabs button').forEach(b=>b.addEventListener('click',()=>{WS.matIdx=+b.dataset.mat;wsRenderMaterial();wsMatTabs();const mb=$('#ws-material');if(mb)mb.scrollLeft=0}));

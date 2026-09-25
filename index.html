@@ -540,7 +540,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
       </div>
     </div>
     <div class="ws-material" id="ws-material"></div>
-    <div class="ws-mat-foot"><span id="ws-hl-count">标注 0 处</span><div class="ws-pagebar"><button id="ws-page-prev" aria-label="上一页">←</button><b id="ws-page-ind">第 1 / 1 页</b><button id="ws-page-next" aria-label="下一页">→</button></div><button class="mini-btn" id="ws-clear-mat">清除本页标注</button></div>
+    <div class="ws-mat-foot"><span id="ws-hl-count">标注 0 处</span><div class="ws-pagebar"><button id="ws-page-prev" aria-label="上一页">←</button><b id="ws-page-ind">第 1 / 1 页</b><button id="ws-page-next" aria-label="下一页">→</button></div><button class="mini-btn" id="ws-undo-mat" hidden>↺ 撤销清除</button><button class="mini-btn" id="ws-clear-mat">清空本篇标注</button></div>
   </div>
   <div class="ws-panel ws-pane-r">
     <div class="ws-head"><div class="q-tabs" id="ws-q-tabs"></div></div>
@@ -850,7 +850,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
   }
   function wsRenderMeta(){
     const e=WS.exam;
-    $('#ws-meta').innerHTML=`<span class="pill">${esc(e.r==='国考'?'国家公务员':e.r)}</span><span class="pill orange">${e.y}${e.l?' · '+esc(e.l):''}</span><span class="pill teal">材料 ${e.m.length} 份 · ${e.c>=10000?(e.c/10000).toFixed(1)+'万字':e.c+'字'}</span><span class="ws-prog">${e.q.map((q,i)=>`<i class="${((wsLS()[e.id]||{})[q.no]||'').length>0?'on':''}"></i>`).join('')}</span>`;
+    $('#ws-meta').innerHTML=`<span class="pill">${esc(e.r==='国考'?'国家公务员':e.r)}</span><span class="pill orange">${e.y}${e.l?' · '+esc(e.l):''}</span><span class="pill teal">材料 ${e.m.length} 份 · ${e.c>=10000?(e.c/10000).toFixed(1)+'万字':e.c+'字'}</span><span class="pill orange" id="ws-ann-total">标注 ${wsGetAnn().ops.filter(o=>o.c!=='x').length} 处</span><span class="ws-prog">${e.q.map((q,i)=>`<i class="${((wsLS()[e.id]||{})[q.no]||'').length>0?'on':''}"></i>`).join('')}</span>`;
   }
   function wsFillSelect(){
     const idx=window.SH_EXAM_INDEX||[];
@@ -871,11 +871,11 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     if(!window.SH_EXAMS){ empty.hidden=false;grid.hidden=true;empty.textContent='正在加载真题库（约 1–2 秒）……'; }
     if(!$('#ws-exam').options.length) wsFillSelect();
     if(!WS.exam){
-      const last=LS.getItem('sh_ws_last');
-      const cand=last&&wsGetExam(last)?last:(window.SH_EXAM_INDEX[0]||{}).id;
+      const lastId=LS.getItem('sh_ws_last');
+      const meta=(window.SH_EXAM_INDEX||[]).find(x=>x.id===lastId);
+      const cand=meta?meta.id:(window.SH_EXAM_INDEX[0]||{}).id;
       if(!cand){empty.hidden=false;grid.hidden=true;empty.textContent='真题库为空';return}
-      const grp=(window.SH_EXAM_INDEX.find(x=>x.id===cand)||{}).grp||'gk';
-      await wsLoadGroup(grp);
+      await wsLoadGroup(meta?meta.grp:'gk');
       const ex=wsGetExam(cand);
       if(!ex){empty.hidden=false;grid.hidden=true;empty.textContent='加载失败，请刷新重试';return}
       wsSetExam(ex);
@@ -884,7 +884,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     wsLayoutColumns();wsUpdatePage();
   }
   function wsSetExam(ex){
-    WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;
+    WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;
     wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}
@@ -907,7 +907,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     for(let i=s;i<f;i++){ const c=col[i]&&col[i]!=='x'?col[i]:null; if(c!==c0){same=false;break} }
     const next=same&&c0?'x':WS.brush;
     if(next!=='x'||c0){ wsGetAnn().ops.push({m:WS.matIdx,p,s,e:f,c:next}); wsSaveAnn(); }
-    wsRenderMaterial();wsMatTabs();
+    wsRenderMaterial();wsMatTabs();wsRenderMeta();
   });
   document.addEventListener('selectionchange',()=>{});
   $('#ws-material').addEventListener('mouseup',()=>{
@@ -931,7 +931,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     let s=Math.min(ao.o,fo.o),e2=Math.max(ao.o,fo.o);
     const para=WS.exam.m[WS.matIdx].p[ao.p];
     e2=Math.min(e2,para.length);
-    if(e2-s>=1){ wsGetAnn().ops.push({m:WS.matIdx,p:ao.p,s,e:e2,c:WS.brush==='x'?'x':WS.brush}); wsSaveAnn(); wsRenderMaterial();wsMatTabs(); }
+    if(e2-s>=1){ wsGetAnn().ops.push({m:WS.matIdx,p:ao.p,s,e:e2,c:WS.brush==='x'?'x':WS.brush}); wsSaveAnn(); wsRenderMaterial();wsMatTabs();wsRenderMeta(); }
     sel.removeAllRanges&&sel.removeAllRanges();
   });
   $$('.brush').forEach(b=>b.addEventListener('click',()=>{
@@ -941,8 +941,21 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
   }));
   $('#ws-clear-mat').addEventListener('click',()=>{
     if(!WS.exam) return;
-    WS.exam.m[WS.matIdx].p.forEach((para,p)=>wsGetAnn().ops.push({m:WS.matIdx,p,s:0,e:para.length+1,c:'x'}));
-    wsSaveAnn();wsRenderMaterial();wsMatTabs();toast('已清除本资料标注');
+    const ops=wsGetAnn().ops;
+    const removed=ops.filter(o=>o.m===WS.matIdx);
+    if(!removed.length){toast('这一篇还没有标注');return}
+    WS.undoOps=removed;
+    wsGetAnn().ops=ops.filter(o=>o.m!==WS.matIdx);
+    wsSaveAnn();wsRenderMaterial();wsMatTabs();wsRenderMeta();
+    $('#ws-undo-mat').hidden=false;
+    toast('已清除「资料 '+(WS.matIdx+1)+'」的 '+removed.length+' 处标注，可撤销');
+  });
+  $('#ws-undo-mat').addEventListener('click',()=>{
+    if(!WS.exam||!WS.undoOps){$('#ws-undo-mat').hidden=true;return}
+    wsGetAnn().ops.push(...WS.undoOps);
+    wsSaveAnn();wsRenderMaterial();wsMatTabs();wsRenderMeta();
+    WS.undoOps=null;$('#ws-undo-mat').hidden=true;
+    toast('已恢复 '+WS.exam.m[WS.matIdx].p.length+' 段的标注');
   });
   /* answer input */
   $('#ws-answer-input').addEventListener('input',()=>{

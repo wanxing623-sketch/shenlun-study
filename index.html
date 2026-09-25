@@ -451,41 +451,80 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .tabbar button{min-height:54px}
 }
 /* ===== 批改报告 ===== */
-#ws-grade{margin-top:12px;border-top:1px dashed var(--line-strong);padding-top:14px}
-.gr-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
-.gr-score b{font-size:34px;font-weight:800;color:var(--brand);line-height:1}
-.gr-score span{color:var(--muted);font-size:12px;margin-left:4px}
-.gr-band{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+#ws-grade{margin-top:12px}
+.gr-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px 15px;box-shadow:var(--shadow)}
+.gr-head{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.gr-left{display:flex;align-items:center;gap:16px;min-width:230px;flex:1}
+.gr-ringwrap{position:relative;width:104px;height:104px;flex:none}
+.gr-ringwrap svg.ring{width:104px;height:104px;display:block}
+.gr-ring .fg{transition:stroke-dashoffset .9s cubic-bezier(.22,.8,.3,1)}
+.gr-score{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.gr-score b{font-size:27px;font-weight:800;color:var(--brand)}
+.gr-score span{color:var(--muted);font-size:10.5px;margin-top:3px}
+.gr-band{display:flex;gap:6px;flex-wrap:wrap}
 .gr-band .pill{font-size:11px;padding:4px 10px}
 .gr-band .pill.main{font-size:12.5px}
-.gr-skills{display:grid;gap:10px;margin:14px 0}
-.gr-skill{border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--surface-2)}
-.gr-skill-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.gr-skill-head b{font-size:13px}
-.gr-skill-head .pill{margin-left:auto}
-.gr-verdict{font-size:11.5px;color:var(--muted);margin:4px 0 7px}
-.gr-bar{height:6px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:8px}
-.gr-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--brand),var(--ok));border-radius:99px;transition:width .6s ease}
-.gr-list{margin:0;padding-left:2px;font-size:12px;color:var(--muted);line-height:1.85;list-style:none}
+.gr-sub{font-size:11px;color:var(--faint);margin-top:7px}
+.gr-radar{text-align:center}
+.gr-radar svg{width:186px;height:186px;display:block;margin:0 auto}
+.gr-radar .grid{fill:none;stroke:var(--line-strong)}
+.gr-radar .gridsoft{fill:none;stroke:var(--line)}
+.gr-radar .axis{stroke:var(--line)}
+.gr-radar .data{fill:color-mix(in srgb,var(--brand) 18%,transparent);stroke:var(--brand);stroke-width:2;stroke-linejoin:round}
+.gr-radar .dt{fill:var(--brand)}
+.gr-radar text{font-size:11px;fill:var(--muted)}
+.gr-radar tspan.v{font-weight:800;fill:var(--ink)}
+.gr-cap{font-size:10.5px;color:var(--faint);margin-top:2px}
+.gr-skills{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:12px;margin:16px 0 14px}
+.gr-skill{border:1px solid var(--line);border-radius:14px;padding:13px 15px 11px;background:var(--surface-2);transition:border-color .2s}
+.gr-skill:hover{border-color:var(--line-strong)}
+.gr-skill-head{display:flex;align-items:center;gap:9px}
+.gr-ico{width:27px;height:27px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:800;background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--brand);flex:none}
+.gr-skill-head b{font-size:13.5px}
+.gr-sp{margin-left:auto;font-size:15px;font-weight:800;padding:1px 9px;border-radius:9px}
+.gr-sp.s4{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.gr-sp.s3{background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand)}
+.gr-sp.s2{background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold)}
+.gr-sp.s1{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.gr-verdict{font-size:12px;color:var(--ink);margin:9px 0 8px;font-weight:600}
+.gr-bar{height:5px;background:color-mix(in srgb,var(--line-strong) 40%,transparent);border-radius:99px;overflow:hidden;margin-bottom:9px}
+.gr-bar i{display:block;height:100%;width:0;border-radius:99px;transition:width .7s cubic-bezier(.22,.8,.3,1);background:var(--brand)}
+.gr-bar i.s4{background:var(--ok)}.gr-bar i.s3{background:var(--brand)}.gr-bar i.s2{background:var(--gold)}.gr-bar i.s1{background:var(--accent)}
+.gr-list{margin:0;padding:0;font-size:12px;color:var(--muted);line-height:1.9;list-style:none}
 .gr-list li::before{content:"·";margin-right:6px;color:var(--faint)}
 .gr-list li.warn::before{content:"▲";color:var(--accent);font-size:9px}
-.gr-list li.fix::before{content:"→";color:var(--ok)}
-.gr-src{font-size:10px;color:var(--faint);margin:6px 0 0}
-.gr-top{background:var(--accent-soft);border-radius:12px;padding:12px 15px;font-size:12.5px}
+.gr-list li.warn{color:var(--ink)}
+.gr-list li.fix::before{content:"→";color:var(--ok);font-weight:700}
+.gr-src{font-size:10px;color:var(--faint);margin:8px 0 0;padding-top:6px;border-top:1px dashed var(--line)}
+.gr-top{background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:12px;padding:12px 15px;font-size:12.5px}
 .gr-top b{color:var(--accent)}
 .gr-top ol{margin:7px 0 0;padding-left:18px;line-height:1.95;color:var(--ink)}
-.gr-actions{display:flex;gap:9px;margin-top:12px;flex-wrap:wrap}
+.gr-actions{display:flex;gap:9px;margin-top:13px;flex-wrap:wrap}
 .gr-note{font-size:10.5px;color:var(--faint);margin-top:10px;line-height:1.8}
-.gr-working{display:flex;flex-direction:column;gap:9px;padding:8px 2px}
-.gr-working .row{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted)}
+.gr-working{background:var(--surface-2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.gr-working .row{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
 .gr-working .row .dot{width:8px;height:8px;border-radius:50%;background:var(--line-strong);flex:none}
+.gr-working .row.on{color:var(--ink)}
 .gr-working .row.on .dot{background:var(--gold);animation:grpulse 1s infinite}
-.gr-working .row.done{color:var(--muted)}
 .gr-working .row.done .dot{background:var(--ok)}
 @keyframes grpulse{50%{opacity:.35}}
+@media (max-width:420px){.gr-radar svg{width:150px;height:150px}}
 .mini-btn.accent{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
 .mini-btn.accent:hover{background:var(--brand-hover);color:var(--on-brand)}
 .q-tabs button .mini.gr{color:var(--accent);font-weight:800}
+/* ===== 站内确认弹窗 ===== */
+#app-confirm{position:fixed;inset:0;z-index:120;display:grid;place-items:center}
+#app-confirm[hidden]{display:none}
+#app-confirm .ac-mask{position:absolute;inset:0;background:rgba(10,14,20,.46);opacity:0;transition:opacity .18s}
+#app-confirm.show .ac-mask{opacity:1}
+#app-confirm .ac-box{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:20px;max-width:min(88vw,380px);width:100%;transform:translateY(12px) scale(.97);opacity:0;transition:.18s}
+#app-confirm.show .ac-box{transform:none;opacity:1}
+.ac-msg{margin:0 0 16px;font-size:14px;line-height:1.7;color:var(--ink)}
+.ac-btns{display:flex;gap:10px;justify-content:flex-end}
+.ac-btn{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-family:inherit}
+.ac-btn:hover{border-color:var(--line-strong)}
+.ac-btn.yes{background:var(--accent);border-color:var(--accent);color:#fff}
+.ac-btn.yes:hover{filter:brightness(1.1)}
 
 /* ========== 打印 ========== */
 @media print{
@@ -662,6 +701,21 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
  function setMastery(id,level){state.mastery[id]=level;save();renderAll();if(state.view==='vocab')selectVocab(id);toast(level===2?'已标记为掌握':'已加入待复习')}
  function renderAll(){if(state.view==='dashboard')renderDashboard();if(state.view==='vocab')renderVocab();if(state.view==='strategy')renderStrategy();if(state.view==='cases')renderCases();if(state.view==='format')renderFormat();if(state.view==='review')renderReview();if(state.view==='settings')renderSettings();if(state.view==='workspace')renderWorkspace()}
  function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),1800)}
+  function appConfirm(msg,onOk,okText){
+    let ov=document.getElementById('app-confirm');
+    if(!ov){
+      ov=document.createElement('div');ov.id='app-confirm';ov.hidden=true;
+      ov.innerHTML='<div class="ac-mask"></div><div class="ac-box" role="alertdialog" aria-modal="true"><p class="ac-msg"></p><div class="ac-btns"><button type="button" class="ac-btn no">取消</button><button type="button" class="ac-btn yes">确定</button></div></div>';
+      document.body.appendChild(ov);
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ov.hidden)ov.querySelector('.ac-btn.no').click()});
+    }
+    ov.querySelector('.ac-msg').textContent=msg;
+    ov.querySelector('.ac-btn.yes').textContent=okText||'确定';
+    ov.hidden=false;requestAnimationFrame(()=>ov.classList.add('show'));
+    const done=ok=>{ov.classList.remove('show');setTimeout(()=>{ov.hidden=true},190);if(ok&&onOk)onOk()};
+    ov.querySelector('.ac-btn.no').onclick=()=>done(false);
+    ov.querySelector('.ac-btn.yes').onclick=()=>done(true);
+  }
  function addRecent(type,id,title,sub){state.recent=[{type,id,title,sub},...state.recent.filter(x=>!(x.type===type&&String(x.id)===String(id)))].slice(0,6);save()}
  function openView(view){state.view=view;closeDrawer();const sb=$('#sidebar');if(sb)sb.classList.remove('open');const sc=$('#scrim');if(sc)sc.classList.remove('show');$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view)); $$('.nav button').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')}); $$('.tabbar button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view)); $('#page-title').textContent=viewNames[view][0];$('#page-subtitle').textContent=viewNames[view][1]; if(view==='dashboard')renderDashboard(); if(view==='vocab')renderVocab(); if(view==='strategy')renderStrategy(); if(view==='cases')renderCases(); if(view==='format')renderFormat(); if(view==='review')renderReview(); if(view==='settings')renderSettings(); if(view==='workspace')renderWorkspace()}
  $$('.nav button').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
@@ -725,7 +779,7 @@ function renderReview(){const all=DATA.vocab.map((x,i)=>({...x,id:i}));const due
 function renderSettings(){const font=LS.getItem('sh_font')||'normal';$$('[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===font));const reduce=LS.getItem('sh_reduce_motion')==='1';$('#reduce-motion').classList.toggle('on',reduce);$('#reduce-motion').setAttribute('aria-pressed',reduce);document.body.classList.toggle('large-type',font==='large');document.body.classList.toggle('reduce-motion',reduce)}
 function exportData(){const drafts={};const ws={};for(let i=0;i<LS.length;i++){const k=LS.key(i);if(k&&k.indexOf('sh_ws_')===0)ws[k]=LS.getItem(k)}const payload={app:'申论词库·写作训练台',version:4,exportedAt:new Date().toISOString(),favorites:state.favorites,mastery:state.mastery,tasks:state.tasks,plan:state.plan,note:LS.getItem('sh_note')||'',font:LS.getItem('sh_font')||'normal',drafts,ws};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='申论词库学习备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);toast('备份已导出')}
 function renderNotesPane(){const t=$('#note-text');if(t)t.value=LS.getItem('sh_note')||''}
-    $('#save-note').addEventListener('click',()=>{LS.setItem('sh_note',$('#note-text').value);$('#note-status').textContent='已保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});toast('笔记已保存到本机')});$('#clear-favs').addEventListener('click',()=>{if(confirm('确定清空全部收藏吗？')){state.favorites={};save();renderReview();toast('已清空收藏')}});$('#review-start').addEventListener('click',()=>{const t=$('#review-train');t.hidden=false;makePractice();renderPractice();t.scrollIntoView&&t.scrollIntoView({behavior:'smooth',block:'start'});toast('已生成 10 题快闪训练，答题后用按钮自评')});$('#export-data').addEventListener('click',exportData);$$('[data-font]').forEach(b=>b.addEventListener('click',()=>{LS.setItem('sh_font',b.dataset.font);renderSettings();toast(b.dataset.font==='large'?'已切换为大字号':'已切换为标准字号')}));$('#reduce-motion').addEventListener('click',()=>{const next=LS.getItem('sh_reduce_motion')==='1'?'0':'1';LS.setItem('sh_reduce_motion',next);renderSettings()});$('#import-data').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const d=JSON.parse(reader.result);if(d.favorites)state.favorites=d.favorites;if(d.mastery)state.mastery=d.mastery;if(d.tasks)state.tasks=d.tasks;if(d.plan)state.plan=d.plan;if(typeof d.note==='string')LS.setItem('sh_note',d.note);if(d.goal)LS.setItem('sh_goal',d.goal);if(d.font)LS.setItem('sh_font',d.font);if(d.drafts)Object.keys(d.drafts).forEach(k=>LS.setItem('sh_draft_'+k,d.drafts[k]||''));if(d.ws&&typeof d.ws==='object')Object.keys(d.ws).forEach(k=>{if(k.indexOf('sh_ws_')===0)LS.setItem(k,d.ws[k])});save();renderAll();renderSettings();toast('备份已恢复')}catch(err){toast('文件格式不正确，无法导入')}};reader.readAsText(file);e.target.value='' });$('#reset-data').addEventListener('click',()=>{if(!confirm('确定删除所有学习记录吗？内置资料不会删除。'))return;['sh_favorites','sh_mastery','sh_tasks','sh_plan','sh_recent','sh_note','sh_goal','sh_font','sh_reduce_motion','sh_draft_0','sh_draft_1','sh_draft_2'].forEach(k=>LS.removeItem(k));Object.keys(localStorage).filter(k=>k.indexOf('sh_ws_')===0).forEach(k=>LS.removeItem(k));location.reload()});
+    $('#save-note').addEventListener('click',()=>{LS.setItem('sh_note',$('#note-text').value);$('#note-status').textContent='已保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});toast('笔记已保存到本机')});$('#clear-favs').addEventListener('click',()=>{appConfirm('确定清空全部收藏吗？清空后不可恢复。',()=>{state.favorites={};save();renderReview();toast('已清空收藏')},'清空')});$('#review-start').addEventListener('click',()=>{const t=$('#review-train');t.hidden=false;makePractice();renderPractice();t.scrollIntoView&&t.scrollIntoView({behavior:'smooth',block:'start'});toast('已生成 10 题快闪训练，答题后用按钮自评')});$('#export-data').addEventListener('click',exportData);$$('[data-font]').forEach(b=>b.addEventListener('click',()=>{LS.setItem('sh_font',b.dataset.font);renderSettings();toast(b.dataset.font==='large'?'已切换为大字号':'已切换为标准字号')}));$('#reduce-motion').addEventListener('click',()=>{const next=LS.getItem('sh_reduce_motion')==='1'?'0':'1';LS.setItem('sh_reduce_motion',next);renderSettings()});$('#import-data').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const d=JSON.parse(reader.result);if(d.favorites)state.favorites=d.favorites;if(d.mastery)state.mastery=d.mastery;if(d.tasks)state.tasks=d.tasks;if(d.plan)state.plan=d.plan;if(typeof d.note==='string')LS.setItem('sh_note',d.note);if(d.goal)LS.setItem('sh_goal',d.goal);if(d.font)LS.setItem('sh_font',d.font);if(d.drafts)Object.keys(d.drafts).forEach(k=>LS.setItem('sh_draft_'+k,d.drafts[k]||''));if(d.ws&&typeof d.ws==='object')Object.keys(d.ws).forEach(k=>{if(k.indexOf('sh_ws_')===0)LS.setItem(k,d.ws[k])});save();renderAll();renderSettings();toast('备份已恢复')}catch(err){toast('文件格式不正确，无法导入')}};reader.readAsText(file);e.target.value='' });$('#reset-data').addEventListener('click',()=>{appConfirm('确定删除所有学习记录吗？内置资料不会删除。',()=>{['sh_favorites','sh_mastery','sh_tasks','sh_plan','sh_recent','sh_note','sh_goal','sh_font','sh_reduce_motion','sh_draft_0','sh_draft_1','sh_draft_2'].forEach(k=>LS.removeItem(k));Object.keys(localStorage).filter(k=>k.indexOf('sh_ws_')===0).forEach(k=>LS.removeItem(k));location.reload()},'删除')});
      function applyTheme(){
         const pref=LS.getItem('sh_theme')||'auto';
         const sysDark=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1161,12 +1215,12 @@ window.GRADE=GRADE;
     const panel=$('#ws-grade');panel.hidden=false;
     WS.grading=true;
     const crew=['① 采点覆盖官','② 结构逻辑官','③ 规范表达官','④ 格式卷面官','⑤ 深度论证官'];
-    panel.innerHTML='<div class="gr-working">'+crew.map((n,i)=>'<div class="row" id="gw-'+i+'"><span class="dot"></span>'+n+' 正在阅卷…</div>').join('')+'</div>';
+    panel.innerHTML='<div class="gr-card"><div class="gr-working">'+crew.map((n,i)=>'<div class="row" id="gw-'+i+'"><span class="dot"></span>'+n+' 正在阅卷…</div>').join('')+'</div></div>';
     panel.scrollIntoView&&panel.scrollIntoView({behavior:'smooth',block:'nearest'});
     const report=GRADE.grade(q,WS.exam,txt);
     let i=0;
     const step=()=>{
-      if(i>0){const prev=$('#gw-'+(i-1));if(prev){prev.classList.remove('on');prev.classList.add('done');prev.innerHTML='<span class="dot"></span>'+crew[i-1]+' · 完成'}}
+      if(i>0){const prev=$('#gw-'+(i-1));if(prev){prev.classList.remove('on');prev.classList.add('done');prev.innerHTML='<span class="dot"></span>'+crew[i-1]+' ✓'}}
       if(i<crew.length){const cur=$('#gw-'+i);if(cur)cur.classList.add('on');i++;WS.gradingT=setTimeout(step,300+Math.random()*260)}
       else{
         WS.grading=false;
@@ -1180,20 +1234,54 @@ window.GRADE=GRADE;
   });
   function wsRenderReport(r,fresh){
     const panel=$('#ws-grade');panel.hidden=false;
+    const lv=s=>s.score>=85?4:s.score>=70?3:s.score>=55?2:1;
+    const icos={A:'采',B:'构',C:'表',D:'卷',E:'论'};
     const sk=r.skills.map(s=>{
       const li=d=>'<li class="'+(d[0]==='▲'?'warn':d[0]==='→'?'fix':'')+'">'+esc(d.replace(/^[▲→]\s*/,''))+'</li>';
-      return '<div class="gr-skill"><div class="gr-skill-head"><b>'+s.name+'</b><span class="pill '+(s.score>=75?'teal':s.score>=50?'orange':'')+'">'+s.score+' 分</span></div>'
-        +'<div class="gr-verdict">'+esc(s.headline)+'</div><div class="gr-bar"><i data-w="'+s.score+'"></i></div>'
+      return '<div class="gr-skill"><div class="gr-skill-head"><span class="gr-ico">'+(icos[s.key]||'阅')+'</span><b>'+s.name+'</b><span class="gr-sp s'+lv(s)+'">'+s.score+'</span></div>'
+        +'<div class="gr-verdict">'+esc(s.headline)+'</div><div class="gr-bar"><i class="s'+lv(s)+'" data-w="'+s.score+'"></i></div>'
         +'<ul class="gr-list">'+s.details.map(li).join('')+s.issues.map(d=>li('▲ '+d)).join('')+s.sugg.map(d=>li('→ '+d)).join('')+'</ul>'
         +'<p class="gr-src">标准来源：'+esc(s.src)+'</p></div>';
     }).join('');
-    panel.innerHTML='<div class="gr-head"><div class="gr-score"><b>'+r.final+'</b><span>/ '+r.max+' 分</span></div>'
-      +'<div class="gr-band"><span class="pill main orange">'+r.band+'</span><span class="pill">'+r.typeName+'</span><span class="pill teal">五位阅卷官联评</span><span class="pill">'+(r.n||0)+' 字</span></div></div>'
+    const cx=125,cy=125,R=70,lab=88;
+    const ang=i=>(-90+i*72)*Math.PI/180;
+    const pt=(i,rad)=>[cx+rad*Math.cos(ang(i)),cy+rad*Math.sin(ang(i))];
+    const poly=f=>[0,1,2,3,4].map(i=>pt(i,R*f).map(v=>v.toFixed(1)).join(',')).join(' ');
+    let grid='';[0.25,0.5,0.75].forEach(f=>grid+='<polygon class="gridsoft" points="'+poly(f)+'"/>');
+    grid+='<polygon class="grid" points="'+poly(1)+'"/>';
+    let axes='';for(let i=0;i<5;i++){const p=pt(i,R);axes+='<line class="axis" x1="'+cx+'" y1="'+cy+'" x2="'+p[0].toFixed(1)+'" y2="'+p[1].toFixed(1)+'"/>'}
+    const short={A:'采点',B:'结构',C:'表达',D:'格式',E:'论证'};
+    let labels='';
+    r.skills.forEach((s,i)=>{
+      const p=pt(i,lab),c=Math.cos(ang(i)),sn=Math.sin(ang(i));
+      const anchor=Math.abs(c)<.3?'middle':(c>0?'start':'end');
+      const dy=sn<-.5?-3:(sn>.5?11:4);
+      labels+='<text x="'+p[0].toFixed(1)+'" y="'+(p[1]+dy).toFixed(1)+'" text-anchor="'+anchor+'">'+short[s.key]+' <tspan class="v">'+s.score+'</tspan></text>';
+    });
+    const rv=i=>R*Math.max(6,r.skills[i].score)/100;
+    const data=[0,1,2,3,4].map(i=>pt(i,rv(i)).map(v=>v.toFixed(1)).join(',')).join(' ');
+    const dots=[0,1,2,3,4].map(i=>{const p=pt(i,rv(i));return '<circle class="dt" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.2"/>'}).join('');
+    const C=2*Math.PI*52,C1=C.toFixed(1),OFF=(C*(1-Math.min(1,r.final/r.max))).toFixed(1);
+    panel.innerHTML='<div class="gr-card">'
+      +'<div class="gr-head"><div class="gr-left">'
+      +'<div class="gr-ringwrap"><svg class="gr-ring ring" viewBox="0 0 120 120" aria-hidden="true">'
+      +'<defs><linearGradient id="grgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--brand)"/><stop offset="1" style="stop-color:var(--ok)"/></linearGradient></defs>'
+      +'<circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="9"/>'
+      +'<circle class="fg" cx="60" cy="60" r="52" fill="none" stroke="url(#grgrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="'+C1+'" stroke-dashoffset="'+C1+'" transform="rotate(-90 60 60)" data-off="'+OFF+'"/>'
+      +'</svg><div class="gr-score"><b>'+r.final+'</b><span>/ '+r.max+' 分</span></div></div>'
+      +'<div><div class="gr-band"><span class="pill main orange">'+r.band+'</span><span class="pill">'+r.typeName+'</span><span class="pill teal">'+(r.n||0)+' 字</span></div>'
+      +'<div class="gr-sub">五位阅卷官联评 · '+(fresh?'刚刚':'上次批改')+'</div></div></div>'
+      +'<div class="gr-radar"><svg viewBox="0 0 250 250" aria-hidden="true">'+grid+axes
+      +'<polygon class="data" points="'+data+'"/>'+dots+labels+'</svg><div class="gr-cap">五维能力雷达</div></div></div>'
       +'<div class="gr-skills">'+sk+'</div>'
       +(r.top.length?'<div class="gr-top"><b>优先改进（按影响从大到小）</b><ol>'+r.top.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol></div>':'')
       +'<div class="gr-actions"><button class="mini-btn accent" id="gr-copy">复制完整报告</button><button class="mini-btn" id="gr-again">重新批改</button></div>'
-      +'<p class="gr-note">批改引擎为本地规则评分（评分知识取自开源考公项目 SLB 批改标准 / kaogong-skill 题型标准 / kaogong-formalizer 规范词映射），与真实阅卷存在差距，仅供参考。同题重新批改会覆盖本次结果。</p>';
-    requestAnimationFrame(()=>{panel.querySelectorAll('.gr-bar i').forEach(b=>b.style.width=b.dataset.w+'%')});
+      +'<p class="gr-note">批改引擎为本地规则评分（评分知识取自开源考公项目 SLB 批改标准 / kaogong-skill 题型标准 / kaogong-formalizer 规范词映射），与真实阅卷存在差距，仅供参考。同题重新批改会覆盖本次结果。</p>'
+      +'</div>';
+    requestAnimationFrame(()=>{
+      panel.querySelectorAll('.gr-bar i').forEach(b=>b.style.width=b.dataset.w+'%');
+      const fg=panel.querySelector('.gr-ring .fg');if(fg)fg.style.strokeDashoffset=fg.dataset.off;
+    });
     $('#gr-copy').addEventListener('click',()=>copy(GRADE.toText(r)));
     $('#gr-again').addEventListener('click',()=>{$('#ws-grade-btn').click()});
   }
@@ -1368,8 +1456,10 @@ window.GRADE=GRADE;
   });
   $('#ws-copy-ans').addEventListener('click',()=>copy($('#ws-answer-input').value||' '));
   $('#ws-clear-ans').addEventListener('click',()=>{
-    if(!confirm('确定清空本题作答吗？')) return;
-    $('#ws-answer-input').value='';wsFlushSave();wsCount();wsRenderMeta();toast('已清空本题');
+    if(!$('#ws-answer-input').value){toast('本题还没有作答');return}
+    appConfirm('确定清空本题作答吗？',()=>{
+      $('#ws-answer-input').value='';wsFlushSave();wsCount();wsRenderMeta();toast('已清空本题');
+    },'清空');
   });
   /* timer */
   function wsTimerShow(){

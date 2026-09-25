@@ -302,10 +302,7 @@ body.large-type .data-card p,body.large-type .review-item p,body.large-type .ws-
 .ws-timer{margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--side);color:var(--side-ink);border-radius:11px;padding:7px 12px;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px}
 .ws-timer button{background:rgba(255,255,255,.1);color:var(--side-ink);border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;min-height:30px}
 .ws-timer button:hover{background:rgba(255,255,255,.2)}
-.ws-pane-toggle{display:none;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:12px;width:100%}
-.ws-pane-toggle button{flex:1;min-height:40px;border-radius:8px;font-size:13.5px;font-weight:700;color:var(--muted)}
-.ws-pane-toggle button.active{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.ws-grid{display:grid;grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr);gap:16px;align-items:start}
+.ws-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
 .ws-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:340px}
 .ws-left{position:sticky;top:calc(var(--topbar-h) + 12px);height:calc(100vh - var(--topbar-h) - 24px);height:calc(100dvh - var(--topbar-h) - 24px)}
 .ws-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 13px;border-bottom:1px solid var(--line)}
@@ -321,9 +318,14 @@ body.large-type .data-card p,body.large-type .review-item p,body.large-type .ws-
 .brush.active{opacity:1;border-color:var(--ink);transform:scale(1.1)}
 .brush.by{background:#c99a2e}.brush.bg{background:#4f8a5f}.brush.bb{background:#41729c}.brush.bo{background:#c2604a}
 .brush.bx{background:#8b9aa3}
-.ws-material{overflow-y:auto;padding:20px clamp(16px,2.5vw,28px) 28px;font-size:16px;line-height:2.05;flex:1;text-align:justify;overscroll-behavior:contain}
-.ws-material p{margin:0 0 1em}
+.ws-material{overflow-x:auto;overflow-y:hidden;padding:18px clamp(14px,2vw,26px) 22px;font-size:15.5px;line-height:2.02;flex:1;min-height:0;text-align:justify;overscroll-behavior-x:contain;column-fill:auto;column-gap:34px;column-rule:1px solid var(--line);scroll-behavior:smooth}
+.ws-material p{margin:0 0 1em;text-indent:2em}
+.ws-material p.noind{text-indent:0}
 .ws-material .src{font-size:12px;color:var(--brand);font-weight:700;margin:0 0 10px}
+.ws-pagebar{display:flex;align-items:center;gap:6px;margin-left:auto}
+.ws-pagebar b{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ws-pagebar button{width:30px;min-height:30px;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--muted);font-size:13px}
+.ws-pagebar button:hover{color:var(--brand);border-color:var(--brand)}
 .sn{cursor:pointer;border-radius:3px;transition:background .12s}
 .sn:hover{background:rgba(201,154,46,.16)}
 :root[data-theme="dark"] .sn:hover{background:rgba(212,172,99,.18)}
@@ -405,12 +407,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .sidebar.collapsed .brand>div:last-child,.sidebar.collapsed .nav-title,.sidebar.collapsed .nav button span:not(.nav-ico),.sidebar.collapsed .side-bottom{display:block}
   .sidebar.collapsed .nav button{justify-content:flex-start;padding-left:12px;padding-right:12px}
   .scrim.show{display:block}
-  .ws-pane-toggle{display:flex}
-  .ws-grid.pane-mat .ws-pane-r{display:none}
-  .ws-grid.pane-ans .ws-left{display:none}
-  .ws-grid.pane-mat .ws-left,.ws-grid.pane-ans .ws-pane-r{position:static;height:auto;max-height:none}
-  .ws-left{position:static;height:auto;max-height:none}
-  .ws-material{max-height:60vh}
+  .ws-left{position:static}
 }
 @media (max-width:760px){
   body{padding-bottom:64px}
@@ -431,6 +428,13 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .ws-meta{justify-content:center}
   .search{max-width:none}
   .toast{bottom:74px}
+  .ws-left{height:calc(100dvh - var(--topbar-h) - 92px)}
+  .ws-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .ws-material{font-size:14px;line-height:1.95;column-gap:22px}
+  .ws-qwrap{padding:12px 12px 2px}
+  .ws-answer{padding:0 12px 12px}
+  .ws-head{padding:9px 9px}
+  .brush{width:28px;height:28px}
   .detail-actions button,.practice-self-actions button{flex:1;min-height:42px}
   .drawer{padding:22px 18px 40px}
 }
@@ -522,8 +526,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   <div class="ws-meta" id="ws-meta"></div>
   <div class="ws-timer" id="ws-timer"><span id="ws-clock">180:00</span><button id="ws-timer-toggle">开始</button><button id="ws-timer-reset">重置</button></div>
 </div>
-<div class="ws-pane-toggle" role="group" aria-label="切换面板"><button id="ws-pane-mat" class="active">📖 材料</button><button id="ws-pane-ans">✎ 题目与作答</button></div>
-<div class="ws-grid pane-mat" id="ws-grid" hidden>
+<div class="ws-grid" id="ws-grid" hidden>
   <div class="ws-panel ws-left">
     <div class="ws-head">
       <div class="mat-tabs" id="ws-mat-tabs"></div>
@@ -536,7 +539,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
       </div>
     </div>
     <div class="ws-material" id="ws-material"></div>
-    <div class="ws-mat-foot"><span id="ws-hl-count">本资料标注 0 处</span><span class="grow"></span><button class="mini-btn" id="ws-clear-mat">清除本页标注</button></div>
+    <div class="ws-mat-foot"><span id="ws-hl-count">标注 0 处</span><div class="ws-pagebar"><button id="ws-page-prev" aria-label="上一页">←</button><b id="ws-page-ind">第 1 / 1 页</b><button id="ws-page-next" aria-label="下一页">→</button></div><button class="mini-btn" id="ws-clear-mat">清除本页标注</button></div>
   </div>
   <div class="ws-panel ws-pane-r">
     <div class="ws-head"><div class="q-tabs" id="ws-q-tabs"></div></div>
@@ -739,7 +742,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
   function wsRenderMaterial(){
     const box=$('#ws-material');
     const mat=WS.exam.m[WS.matIdx];
-    let html='<div class="src">给定资料 '+(WS.matIdx+1)+'（共 '+WS.exam.m.length+' 份资料）</div>';
+    let html='<div class="src noind">给定资料 '+(WS.matIdx+1)+'（共 '+WS.exam.m.length+' 份资料）</div>';
     mat.p.forEach((para,pi)=>{
       const col=wsParaColor(mat.p,pi,para.length);
       const sents=wsSplitSent(para);
@@ -759,13 +762,47 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
       }
       html+='</p>';
     });
+    const keepX=box.scrollLeft;
     box.innerHTML=html;
+    wsLayoutColumns();
+    box.scrollLeft=keepX;
+    wsUpdatePage();
     const cnt=wsGetAnn().ops.filter(o=>o.m===WS.matIdx&&o.c!=='x').length;
-    $('#ws-hl-count').textContent='本资料标注 '+cnt+' 处';
+    $('#ws-hl-count').textContent='标注 '+cnt+' 处';
   }
+  function wsInnerW(box){const cs=getComputedStyle(box);return box.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)}
+  function wsLayoutColumns(){
+    const box=$('#ws-material');if(!box)return;
+    const gap=parseFloat(getComputedStyle(box).columnGap)||34;
+    WS.colW=Math.max(240,wsInnerW(box)-gap);WS.colGap=gap;
+    box.style.columnWidth=WS.colW+'px';box.style.columnGap=gap+'px';
+  }
+  function wsPages(){
+    const box=$('#ws-material');if(!box)return{now:1,total:1,step:1};
+    const step=WS.colW+WS.colGap;
+    const total=Math.max(1,Math.round((box.scrollWidth+WS.colGap)/step));
+    const now=Math.min(total,Math.round(box.scrollLeft/step)+1);
+    return{now,total,step};
+  }
+  function wsUpdatePage(){const p=wsPages();const el=$('#ws-page-ind');if(el)el.textContent='第 '+p.now+' / '+p.total+' 页'}
+  function wsGoPage(dir){
+    const box=$('#ws-material');if(!box)return;
+    const target=box.scrollLeft+dir*wsPages().step;
+    if(box.scrollTo)box.scrollTo({left:target,behavior:'smooth'});else box.scrollLeft=target;
+  }
+  $('#ws-page-prev').addEventListener('click',()=>wsGoPage(-1));
+  $('#ws-page-next').addEventListener('click',()=>wsGoPage(1));
+  let wsSnapT=null;
+  const wsMatBox=$('#ws-material');
+  wsMatBox.addEventListener('scroll',()=>{wsUpdatePage();clearTimeout(wsSnapT);wsSnapT=setTimeout(()=>{const p=wsPages();const target=(p.now-1)*p.step;if(Math.abs(wsMatBox.scrollLeft-target)>4){if(wsMatBox.scrollTo)wsMatBox.scrollTo({left:target,behavior:'smooth'});else wsMatBox.scrollLeft=target}},220)});
+  wsMatBox.addEventListener('wheel',e=>{
+    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();wsMatBox.scrollLeft+=e.deltaY;if(wsMatBox.scrollTo)clearTimeout(wsSnapT)}
+  },{passive:false});
+  if(window.ResizeObserver){new ResizeObserver(()=>{wsLayoutColumns();wsUpdatePage()}).observe(wsMatBox)}
+  else window.addEventListener('resize',()=>{wsLayoutColumns();wsUpdatePage()});
   function wsMatTabs(){
     $('#ws-mat-tabs').innerHTML=WS.exam.m.map((m,i)=>`<button class="${i===WS.matIdx?'active':''}" data-mat="${i}">资料 ${i+1}</button>`).join('');
-    $$('#ws-mat-tabs button').forEach(b=>b.addEventListener('click',()=>{WS.matIdx=+b.dataset.mat;wsRenderMaterial();wsMatTabs()}));
+    $$('#ws-mat-tabs button').forEach(b=>b.addEventListener('click',()=>{WS.matIdx=+b.dataset.mat;wsRenderMaterial();wsMatTabs();const mb=$('#ws-material');if(mb)mb.scrollLeft=0}));
   }
   function wsCount(){
     const n=$('#ws-answer-input').value.replace(/\s/g,'').length;
@@ -836,12 +873,13 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
       wsSetExam(ex);
     }
     empty.hidden=true;grid.hidden=false;
+    wsLayoutColumns();wsUpdatePage();
   }
   function wsSetExam(ex){
     WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;
-    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();
+    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}
   }
   $('#ws-exam').addEventListener('change',async e=>{
     const id=e.target.value;
@@ -931,9 +969,6 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
     },1000);
     wsTimerShow();
   });
-  function wsSetPane(p){const g=$('#ws-grid');if(!g)return;g.classList.toggle('pane-mat',p==='mat');g.classList.toggle('pane-ans',p==='ans');const bm=$('#ws-pane-mat'),ba=$('#ws-pane-ans');if(bm)bm.classList.toggle('active',p==='mat');if(ba)ba.classList.toggle('active',p==='ans')}
-  $('#ws-pane-mat').addEventListener('click',()=>wsSetPane('mat'));
-  $('#ws-pane-ans').addEventListener('click',()=>wsSetPane('ans'));
   $('#ws-timer-reset').addEventListener('click',()=>{
     const t=JSON.parse(LS.getItem('sh_ws_timer')||'{}');
     t[WS.exam?WS.exam.id:'_']=10800;

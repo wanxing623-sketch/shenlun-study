@@ -980,6 +980,18 @@ const GRADE=(function(){
   const STOP=new Set(('的 了 和 是 在 我 有 就 不 人 都 一个 我们 他们 你们 这 那 也 对 说 要 会 与 及 等 为 以 于 由 从 其 之 被 把 让 使 很 更 最 又 再 还 并 但 而 或 通过 进行 可以 一些 这个 那个 相关 有关 情况 方面 工作 问题 许多 一个个 之后 以后 目前 当前 进一步 不断 更加').split(' '));
   const GENERIC=/^(问题|情况|方面|工作|进行|加强|提高|发展|建设|管理|服务|体系|机制|制度|方式|模式|水平|能力)$/;
   const FILLERS=/我觉得|我认为|我个人|非常|特别地?|相当|越来越好|应该说|众所周知|可以说|总的来说|搞|弄好|抓好抓实|花大力气|说白了|反正|感觉|大家|啦|呗|挺/g;
+  // 合并扩充后的「口语→规范词」映射（来自 kaogong-formalizer 200 条，幂等）
+  (function(){
+    const seen=new Set(ORAL.map(x=>x[0]));let n=0;
+    (DATA.vocab||[]).forEach(v=>{
+      if(String(v.period).indexOf('口语转规范词')!==0)return;
+      const o=String(v.scene);if(seen.has(o))return;
+      const terms=String(v.term).split(/[／\/、；;,，]/).map(t=>t.replace(/（[^）]*）/g,'').trim()).filter(t=>t.length>=2&&t.length<=20);
+      if(!terms.length)return;seen.add(o);ORAL.push([o,terms]);n++;
+    });
+    window.__oralExtra=n;window.__oralCount=ORAL.length;
+  })();
+
   const WANNU=['加强宣传教育','加大宣传力度','完善法律法规','健全法律法规','加大资金投入','加大投入力度','提高思想认识','提高认识','加强监督管理','加强监管力度','建立健全机制','完善相关制度','完善体制机制','加强人才队伍建设','引起重视','高度重视'];
   const HOT=['中国式现代化','高质量发展','新质生产力','共同富裕','乡村振兴','数字中国','全过程人民民主','命运共同体','碳达峰','碳中和','基层治理','放管服','供给侧','营商环境','绿色发展'];
   const SUBJ=/政府|部门|街道|社区|村委会|村两委|党员干部|企业|学校|医院|平台|社会组织|志愿者|网格员|专门机构|领导小组|工作组|监管部门|执法(机关|部门)|主流媒体/g;

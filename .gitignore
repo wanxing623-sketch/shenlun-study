@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# 构建中间产物（可用 tools/ 脚本重新生成）
+tools/_new_exams.json

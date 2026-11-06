@@ -907,6 +907,7 @@ function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('
  *  · SLB (Jinghe1279/SLB) GRADING_STANDARD.md —— 分题型评分细则、按点给分/采意不采点、万能对策识别、大作文分档
  *  · kaogong-skill (KeWang0622/kaogong-skill) —— 题型判定、答题结构标准（对策=主体+手段+内容+目的）
  *  · kaogong-formalizer (heihei999/kaogong-formalizer) —— 口语→规范词映射（7 家机构交叉验证）
+ *  · Shenlun.skill (coffe-d/Shenlun.skill, MIT) —— 表述升级表、成语升级、作答铁律（原文见 vendor/Shenlun.skill/）
  * 全部为本地规则引擎，无网络请求，结果仅供参考。
  */
 const GRADE=(function(){
@@ -916,6 +917,15 @@ const GRADE=(function(){
   const FILLERS=/我觉得|我认为|我个人|非常|特别地?|相当|越来越好|应该说|众所周知|可以说|总的来说|搞|弄好|抓好抓实|花大力气|说白了|反正|感觉|大家|啦|呗|挺/g;
   const WANNU=['加强宣传教育','加大宣传力度','完善法律法规','健全法律法规','加大资金投入','加大投入力度','提高思想认识','提高认识','加强监督管理','加强监管力度','建立健全机制','完善相关制度','完善体制机制','加强人才队伍建设','引起重视','高度重视'];
   const HOT=['中国式现代化','高质量发展','新质生产力','共同富裕','乡村振兴','数字中国','全过程人民民主','命运共同体','碳达峰','碳中和','基层治理','放管服','供给侧','营商环境','绿色发展'];
+  /* ---- Shenlun.skill（MIT · coffe-d）词表与铁律，据 vendor/Shenlun.skill 整理 ---- */
+  // 表述升级：口语/搭配不当 → 规范表述（expression-upgrade-rules §2.1、§2.3）。提示性建议，不单独扣分
+  const SL_UPGRADE=[['解决问题',['破解难题','补齐短板','疏通堵点','回应关切']],['做得很好',['成效显著','扎实推进','取得实效']],['很重要',['至关重要','事关全局','意义重大']],['想办法',['探索路径','创新举措','谋划实招']],['管起来',['强化监管','压实责任','闭环管理']],['帮助群众',['回应群众关切','办好民生实事','增进民生福祉']],['让大家知道',['加强宣传引导','营造良好氛围']],['一起做',['协同发力','形成合力']],['提高民生',['增进民生福祉','改善民生']],['加大力度改革',['深化改革','纵深推进改革']],['落实制度',['制度落地见效','推动制度落实']],['加强提高效率',['提升效能','提高效率']],['推动高质量发展提供保障',['为高质量发展提供保障']]];
+  // 成语升级（expression-upgrade-rules §三）：仅大作文使用，数量宜控制在 8–15 处
+  const SL_IDIOM=[['一直坚持做',['久久为功','善作善成']],['一点一点积累',['积小胜为大胜','聚沙成塔']],['大家一起努力',['攥指成拳','众志成城']],['找准关键',['纲举目张']],['打下好基础',['夯基垒台','立柱架梁']],['从根本上解决',['标本兼治','源头治理']],['一步步推进',['循序渐进','稳扎稳打']],['兼顾各方面',['统筹兼顾','多措并举']],['不断进步',['日新月异','蒸蒸日上']],['克服困难',['攻坚克难']],['基层落实',['落地生根','落地见效']]];
+  // 作答铁律（writing-rules §1 第 3、6 条；§2 要点句式）
+  const SL_NOPOINT=/借鉴[^，。；\n]{0,8}?(做法|经验|模式|举措)|参考[^，。；\n]{0,6}?(模式|经验)/g;
+  const SL_WATER=/进一步|不断|高度重视|充分认识|在[^，。；\n]{1,12}?的过程中|穿靴戴帽/g;
+  const SL_MODAL=/应该|应当|需要/g;
   const SUBJ=/政府|部门|街道|社区|村委会|村两委|党员干部|企业|学校|医院|平台|社会组织|志愿者|网格员|专门机构|领导小组|工作组|监管部门|执法(机关|部门)|主流媒体/g;
   const MEANS=/通过|依托|借助|建立|设立|组建|开展|组织|实施|推行|出台|搭建|引入|开设|举办|完善|修订|整合|搭建平台|购买服务|委托|签约|考核|督查|公示/g;
   const CONN=/因此|所以|由于|究其原因|一方面|另一方面|同时|此外|与此同时|综上|由此可见|这意味着|不仅|而且/g;
@@ -1023,7 +1033,7 @@ const GRADE=(function(){
     else{issues.push('通篇未分条：阅卷标准中"条理不清、没有分条作答"要扣 1–2 分');sugg.push('按"序号+关键词+具体阐述"分条重组答案');}
     const firstSen=(String(ans||'').split(/[。！？\n]/)[0]||'');
     if(/(主要|总体|共有|包括|如下|以下|表现|原因|在于)/.test(firstSen)&&firstSen.length>8){score+=10;details.push('开篇有总括句，先总后分');}
-    else{issues.push('缺少总括句：第一句直接进入细节，建议先用一句话总括（如"主要有以下三方面原因："）');}
+    else if(type!=='guina'){issues.push('缺少总括句：第一句直接进入细节，建议先用一句话总括（如"主要有以下三方面原因："）');}
     const conns=(String(ans||'').match(CONN)||[]).length;
     if(conns>=3){score+=8;details.push('使用逻辑连接词 '+conns+' 处，链条清楚');}
     else issues.push('逻辑连接词不足（'+conns+' 处），层次感弱');
@@ -1049,7 +1059,16 @@ const GRADE=(function(){
       if(/让我们|愿|相信|唯有|方能|未来/.test(tail)){score+=6;details.push('结尾有升华/号召');}
       else issues.push('结尾平淡：可用"让我们/唯有…方能…"式升华收束');
     }
-    return {key:'B',name:'结构逻辑官',score:Math.max(5,Math.min(98,score)),src:'kaogong-skill 题型结构标准 + SLB 逻辑链要求',
+    // Shenlun.skill 作答铁律：无采分点废话、去水、要点中的情态动词（提示项，不改分）
+    if(type!=='zuowen'){
+      const na0=String(ans||'');
+      const np=na0.match(SL_NOPOINT)||[];
+      if(np.length&&!/借鉴|参考|启示/.test(q.t||''))issues.push('无采分点废话 '+np.length+' 处（如「'+np[0].slice(0,12)+'」）：此类短语得不了分，删掉后直接写具体举措');
+      const wt=(na0.match(SL_WATER)||[]).length;
+      if(wt>=2)issues.push('空话较多：「进一步/不断/高度重视」等 '+wt+' 处，占字数又不得分，建议删除');
+      if((type==='guina'||type==='duice')&&(na0.match(SL_MODAL)||[]).length>=2)issues.push('要点句含情态动词「应该/应当/需要」'+(na0.match(SL_MODAL)||[]).length+' 处：要点写成「动词短语＋具体对象＋结果/目的」');
+    }
+    return {key:'B',name:'结构逻辑官',score:Math.max(5,Math.min(98,score)),src:'kaogong-skill 题型结构标准 + SLB 逻辑链要求 + Shenlun.skill 作答铁律（MIT）',
       headline:it.n>=3?'分条清晰，层次完整':'结构与条理还有明显提升空间',details,issues,sugg};
   }
   // ---------- Skill C 规范表达官 ----------
@@ -1074,12 +1093,15 @@ const GRADE=(function(){
     let penalty=oralHits.length*7+fill*4;
     score=Math.max(25,Math.min(96,score-penalty));
     const details=[],issues=[],sugg=[];
+    const slHits=[];
+    for(const[o,fs]of SL_UPGRADE.concat(q._type==='zuowen'?SL_IDIOM:[])){if(na.includes(norm(o))&&!slHits.some(h=>h[0]===o))slHits.push([o,fs]);if(slHits.length>=4)break;}
+    if(slHits.length){issues.push('表述可升级 '+slHits.length+' 处（提示性建议，不单独扣分）');slHits.forEach(([o,fs])=>sugg.push('「'+o+'」→ 可换为「'+fs.join('」或「')+'」'));}
     details.push('命中规范词/官方表述 '+hits.length+' 处'+(hits.length?'：'+hits.slice(0,8).join('、')+(hits.length>8?' 等':''):''));
     if(oralHits.length){issues.push('发现 '+oralHits.length+' 处口语化表述');oralHits.forEach(([o,fs])=>sugg.push('「'+o+'」→ 改为「'+fs[0]+(fs[1]?'/'+fs[1]:'')+'」'));}
     if(fill)issues.push('口语填充词 '+fill+' 处（如"我觉得/非常/搞"）：申论要求语体规范，应删除');
     if(hits.length<3&&na.length>60){issues.push('规范表达密度低：多用词库里的规范词替代白描');sugg.push('去规范词库按场景找词，替换答案中的白话描述');}
     if(hits.length>=8)details.push('规范表达扎实，继续保持');
-    return {key:'C',name:'规范表达官',score:score,src:'kaogong-formalizer 口语→规范词映射 + 本地 420 词库',
+    return {key:'C',name:'规范表达官',score:score,src:'kaogong-formalizer 口语→规范词映射 + 本地 420 词库 + Shenlun.skill 表述升级表（MIT）',
       headline:oralHits.length?('发现 '+oralHits.length+' 处口语化，可替换为规范词'):'表达规范度良好',details,issues,sugg};
   }
   // ---------- Skill D 格式卷面官 ----------

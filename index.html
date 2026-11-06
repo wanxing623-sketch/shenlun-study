@@ -457,19 +457,9 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .card-grid,.case-grid,.review-list{grid-template-columns:1fr}
   .dash-head{flex-direction:column;align-items:stretch}
   .resume-card{width:100%}
-  .ws-bar{align-items:stretch;flex-direction:column}
-  .ws-bar select{max-width:none}
-  .ws-timer{margin-left:0;justify-content:center}
-  .ws-meta{justify-content:center}
   .search{max-width:none}
   .toast{bottom:74px}
-  .ws-left{height:calc(100dvh - var(--topbar-h) - 92px)}
-  .ws-grid{grid-template-columns:1fr 1fr;gap:10px}
   .ws-material{font-size:14px;line-height:1.95;column-gap:22px}
-  .ws-qwrap{padding:12px 12px 2px}
-  .ws-answer{padding:0 12px 12px}
-  .ws-head{padding:9px 9px}
-  .brush{width:28px;height:28px}
   .detail-actions button,.practice-self-actions button{flex:1;min-height:42px}
   .drawer{padding:22px 18px 40px}
 }
@@ -577,6 +567,51 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 .ac-btn.yes{background:var(--accent);border-color:var(--accent);color:#fff}
 .ac-btn.yes:hover{filter:brightness(1.1)}
 
+/* ========== 真题台 · 响应式重排（v3） ========== */
+/* 平板竖屏与手机：材料与作答上下堆叠、各占整宽，不再 50/50 挤压 */
+@media (max-width:1024px) and (orientation:portrait),(max-width:760px){
+  .ws-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  .ws-left{position:static;height:clamp(340px,64dvh,600px);min-height:0}
+  .ws-material{padding:16px clamp(14px,3vw,30px) 18px;column-gap:28px}
+  .ws-pane-r{min-height:0}
+  .ws-qwrap{padding:14px clamp(14px,3vw,22px) 4px}
+  .ws-answer{padding:0 clamp(14px,3vw,22px) 16px}
+  .ws-answer textarea{min-height:260px;font-size:16px}
+}
+/* 手机：收紧顶部、工具条可横滑、按钮加大，便于单手操作 */
+@media (max-width:760px){
+  #view-workspace>.page-head{display:none}
+  .ws-bar{flex-direction:column;align-items:stretch;padding:10px 12px;gap:10px;margin-bottom:10px}
+  #ws-exam-pick{width:100%;justify-content:space-between;height:44px}
+  .ws-meta{justify-content:flex-start;gap:6px}
+  .ws-timer{width:100%;justify-content:center}
+  .ws-head{flex-wrap:nowrap;padding:8px 10px;gap:6px}
+  .mat-tabs,.q-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%;padding:2px 1px}
+  .mat-tabs::-webkit-scrollbar,.q-tabs::-webkit-scrollbar{display:none}
+  .mat-tabs button,.q-tabs button{flex:none;min-height:40px}
+  .ws-brush{margin-left:0;flex:none}
+  .brush{width:36px;height:36px}
+  .ws-question h3{font-size:15.5px}
+  .ws-req{font-size:13px;line-height:1.8}
+  .ws-mat-foot{flex-wrap:wrap;gap:8px 10px;padding:8px 10px}
+  #ws-hl-count{margin-right:auto}
+  .ws-pagebar{margin-left:0}
+  .ws-pagebar button{width:40px;min-height:40px}
+  .ws-answer textarea{min-height:240px}
+  .ws-ansfoot{gap:8px 10px}
+  .ws-ansfoot .grow{display:none}
+  #ws-grade-btn{flex:1 1 100%;min-height:44px}
+  #ws-copy-ans,#ws-clear-ans{flex:1 1 0;min-height:40px}
+  input:not([type=checkbox]):not([type=radio]),textarea,select{font-size:16px}
+}
+/* 横屏矮屏（如手机横放）：去掉过高的最小高度，压缩页头，让材料区尽量完整可见 */
+@media (max-height:500px) and (orientation:landscape){
+  #view-workspace>.page-head{display:none}
+  .ws-left{height:calc(100dvh - 40px);min-height:0}
+  .ws-panel{min-height:0}
+  .ws-bar{padding:8px 12px;margin-bottom:8px}
+  .ws-exampick{height:36px}
+}
 /* ========== 打印 ========== */
 @media print{
   .sidebar,.topbar,.tabbar,.ws-brush,.ws-timer,.scrim,.case-drawer,.toast,.head-actions,.ws-mat-foot,.ws-ansfoot{display:none!important}
@@ -1257,8 +1292,12 @@ window.GRADE=GRADE;
   function wsInnerW(box){const cs=getComputedStyle(box);return box.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)}
   function wsLayoutColumns(){
     const box=$('#ws-material');if(!box)return;
-    const gap=parseFloat(getComputedStyle(box).columnGap)||34;
-    const innerW=Math.max(220,wsInnerW(box));
+    const cs=getComputedStyle(box);
+    const gap=parseFloat(cs.columnGap)||34;
+    const pl=parseFloat(cs.paddingLeft)||0;
+    /* 右侧不留内边距：下一栏起点落在可视区之外，避免边缘露出半个字 */
+    box.style.paddingRight='0px';
+    const innerW=Math.max(220,box.clientWidth-2*pl);
     WS.colGap=gap;WS.step=innerW+gap;
     box.style.columnWidth=innerW+'px';box.style.columnGap=gap+'px';
   }

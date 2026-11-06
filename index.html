@@ -612,6 +612,19 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .ws-bar{padding:8px 12px;margin-bottom:8px}
   .ws-exampick{height:36px}
 }
+/* ===== 错题库 ===== */
+.eb-card{margin-top:14px}
+.eb-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.eb-list li{font-size:12.5px;line-height:1.75;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px 11px;background:var(--surface-2)}
+.eb-tier{display:inline-block;font-size:11px;font-weight:800;padding:1px 8px;border-radius:99px;margin-right:7px;white-space:nowrap}
+.eb-tier.bad{background:var(--accent-soft);color:var(--accent)}
+.eb-tier.mid{background:var(--gold-soft);color:var(--gold)}
+.eb-tier.low{background:var(--info-soft);color:var(--info)}
+.eb-warn{display:block;color:var(--accent);font-size:11.5px;margin-top:3px}
+.eb-tools{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;font-size:12px;color:var(--muted)}
+.eb-item .review-item-head{align-items:center}
+.eb-q{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.eb-q .mini-btn{max-width:100%;text-align:left;white-space:normal;line-height:1.5}
 /* ========== 打印 ========== */
 @media print{
   .sidebar,.topbar,.tabbar,.ws-brush,.ws-timer,.scrim,.case-drawer,.toast,.head-actions,.ws-mat-foot,.ws-ansfoot{display:none!important}
@@ -773,7 +786,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     </div>
   </div>
 </div>
-<div class="review-tabs" id="review-tabs" role="tablist"><button class="active" data-review-tab="due" role="tab">待复习</button><button data-review-tab="mastered" role="tab">已掌握</button><button data-review-tab="favorites" role="tab">收藏</button><button data-review-tab="notes" role="tab">笔记</button></div>
+<div class="review-tabs" id="review-tabs" role="tablist"><button class="active" data-review-tab="due" role="tab">待复习</button><button data-review-tab="mastered" role="tab">已掌握</button><button data-review-tab="favorites" role="tab">收藏</button><button data-review-tab="errors" role="tab">错题库</button><button data-review-tab="notes" role="tab">笔记</button></div>
 <div class="review-toolbar"><span id="review-count">0 条</span><span>点击卡片可回到原位置</span><span class="grow"></span><span id="fav-tools" hidden><span id="fav-count">0 条</span> <button class="mini-btn" id="clear-favs">清空收藏</button></span></div>
 <div id="note-pane" hidden><div class="note-panel"><h2>学习笔记</h2><textarea id="note-text" placeholder="记下今天的迁移思路：这个词适用于什么主题？和哪条对策可以组合？" aria-label="学习笔记"></textarea><div class="save-row"><span id="note-status">保存到本机</span><button class="primary" id="save-note">保存笔记</button></div></div></div>
 <div class="review-list" id="review-list"></div>
@@ -875,7 +888,7 @@ function renderPlan(){const bar=$('#plan-bar');if(!bar)return;const items=state.
  function makePractice(){const all=DATA.vocab.map((x,i)=>({...x,id:i}));const due=all.filter(x=>state.mastery[x.id]!==2);practice.vocab=[...due.sort(()=>Math.random()-.5),...[...all].sort(()=>Math.random()-.5)].slice(0,10);practice.case=[...DATA.cases].sort(()=>Math.random()-.5).slice(0,10);state.practiceIndex=0;state.practiceScore=0;state.practiceAnswered=false;state.practiceRated=false}
  function renderPractice(){if(!practice.vocab.length)makePractice();const mode=state.practiceMode,x=practice[mode][state.practiceIndex%10];$('#practice-progress').textContent=`本组第 ${state.practiceIndex%10+1} / 10 题`;$('#practice-type').textContent=mode==='vocab'?'规范词 · 场景概括':'案例启示 · 主题迁移';$('#practice-prompt').textContent=mode==='vocab'?x.scene:x.case;$('#practice-answer').classList.add('hidden');$('#practice-self-actions').classList.add('hidden');$('#practice-answer').innerHTML=mode==='vocab'?`规范表达：<b>${esc(x.term)}</b>`:`关键词：<b>${esc(x.keywords)}</b><br/>适用主题：${esc(x.topics)}`;$('#practice-input').value='';state.practiceAnswered=false;state.practiceRated=false;$('#practice-score').textContent=state.practiceScore;$('#practice-meter').style.width=(state.practiceIndex%10)*10+'%';$('#practice-hint').textContent=mode==='vocab'?'先默读材料，抓“主体 + 动作 + 结果”；答案优先来自待复习词条':'先判断案例能证明什么，再写出主题词；不要只复述故事。';}
  $('#practice-reveal').addEventListener('click',()=>{if(!state.practiceAnswered){$('#practice-answer').classList.remove('hidden');$('#practice-self-actions').classList.remove('hidden');state.practiceAnswered=true;toast('先对照答案，再给自己一个判断')}});function ratePractice(level){if(state.practiceRated)return;state.practiceRated=true;state.practiceScore++;$('#practice-score').textContent=state.practiceScore;$('#practice-meter').style.width=(state.practiceIndex%10+1)*10+'%';if(state.practiceMode==='vocab'){const x=practice.vocab[state.practiceIndex%10];state.mastery[x.id]=level;save()}toast(level===2?'已加入已掌握，后续会减少出现':'已加入待复习，后续会优先出现')}$('#practice-easy').addEventListener('click',()=>ratePractice(2));$('#practice-again').addEventListener('click',()=>ratePractice(1));$('#practice-next').addEventListener('click',()=>{state.practiceIndex++;if(state.practiceIndex%10===0){makePractice();toast('本组 10 题完成，已生成新一组')}renderPractice()});$('#practice-reset').addEventListener('click',()=>{makePractice();renderPractice();toast('已换一组训练题')});$$('[data-mode]').forEach(b=>b.addEventListener('click',()=>{$$('[data-mode]').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.practiceMode=b.dataset.mode;makePractice();renderPractice()}));
-function renderReview(){const all=DATA.vocab.map((x,i)=>({...x,id:i}));const due=all.filter(x=>state.mastery[x.id]!==2),mastered=all.filter(x=>state.mastery[x.id]===2);$('#review-due').textContent=due.length;$('#review-mastered').textContent=mastered.length;$('#review-plan-count').textContent=state.plan.length;$$('[data-review-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.reviewTab===state.reviewTab);b.onclick=()=>{state.reviewTab=b.dataset.reviewTab;renderReview()}});let items=[];if(state.reviewTab==='due')items=due.map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene,tag:'待复习'}));if(state.reviewTab==='mastered')items=mastered.map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene,tag:'已掌握'}));if(state.reviewTab==='favorites')items=Object.values(state.favorites).map(f=>{if(f.type==='vocab'){const x=DATA.vocab[f.id];return x&&{type:f.type,id:f.id,title:x.term,sub:x.scene,tag:'规范词'}}if(f.type==='strategy'){const x=DATA.strategies.find(s=>s.id===f.id);return x&&{type:f.type,id:f.id,title:x.title,sub:x.text,tag:'对策'}}const x=DATA.cases[f.id];return x&&{type:f.type,id:f.id,title:x.title,sub:x.case,tag:'案例'}}).filter(Boolean);$('#review-count').textContent=items.length+' 条';
+function renderReview(){const all=DATA.vocab.map((x,i)=>({...x,id:i}));const due=all.filter(x=>state.mastery[x.id]!==2),mastered=all.filter(x=>state.mastery[x.id]===2);$('#review-due').textContent=due.length;$('#review-mastered').textContent=mastered.length;$('#review-plan-count').textContent=state.plan.length;$$('[data-review-tab]').forEach(b=>{b.classList.toggle('active',b.dataset.reviewTab===state.reviewTab);b.onclick=()=>{state.reviewTab=b.dataset.reviewTab;renderReview()}});if(state.reviewTab==='errors'){renderErrorBank();return}let items=[];if(state.reviewTab==='due')items=due.map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene,tag:'待复习'}));if(state.reviewTab==='mastered')items=mastered.map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene,tag:'已掌握'}));if(state.reviewTab==='favorites')items=Object.values(state.favorites).map(f=>{if(f.type==='vocab'){const x=DATA.vocab[f.id];return x&&{type:f.type,id:f.id,title:x.term,sub:x.scene,tag:'规范词'}}if(f.type==='strategy'){const x=DATA.strategies.find(s=>s.id===f.id);return x&&{type:f.type,id:f.id,title:x.title,sub:x.text,tag:'对策'}}const x=DATA.cases[f.id];return x&&{type:f.type,id:f.id,title:x.title,sub:x.case,tag:'案例'}}).filter(Boolean);$('#review-count').textContent=items.length+' 条';
         const isNotes=state.reviewTab==='notes';
         $('#review-list').style.display=isNotes?'none':'';
         const np=$('#note-pane');if(np)np.hidden=!isNotes;
@@ -926,6 +939,9 @@ const GRADE=(function(){
   const SL_NOPOINT=/借鉴[^，。；\n]{0,8}?(做法|经验|模式|举措)|参考[^，。；\n]{0,6}?(模式|经验)/g;
   const SL_WATER=/进一步|不断|高度重视|充分认识|在[^，。；\n]{1,12}?的过程中|穿靴戴帽/g;
   const SL_MODAL=/应该|应当|需要/g;
+  // 错题库分类（Shenlun.skill error-bank-rules §二，判定标准见 ERR_DESC）：由批改问题文本映射到编号；同一问题只映射一次
+  const ERR_MAP=[[/覆盖率偏低|遗漏的关键采点/,'A1-漏采分点'],[/照抄材料比例/,'A4-未用材料原词'],[/缺少总括句/,'C1-总括句误用'],[/逻辑连接词不足/,'C4-层次不分明'],[/分析链缺|手段表述笼统/,'D1-漏要素'],[/口语化表述|口语填充词/,'F1-口语化'],[/超出字数|仅写 \d+ 字|作文仅 \d+ 字/,'F2-字数违规'],[/^缺(?!少总括句|执行主体)[^：]{1,8}：.*格式要素|缺标题或首行/,'F3-未落实形式要求'],[/与材料的呼应少/,'E1-未扣材料'],[/全文无论据支撑|停留在表面现象/,'H3-论证深度不足']];
+  const ERR_DESC={'A1-漏采分点':'对照采分点清单，有要点未答','A4-未用材料原词':'该用材料原词处自行改写，导致关键词丢失','C1-总括句误用':'综合分析类应有总括句却缺；归纳概括类不应强求','C4-层次不分明':'要点间无逻辑推进、并列堆砌','D1-漏要素':'题干要求的要素（是什么／为什么／怎么办，或主体／手段／内容／目的）缺失','F1-口语化':'出现口语表达，未用申论规范表述','F2-字数违规':'超出字数限制，或明显低于下限','F3-未落实形式要求':'应用文的格式要素（标题、称谓、落款等）未写全','E1-未扣材料':'全文未引用给定材料，全用公知案例','H3-论证深度不足':'只有案例与口号，缺少机理分析'};
   const SUBJ=/政府|部门|街道|社区|村委会|村两委|党员干部|企业|学校|医院|平台|社会组织|志愿者|网格员|专门机构|领导小组|工作组|监管部门|执法(机关|部门)|主流媒体/g;
   const MEANS=/通过|依托|借助|建立|设立|组建|开展|组织|实施|推行|出台|搭建|引入|开设|举办|完善|修订|整合|搭建平台|购买服务|委托|签约|考核|督查|公示/g;
   const CONN=/因此|所以|由于|究其原因|一方面|另一方面|同时|此外|与此同时|综上|由此可见|这意味着|不仅|而且/g;
@@ -1215,7 +1231,8 @@ const GRADE=(function(){
     else band=comp>=80?'优秀':comp>=65?'良好':comp>=50?'合格':'待提高';
     const ranked=[...skills].sort((x,y)=>x.score-y.score);
     const top=[...new Set(ranked.slice(0,3).flatMap(s=>[...s.sugg,...s.issues]))].slice(0,4);
-    return {type,typeName:TYPE_NAME[type],comp,final,max,band,skills,top,weights:w,at:new Date().toISOString(),n:norm(ans).length};
+    const errs=[];for(const s of skills)for(const msg of s.issues){const hit=ERR_MAP.find(([re])=>re.test(msg));if(hit&&!errs.includes(hit[1]))errs.push(hit[1])}
+    return {type,typeName:TYPE_NAME[type],comp,final,max,band,skills,top,weights:w,at:new Date().toISOString(),n:norm(ans).length,errs};
   }
   function toText(r){
     const L=[];
@@ -1239,7 +1256,7 @@ const GRADE=(function(){
     L.push('—— 本地规则引擎批改（评分知识来自开源考公项目 SLB / kaogong-skill / kaogong-formalizer），仅供参考');
     return L.join('\n');
   }
-  return {grade,toText,qType,TYPE_NAME,norm,W:WEIGHTS,inferMax};
+  return {grade,toText,qType,TYPE_NAME,norm,W:WEIGHTS,inferMax,ERR_DESC};
 })();
 window.GRADE=GRADE;
 
@@ -1429,6 +1446,7 @@ window.GRADE=GRADE;
       if(i<crew.length){const cur=$('#gw-'+i);if(cur)cur.classList.add('on');i++;WS.gradingT=setTimeout(step,300+Math.random()*260)}
       else{
         WS.grading=false;
+        report.eb=ebRecord(q,WS.exam,report);
         wsRenderReport(report,true);
         const all=wsGradeStore();all[q.no]=report;LS.setItem('sh_ws_grade_'+WS.exam.id,JSON.stringify(all));
         wsRenderQuestion();wsShowSavedReport();
@@ -1437,6 +1455,54 @@ window.GRADE=GRADE;
     };
     setTimeout(step,120);
   });
+  /* ---- 错题库：按失分类型累计（同一道题只计一次，重新批改覆盖） ---- */
+  const EB_TIER=n=>n>=3?{t:'顽固',c:'🔴',cls:'bad'}:n===2?{t:'复发',c:'🟠',cls:'mid'}:{t:'初现',c:'🟡',cls:'low'};
+  function ebLoad(){try{return JSON.parse(LS.getItem('sh_ws_errbank')||'{}')}catch(e){return{}}}
+  function ebCount(db,id){return db[id]&&db[id].items?Object.keys(db[id].items).length:0}
+  function ebRecord(q,exam,r){
+    const db=ebLoad(),key=exam.id+'|'+q.no;
+    const label=exam.r+' '+exam.y+(exam.l?' · '+exam.l:'')+' · 第 '+(WS.qIdx+1)+' 题';
+    Object.keys(GRADE.ERR_DESC).forEach(id=>{
+      const obj=db[id]||{items:{}};
+      if(r.errs.includes(id))obj.items[key]={label,at:Date.now()};else delete obj.items[key];
+      if(Object.keys(obj.items).length)db[id]=obj;else delete db[id];
+    });
+    LS.setItem('sh_ws_errbank',JSON.stringify(db));
+    return r.errs.map(id=>{
+      const others=Object.entries(db[id].items).filter(([k])=>k!==key).sort((a,b)=>b[1].at-a[1].at);
+      return {id,n:Object.keys(db[id].items).length,prev:others[0]?others[0][1].label:null};
+    });
+  }
+  function ebBlock(eb){
+    return '<div class="gr-card eb-card"><div class="gr-skill-head"><b>📒 本次记入错题库</b><span class="gr-sp s2" style="margin-left:auto">'+eb.length+' 类</span></div><ul class="eb-list">'+eb.map(x=>{const t=EB_TIER(x.n);return '<li><span class="eb-tier '+t.cls+'">'+t.c+' '+t.t+' · '+x.n+' 题</span><b>'+esc(x.id)+'</b>：'+esc(GRADE.ERR_DESC[x.id])+(x.n>=2&&x.prev?'<span class="eb-warn">⚠️ 已是第 '+x.n+' 道题出现此类问题，上次在「'+esc(x.prev)+'」也犯过</span>':'')+'</li>'}).join('')+'</ul><div class="gr-sub">在「复习中心 → 错题库」可查看全部失分类型及对应题目</div></div>';
+  }
+  function renderErrorBank(){
+    const db=ebLoad();
+    const np=$('#note-pane');if(np)np.hidden=true;const ft=$('#fav-tools');if(ft)ft.hidden=true;
+    const list=$('#review-list');list.style.display='';
+    const ids=Object.keys(db).filter(id=>GRADE.ERR_DESC[id]&&ebCount(db,id)>0).sort((a,b)=>ebCount(db,b)-ebCount(db,a));
+    $('#review-count').textContent=ids.length+' 类';
+    if(!ids.length){list.innerHTML='<div class="review-empty">还没有错题记录。<br/>在「真题作答」提交批改后，失分类型会自动记入这里；同类问题复发时会主动提醒。</div>';return}
+    list.innerHTML='<div class="eb-tools"><span>按出现题数排序 · 同一道题重新批改会覆盖旧记录</span><button class="mini-btn" id="eb-clear">清空错题库</button></div>'+ids.map(id=>{
+      const n=ebCount(db,id),t=EB_TIER(n);
+      const qs=Object.entries(db[id].items).sort((a,b)=>b[1].at-a[1].at);
+      return '<article class="review-item eb-item"><div class="review-item-head"><b>'+esc(id)+'</b><span class="pill'+(t.cls==='low'?'':' orange')+'">'+t.c+' '+t.t+' · '+n+' 题</span></div><p>'+esc(GRADE.ERR_DESC[id])+'</p><div class="eb-q">'+qs.map(([k,v])=>'<button class="mini-btn" data-eb-open="'+esc(k)+'">'+esc(v.label)+'</button>').join('')+'</div></article>';
+    }).join('');
+    list.querySelectorAll('[data-eb-open]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.ebOpen,i=k.indexOf('|');ebOpen(k.slice(0,i),k.slice(i+1))}));
+    $('#eb-clear').addEventListener('click',()=>appConfirm('确定清空全部错题库记录吗？（批改报告本身不会删除）',()=>{LS.removeItem('sh_ws_errbank');renderErrorBank();toast('错题库已清空')},'清空'));
+  }
+  function ebFocusQ(no){
+    if(!WS.exam)return;
+    const i=WS.exam.q.findIndex(x=>x.no===no);if(i<0)return;
+    wsFlushSave();WS.qIdx=i;wsRenderQuestion();wsLoadAnswer();wsShowSavedReport();
+  }
+  function ebOpen(examId,no){
+    openView('workspace');
+    if(WS.exam&&WS.exam.id===examId){ebFocusQ(no);return}
+    WS.pendingNo=no;
+    const sel=$('#ws-exam');sel.value=examId;sel.dispatchEvent(new Event('change'));
+  }
+  function ebApplyPending(){if(WS.pendingNo!=null){const no=WS.pendingNo;WS.pendingNo=null;ebFocusQ(no)}}
   function wsRenderReport(r,fresh){
     const body=$('#ws-grade .grm-body');if(!body)return;
     const W=r.weights||GRADE.W[r.type]||GRADE.W.guina;
@@ -1492,6 +1558,7 @@ window.GRADE=GRADE;
     });
     $('#gr-copy').addEventListener('click',()=>copy(GRADE.toText(r)));
     $('#gr-again').addEventListener('click',()=>{$('#ws-grade-btn').click()});
+    if(r.eb&&r.eb.length)body.insertAdjacentHTML('beforeend',ebBlock(r.eb));
   }
   $('#ws-page-prev').addEventListener('click',()=>wsGoPage(-1));
   $('#ws-page-next').addEventListener('click',()=>wsGoPage(1));
@@ -1601,7 +1668,7 @@ window.GRADE=GRADE;
     WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
     $('#ws-exam').value=ex.id;wsUpdatePickBtn();
-    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;wsModalClose();const gp=$('#ws-grade .grm-body');if(gp)gp.innerHTML='';wsShowSavedReport()
+    wsRenderMeta();wsMatTabs();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;wsModalClose();const gp=$('#ws-grade .grm-body');if(gp)gp.innerHTML='';wsShowSavedReport();ebApplyPending()
   }
   $('#ws-exam').addEventListener('change',async e=>{
     const id=e.target.value;

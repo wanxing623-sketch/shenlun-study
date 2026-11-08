@@ -439,7 +439,7 @@
       <div class="lb-field">
         <label for="lb_answer_g">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</label>
         <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
-        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span>· 拼音 / 语音 / 手写输入均可 · 首行自动缩进两格</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
+        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写汉字</span><span>· 拼音 / 语音 / 手写输入均可 · 每格一字 · 首行自动缩进两格</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
       <textarea class="lb-ta" id="lb_answer" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.answer || '')}</textarea>
     ` : `

@@ -362,255 +362,292 @@
   }
   function activeGridIs(g) { return ACTIVE && ACTIVE.owner === g; }
 
+  /* ============================================================
+     标准作文方格纸
+     核心：输入交给浏览器原生的可编辑输入框（textarea），方格只负责显示
+     —— 这样拼音组字、语音、手写、粘贴、撤销全部由浏览器处理，
+        绝不会出现“只进去字母”的情况
+     ============================================================ */
   function Grid(cfg) {
     const host = typeof cfg.el === 'string' ? document.querySelector(cfg.el) : cfg.el;
     if (!host) return null;
     const st = {
       host: host,
-      value: cfg.value || '',
       limit: cfg.limit || 0,
       indent: cfg.indent == null ? 2 : cfg.indent,
       perRow: cfg.perRow || 20,
-      rows: cfg.rows || 6,          // 至少显示多少行格子
-      cursor: 0,
+      rows: cfg.rows || 6,
       onChange: cfg.onChange || null,
-      readOnly: !!cfg.readOnly
+      readOnly: !!cfg.readOnly,
+      cursor: 0,
+      value: String(cfg.value == null ? '' : cfg.value)
     };
     host.classList.add('kk-grid-host');
-    host.innerHTML = '<div class="kk-grid-inner" role="textbox" aria-multiline="true" tabindex="0" aria-label="方格作文纸作答区"><div class="kk-grid-rows"></div></div>';
-    const box = host;
+    host.innerHTML =
+      '<div class="kk-grid-inner" role="textbox" aria-multiline="true">' +
+      '<div class="kk-grid-rows" aria-hidden="true"></div>' +
+      '<textarea class="kk-input" aria-label="方格作文纸作答区" spellcheck="false" ' +
+      'autocapitalize="off" autocomplete="off" autocorrect="off" enterkeyhint="enter"></textarea>' +
+      '</div>';
     const inner = host.querySelector('.kk-grid-inner');
     const rowsEl = host.querySelector('.kk-grid-rows');
+    const ta = host.querySelector('.kk-input');
 
+    const countChars = v => String(v || '').replace(/[\s\u3000]/g, '').length;
     const charsOf = v => Array.from(String(v == null ? '' : v));
-    const countChars = s => String(s || '').replace(/[\s\u3000]/g, '').length;
 
-    function lineBases(lines) {
-      const bases = []; let b = 0;
-      lines.forEach(l => { bases.push(b); b += l.length + 1; });
-      return bases;
-    }
+    /* ---------- 文本折叠：去掉 glyph 顶到格外的重音符号 ---------- */
+    const fold = v => String(v || '').replace(/([\u0300-\u036f]+)/g, '');
 
-    /* 计算网格：rows = [[cell,...],...]  cell = {i:绝对字符下标,ch} | {blank:true,at:点击后光标位置} */
-    function build() {
-      const v = String(st.value);
-      const lines = v.split('\n');
-      const bases = lineBases(lines);
-      const cols = st.cols;
-      const rows = [];
-      let cur = [];
-      const push = cell => { if (cur.length >= cols) { rows.push(cur); cur = []; } cur.push(cell); };
+    /* ---------- 布局：把文本排成 cols 宽的行（首行缩进），每格带文本下标 ---------- */
+    function layout(txt, cols) {
+      const lines = String(txt).split('\n');
+      const cells = [];              // 线性格子流：{ch, idx} | {nl:true} | {blank:true}
+      let base = 0;
       lines.forEach((line, li) => {
         const arr = charsOf(line);
-        if (li === 0) for (let k = 0; k < st.indent; k++) push({ blank: true, indent: true, at: bases[li] });
-        arr.forEach((ch, ci) => push({ i: bases[li] + ci, ch: ch }));
-        if (li < lines.length - 1) {
-          const at = bases[li] + arr.length;          // 换行处
-          while (cur.length < cols) cur.push({ blank: true, at: at });
-          rows.push(cur); cur = [];
+        if (li === 0 && st.indent) {
+          for (let k = 0; k < st.indent; k++) cells.push({ blank: true, indent: true });
+        }
+        arr.forEach((ch, ci) => {
+          const idx = base + ci;
+          cells.push({ ch: ch, idx: idx, over: st.limit ? idx >= st.limit : false });
+        });
+        if (li < lines.length - 1) cells.push({ nl: true, idx: base + arr.length });
+        base += arr.length + 1;
+      });
+      cells.push({ end: true, idx: String(txt).length });
+
+      const rows = [];
+      let cur = [];
+      const flush = () => { while (cur.length < cols) cur.push({ blank: true }); rows.push(cur); cur = []; };
+      cells.forEach(c => {
+        if (c.ch != null) {
+          if (cur.length >= cols) flush();
+          cur.push(c);
+        } else if (c.blank) {
+          if (cur.length >= cols) flush();
+          cur.push(c);
+        } else {
+          flush();               // 换行 / 文末：结束本行
         }
       });
-      const endAt = v.length;
-      while (cur.length < cols) cur.push({ blank: true, at: endAt });
-      rows.push(cur);
+      if (cur.length) flush();
       while (rows.length < st.rows) {
         const r = [];
-        for (let c = 0; c < cols; c++) r.push({ blank: true, at: endAt });
+        for (let k = 0; k < cols; k++) r.push({ blank: true });
         rows.push(r);
       }
-      st.rowsModel = rows;
       return rows;
     }
 
-    function cellHTML(cell) {
-      if (cell.blank) return '<span class="kk-cell blank' + (cell.indent ? ' ind' : '') + '" data-at="' + cell.at + '"></span>';
-      const over = st.limit && cell.i >= st.limit;
-      return '<span class="kk-cell' + (over ? ' over' : '') + '" data-i="' + cell.i + '">' + (cell.ch ? esc(cell.ch) : '') + '</span>';
+    /* 文本下标 → 格子 (行, 列) */
+    function posOfIndex(idx) {
+      const cols = st.cols || 20;
+      const rows = st.model || [];
+      for (let r = 0; r < rows.length; r++) {
+        for (let c = 0; c < rows[r].length; c++) {
+          const g = rows[r][c];
+          if (g.idx != null && g.idx === idx && g.ch != null) return { row: r, col: c };
+        }
+      }
+      // 找不到精确的字符（可能在行尾/文末）：找最后一个 idx < 目标 的格子
+      let best = { row: 0, col: 0 };
+      for (let r = 0; r < rows.length; r++) {
+        for (let c = 0; c < rows[r].length; c++) {
+          const g = rows[r][c];
+          if (g.idx != null && g.idx <= idx) best = { row: r, col: c };
+        }
+      }
+      return best;
     }
 
     function render() {
-      // 隐藏容器（父级 display:none / grid 尚未布局）时按视口估算，避免 0 宽
-      let w = inner.clientWidth || box.clientWidth || 0;
+      let w = inner.clientWidth || host.clientWidth || 0;
       if (w < 120) w = Math.min(960, (window.innerWidth || 960) - 60);
       if (w < 120) w = 600;
-      const cell = w < 300 ? 21 : w < 380 ? 23 : 26;   // 小屏自动缩格子
-      st.cell = cell;
-      inner.style.setProperty('--kk-cell', cell + 'px');
+      const cell = w < 300 ? 21 : w < 380 ? 23 : 26;
       const size = cell + 1;
       st.cols = Math.max(10, Math.min(st.perRow, Math.floor((w - 2) / size)));
-      const rows = build();
-      rowsEl.innerHTML = rows.map(r => '<div class="kk-row">' + r.map(cellHTML).join('') + '</div>').join('');
-      placeCursor();
-      if (st.onChange) st.onChange({ length: countChars(st.value), value: st.value, limit: st.limit });
+      st.cell = cell;
+      inner.style.setProperty('--kk-cell', cell + 'px');
+      const rows = st.model = layout(ta.value, st.cols);
+      let html = '';
+      for (let r = 0; r < rows.length; r++) {
+        html += '<div class="kk-row">';
+        for (let c = 0; c < rows[r].length; c++) {
+          const g = rows[r][c];
+          const cls = 'kk-cell'
+            + (g.over ? ' over' : '')
+            + (g.ch != null ? '' : ' blank');
+          html += '<span class="' + cls + '" data-r="' + r + '" data-c="' + c + '"'
+            + (g.idx != null ? ' data-i="' + g.idx + '"' : '') + '>'
+            + (g.ch != null ? esc(g.ch) : '') + '</span>';
+        }
+        html += '</div>';
+      }
+      rowsEl.innerHTML = html;
+      markCursor();
+      if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
       try {
-        document.dispatchEvent(new CustomEvent('kk:gridchange', { detail: { id: box.id, length: countChars(st.value), value: st.value } }));
+        document.dispatchEvent(new CustomEvent('kk:gridchange', { detail: { id: host.id, length: countChars(ta.value), value: ta.value } }));
       } catch (e) { }
     }
 
-    function placeCursor() {
-      const olds = rowsEl.querySelectorAll('.kk-cell.cur');
-      for (let i = 0; i < olds.length; i++) olds[i].classList.remove('cur');
-      let c = rowsEl.querySelector('.kk-cell[data-i="' + st.cursor + '"]');
-      if (!c) {
-        // 光标停在行尾/文末时，落在最近的空白格
-        const cells = rowsEl.querySelectorAll('.kk-cell');
-        for (let i = 0; i < cells.length; i++) {
-          const v = cells[i].getAttribute('data-at');
-          if (v !== null && +v === st.cursor) { c = cells[i]; break; }
+    /* 光标格 + 选中格 */
+    function markCursor() {
+      const olds = rowsEl.querySelectorAll('.kk-cell.cur,.kk-cell.sel');
+      for (let i = 0; i < olds.length; i++) olds[i].classList.remove('cur', 'sel');
+      const n = ta.value.length;
+      let s = ta.selectionStart, e = ta.selectionEnd;
+      if (s == null) { s = e = st.cursor; }
+      if (st.focused === false) { s = e = Math.min(st.cursor, n); }
+      // 选中范围
+      if (e > s) {
+        const cellsAll = rowsEl.querySelectorAll('.kk-cell[data-i]');
+        for (let i = 0; i < cellsAll.length; i++) {
+          const ci = +cellsAll[i].getAttribute('data-i');
+          if (ci >= s && ci < e) cellsAll[i].classList.add('sel');
         }
       }
-      if (!c) { const all = rowsEl.querySelectorAll('.kk-cell'); if (all.length) c = all[0]; }
-      if (c) c.classList.add('cur');
-    }
-
-    function scrollCursor() {
-      const c = rowsEl.querySelector('.kk-cell.cur');
-      if (!c) return;
-      const top = c.offsetTop - box.clientHeight / 2;
-      if (top > box.scrollTop + 8 || top < box.scrollTop - 8) box.scrollTop = Math.max(0, top);
-    }
-
-    function setValue(v, opts) {
-      st.value = String(v == null ? '' : v);
-      if (st.cursor > st.value.length) st.cursor = st.value.length;
-      render();
-      if (!opts || opts.scroll !== false) scrollCursor();
-    }
-    function getValue() { return st.value; }
-    function setLimit(n) { st.limit = n || 0; render(); }
-
-    function insert(txt) {
-      if (st.readOnly) return;
-      const pos = Math.max(0, Math.min(st.cursor, st.value.length));
-      st.value = st.value.slice(0, pos) + txt + st.value.slice(pos);
-      st.cursor = pos + txt.length;
-      render(); scrollCursor();
-    }
-    function back() {
-      if (st.readOnly || st.cursor <= 0) return;
-      st.value = st.value.slice(0, st.cursor - 1) + st.value.slice(st.cursor);
-      st.cursor -= 1;
-      render(); scrollCursor();
-    }
-    function del() {
-      if (st.readOnly || st.cursor >= st.value.length) return;
-      st.value = st.value.slice(0, st.cursor) + st.value.slice(st.cursor + 1);
-      render();
-    }
-    function moveCursor(idx, keep) {
-      st.cursor = Math.max(0, Math.min(idx, st.value.length));
-      placeCursor();
-      if (!keep) scrollCursor();
-    }
-
-    /* 点到某一格：有字的格 → 光标落在该字；空格 → 落在该行末尾 */
-    function onTap(ev) {
-      const cell = ev.target.closest ? ev.target.closest('.kk-cell') : null;
-      if (!cell || !box.contains(cell)) return false;
-      const di = cell.getAttribute('data-i');
-      if (di !== null && di !== '') moveCursor(+di);
-      else moveCursor(+cell.getAttribute('data-at') || st.value.length);
-      return true;
-    }
-
-    function onKey(e) {
-      if (st.readOnly) return;
-      const k = e.key;
-      if (k === 'ArrowLeft') { e.preventDefault(); moveCursor(st.cursor - 1); return; }
-      if (k === 'ArrowRight') { e.preventDefault(); moveCursor(st.cursor + 1); return; }
-      if (k === 'Home') { e.preventDefault(); moveCursor(st.value.lastIndexOf('\n', st.cursor - 1) + 1); return; }
-      if (k === 'End') {
-        e.preventDefault();
-        const nx = st.value.indexOf('\n', st.cursor);
-        moveCursor(nx === -1 ? st.value.length : nx); return;
+      const p = posOfIndex(Math.min(s, n));
+      const row = rowsEl.children[p.row];
+      const cellEl = row && row.children[p.col];
+      if (cellEl) {
+        cellEl.classList.add('cur');
+        if (st.focused) {
+          const top = cellEl.offsetTop - host.clientHeight / 2;
+          if (top > host.scrollTop + 4 || top < host.scrollTop - 4) host.scrollTop = Math.max(0, top);
+        }
       }
-      if (k === 'ArrowUp' || k === 'ArrowDown') {
-        e.preventDefault();
-        const lines = st.value.split('\n');
-        const bases = lineBases(lines);
-        const li = st.value.slice(0, st.cursor).split('\n').length - 1;
-        const col = st.cursor - bases[li];
-        const nl = li + (k === 'ArrowUp' ? -1 : 1);
-        if (nl < 0 || nl >= lines.length) return;
-        moveCursor(bases[nl] + Math.min(col, lines[nl].length));
+      st.cursor = s;
+    }
+
+    function placeCaret(idx) {
+      const n = String(ta.value).length;
+      const pos = Math.max(0, Math.min(idx, n));
+      try { ta.setSelectionRange(pos, pos); } catch (e) { }
+      st.cursor = pos;
+      markCursor();
+    }
+
+    /* ---------- 原生输入框事件（输入法 / 语音 / 手写全部原生处理） ---------- */
+    ta.addEventListener('input', () => {
+      if (st.composing) {
+        if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
         return;
       }
-      if (k === 'Backspace') { e.preventDefault(); back(); return; }
-      if (k === 'Delete') { e.preventDefault(); del(); return; }
-      if (k === 'Enter') { e.preventDefault(); insert('\n'); return; }
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (k && k.length === 1) { e.preventDefault(); insert(k); }
-    }
+      render();
+    });
+    ta.addEventListener('compositionstart', () => { st.composing = true; });
+    ta.addEventListener('compositionend', () => { st.composing = false; render(); });
+    ta.addEventListener('keyup', () => { if (!st.composing) markCursor(); });
+    ta.addEventListener('click', () => markCursor());
+    ta.addEventListener('select', () => markCursor());
+    ta.addEventListener('focus', () => { st.focused = true; host.classList.add('editing'); markCursor(); });
+    ta.addEventListener('blur', () => {
+      st.focused = false; host.classList.remove('editing');
+      markCursor();
+    });
+    ta.addEventListener('keydown', e => {
+      if (st.readOnly) { e.preventDefault(); return; }
+      if (e.isComposing || st.composing) return;      // 输入法组字中不拦截
+      if (e.key === 'Tab') { e.preventDefault(); placeCaret((ta.selectionStart || 0) + 1); }
+    });
 
-    /* ---------- 输入通道：全站共用一个透明输入框，指向“当前正在写的方格纸” ---------- */
-    function focusProxy() {
-      const p = ensureProxy();
-      ACTIVE = self;
-      p.value = '';
-      try { p.focus({ preventScroll: true }); } catch (e) { try { p.focus(); } catch (e2) { } }
-      box.classList.add('editing');
-      setTimeout(function () { try { scrollCursor(); } catch (e) { } }, 260);
+    /* ---------- 点格定位 / 拖选（textarea 只做输入，不接管指针） ---------- */
+    function idxAt(target) {
+      const cellEl = target && target.closest ? target.closest('.kk-cell') : null;
+      if (!cellEl || !host.contains(cellEl)) return null;
+      const i = cellEl.getAttribute('data-i');
+      if (i !== null && i !== '') return +i;
+      // 空格子：取该行最后一个字符之后
+      let best = 0;
+      const rowEl = cellEl.parentElement;
+      const kids = rowEl ? rowEl.children : [];
+      for (let k = 0; k < kids.length; k++) {
+        const v = kids[k].getAttribute('data-i');
+        if (v !== null && v !== '') best = +v + 1;
+      }
+      return Math.min(best, ta.value.length);
     }
-    function blurProxy() {
-      if (PROXY && document.activeElement === PROXY) PROXY.blur();
-      box.classList.remove('editing');
+    function cellAtPoint(x, y) {
+      const el = document.elementFromPoint ? document.elementFromPoint(x, y) : null;
+      return el && el.closest ? el.closest('.kk-cell') : null;
     }
-    const self = { insert: insert, back: back, del: del, move: moveCursor, key: onKey, scroll: scrollCursor };
-    const api = { owner: self, insert: insert, back: back, del: del, move: moveCursor, key: onKey, scroll: scrollCursor,
-      moveNext: function () { moveCursor(st.cursor + 1); } };
+    let anchor = null, dragging = false;
 
-    /* ---------- 落点：任何输入方式（鼠标 / 触摸 / 笔）都落到某一格 ---------- */
-    function tapAt(target) {
-      if (!target || !target.closest) return false;
-      const cell = target.closest('.kk-cell');
-      if (!cell || !box.contains(cell)) return false;
-      const di = cell.getAttribute('data-i');
-      if (di !== null && di !== '') moveCursor(+di);
-      else moveCursor(+cell.getAttribute('data-at') || st.value.length);
+    function startAt(target) {
+      const i = idxAt(target);
+      if (i == null) return false;
+      if (document.activeElement !== ta) { try { ta.focus({ preventScroll: true }); } catch (e) { try { ta.focus(); } catch (e2) { } } }
+      anchor = i; dragging = false;
+      placeCaret(i);
       return true;
     }
-    box.addEventListener('pointerdown', e => {
-      if (!tapAt(e.target)) return;
-      // 无论桌面还是手机，统一把焦点给输入通道：桌面打中文同样走输入法
-      if (e.cancelable) e.preventDefault();     // 避免触发虚拟键盘抖动
-      focusProxy();
-    });
-    box.addEventListener('touchstart', e => {
-      if (window.PointerEvent) return;          // 有 PointerEvent 时上面已处理
-      if (tapAt(e.target)) focusProxy();
-    }, { passive: true });
-    if (!window.PointerEvent) {
-      box.addEventListener('click', e => { if (tapAt(e.target)) focusProxy(); });
+    function moveTo(x, y) {
+      if (anchor == null) return;
+      const cellEl = cellAtPoint(x, y);
+      const i = cellEl ? idxAt(cellEl) : null;
+      if (i == null) return;
+      if (i !== anchor) dragging = true;
+      try { ta.setSelectionRange(Math.min(anchor, i), Math.max(anchor, i)); } catch (e) { }
+      markCursor();
     }
-    // 键盘 / 输入法之外的兜底：直接在方格纸上按键（老浏览器）
-    inner.addEventListener('keydown', onKey);
-    inner.addEventListener('focus', () => { if (!st.readOnly) focusProxy(); });
+    function endDrag() { anchor = null; dragging = false; }
 
+    host.addEventListener('pointerdown', e => {
+      if (e.target.closest('.kk-input')) return;
+      if (startAt(e.target)) e.preventDefault();
+    });
+    host.addEventListener('pointermove', e => {
+      if (anchor == null) return;
+      if (e.buttons === 0 && e.pointerType === 'mouse') { endDrag(); return; }
+      moveTo(e.clientX, e.clientY);
+    });
+    host.addEventListener('pointerup', endDrag);
+    host.addEventListener('pointercancel', endDrag);
+    /* 触屏（无 PointerEvent 的老浏览器） */
+    host.addEventListener('touchstart', e => {
+      if (window.PointerEvent) return;
+      if (e.target.closest('.kk-input')) return;
+      startAt(e.target);
+    }, { passive: true });
+    host.addEventListener('touchmove', e => {
+      if (window.PointerEvent || anchor == null) return;
+      const t = e.touches[0];
+      if (t) moveTo(t.clientX, t.clientY);
+    }, { passive: true });
+    host.addEventListener('touchend', endDrag);
+
+    /* 尺寸变化后重排 */
     if (window.ResizeObserver) {
       let t = null;
-      new ResizeObserver(() => { clearTimeout(t); t = setTimeout(render, 120); }).observe(box);
+      new ResizeObserver(() => { clearTimeout(t); t = setTimeout(render, 120); }).observe(host);
     } else {
       window.addEventListener('resize', () => { clearTimeout(st._rt); st._rt = setTimeout(render, 160); });
     }
 
-    // 初始化即画出格子（空纸也要可见）；延后一拍，避免 onChange 里引用尚未返回的实例
-    setTimeout(render, 0);
-
-    const inst = {
-      el: box,
+    const api = {
+      el: host,
       render: render,
-      setValue: setValue,
-      getValue: getValue,
-      setLimit: setLimit,
-      focus: focusProxy,
-      blur: blurProxy,
-      length: () => countChars(st.value),
-      cursor: () => st.cursor,
-      insert: insert,
-      isActive: () => ACTIVE === self
+      setValue: (v, opts) => {
+        ta.value = String(v == null ? '' : v);
+        st.cursor = ta.value.length;
+        render();
+        if (!opts || opts.scroll !== false) placeCaret(st.cursor);
+      },
+      getValue: () => ta.value,
+      setLimit: n => { st.limit = n || 0; render(); },
+      setReadOnly: v => { st.readOnly = !!v; ta.readOnly = !!v; },
+      focus: () => { try { ta.focus({ preventScroll: true }); } catch (e) { ta.focus(); } },
+      blur: () => ta.blur(),
+      length: () => countChars(ta.value),
+      cursor: () => (ta.selectionStart == null ? st.cursor : ta.selectionStart),
+      el_input: ta
     };
-    self.owner = inst;
-    return inst;
+    setTimeout(render, 0);
+    return api;
   }
 
   window.KL = {

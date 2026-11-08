@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>申论词库 · 写作训练台</title>
+<link rel="stylesheet" href="exams/lab/lab.css" />
 <style>
 /* ========== 设计令牌 ========== */
 :root{
@@ -603,11 +604,12 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     <button data-view="format"><span class="nav-ico">▥</span><span>公文速查</span></button>
     <div class="nav-title">实战</div>
     <button data-view="workspace"><span class="nav-ico">✍</span><span>真题作答</span></button>
+    <button data-view="lab"><span class="nav-ico">◈</span><span>申论练习室</span></button>
     <div class="nav-title">巩固</div>
     <button data-view="review"><span class="nav-ico">◷</span><span>复习中心</span></button>
     <button data-view="settings"><span class="nav-ico">⚙</span><span>设置</span></button>
   </nav>
-  <div class="side-bottom"><b>本地离线可用</b><br/>规范词 420 · 对策 70 · 案例 560<br/>真题 253 套 · 记录仅存本机</div>
+  <div class="side-bottom"><b>本地离线可用</b><br/>规范词 420 · 对策 70 · 案例 560<br/>真题 253 套 · 练习室 454 题<br/>记录仅存本机</div>
 </aside>
 <div class="scrim" id="scrim"></div>
 <main class="main">
@@ -635,7 +637,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     <div class="stat-card" style="--accent:var(--gold)"><div class="label">✍ 真题卷</div><div class="num" id="stat-exams">253</div><div class="trend">国考 + 33 省区市 · 可标注作答</div></div>
   </div>
   <div class="dash-grid">
-    <div class="panel"><div class="panel-head"><h2>快捷入口</h2><small>少一步，快一点</small></div><div class="quick-grid"><button class="quick" data-go="vocab"><i>✦</i><div><b>按场景找词</b><span>从事实反推表达</span></div></button><button class="quick" data-go="strategy"><i>↗</i><div><b>对策组合器</b><span>把"…"替换成主题</span></div></button><button class="quick" data-go="cases"><i>▤</i><div><b>案例图谱</b><span>按主题快速调用</span></div></button><button class="quick" data-go="format"><i>▥</i><div><b>公文速查</b><span>考场前看一遍</span></div></button><button class="quick" data-go="review"><i>◷</i><div><b>复习与收藏</b><span>快闪训练 + 笔记</span></div></button><button class="quick" data-go="settings"><i>☾</i><div><b>外观与备份</b><span>深色模式 · 导出</span></div></button></div></div>
+    <div class="panel"><div class="panel-head"><h2>快捷入口</h2><small>少一步，快一点</small></div><div class="quick-grid"><button class="quick" data-go="vocab"><i>✦</i><div><b>按场景找词</b><span>从事实反推表达</span></div></button><button class="quick" data-go="strategy"><i>↗</i><div><b>对策组合器</b><span>把"…"替换成主题</span></div></button><button class="quick" data-go="cases"><i>▤</i><div><b>案例图谱</b><span>按主题快速调用</span></div></button><button class="quick" data-go="format"><i>▥</i><div><b>公文速查</b><span>考场前看一遍</span></div></button><button class="quick" data-go="review"><i>◷</i><div><b>复习与收藏</b><span>快闪训练 + 笔记</span></div></button><button class="quick" data-go="lab"><i>◈</i><div><b>申论练习室</b><span>小题要点覆盖 · 大作文骨架</span></div></button><button class="quick" data-go="settings"><i>☾</i><div><b>外观与备份</b><span>深色模式 · 导出</span></div></button></div></div>
     <div class="panel recent"><div class="panel-head"><h2>最近查看</h2><a href="#" class="text-btn" data-go="review">去复习 →</a></div><div id="recent-list"></div></div>
   </div>
 </section>
@@ -745,6 +747,8 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 </section>
 <!-- settings -->
 <section class="view" id="view-settings"><div class="page-head"><div><div class="eyebrow">系统 / 设置</div><h1>设置</h1><p>所有学习记录默认保存在当前浏览器。建议定期导出备份，换设备时再导入。</p></div></div><div class="settings-grid"><div class="panel settings-card"><div class="panel-head"><h2>阅读与外观</h2><small>只影响本机</small></div><label class="setting-row"><span><b>外观主题</b><small>夜间学习建议深色；「自动」跟随系统</small></span><span class="segmented" id="theme-choice"><button data-theme-choice="auto">自动</button><button data-theme-choice="light">浅色</button><button data-theme-choice="dark">深色</button></span></label><label class="setting-row"><span><b>阅读字号</b><small>长时间阅读建议选择大字</small></span><span class="segmented" id="font-size-choice"><button data-font="normal">标准</button><button data-font="large">大字</button></span></label><label class="setting-row"><span><b>减少动画</b><small>对动效敏感或想更专注时开启</small></span><button class="toggle" id="reduce-motion" aria-pressed="false" aria-label="减少动画"><i></i></button></label></div><div class="panel settings-card"><div class="panel-head"><h2>数据管理</h2><small>可迁移、可恢复</small></div><div class="data-action"><div><b>导出学习备份</b><p>包含收藏、掌握状态、方案组合、真题标注与作答、笔记。</p></div><button class="primary" id="export-data">导出 JSON</button></div><div class="data-action"><div><b>导入学习备份</b><p>从之前导出的 JSON 文件恢复记录。</p></div><label class="secondary file-button">选择文件<input type="file" id="import-data" accept="application/json,.json" hidden/></label></div><div class="data-action danger"><div><b>重置本机进度</b><p>只删除学习记录，不删除内置资料。</p></div><button class="secondary" id="reset-data">清空进度</button></div></div><div class="panel settings-card about-card"><div class="panel-head"><h2>资料与版本</h2><small>离线可用</small></div><div class="about-line"><span>内置资料</span><b>规范词 420 · 对策 70 · 案例 560</b></div><div class="about-line"><span>真题库</span><b id="about-exams">253 套 · 国考 + 33 省区市</b></div><div class="about-line"><span>版本</span><b>V2 · 纯静态单文件</b></div><div class="about-line"><span>数据隐私</span><b>记录仅保存在本机浏览器</b></div><p class="settings-note">长期使用建议每周导出一次备份；清理浏览器站点数据会删除学习记录。</p></div></div></section>
+<!-- lab (申论练习室) -->
+<section class="view" id="view-lab"><div class="page-head"><div><div class="eyebrow">实战 / 练习室</div><h1>申论练习室</h1><p>短材料练要点覆盖，大作文练标题与分论点骨架；本地规则引擎批改，记录只存本机。</p></div><div class="head-actions"><button class="secondary" data-go="workspace">去真题作答台</button></div></div><div class="lb-seg" id="lab-seg" role="tablist" aria-label="练习室板块"></div><div id="lb-main"><div class="lb-empty">练习室加载中……</div></div></section>
 </div></main></div>
 <nav class="tabbar" aria-label="底部导航">
   <button data-view="dashboard" aria-label="总览">⌂<span>总览</span></button>
@@ -763,7 +767,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
  const LS=(()=>{try{const t="__sh_t";localStorage.setItem(t,"1");localStorage.removeItem(t);return localStorage}catch(e){const m={};return{getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v)},removeItem:k=>{delete m[k]},key:i=>Object.keys(m)[i]||null,get length(){return Object.keys(m).length}}}})();
  window.__LS=LS;
  const state={view:'dashboard',vocabFilter:'all',vocabQuery:'',vocabPeriod:'all',vocabFav:false,strategyFilter:'全部',strategyQuery:'',strategyFav:false,caseChapter:'all',caseSection:'all',caseQuery:'',caseFav:false,selectedVocab:null,selectedStrategy:null,formatIndex:0,practiceMode:'vocab',practiceIndex:0,practiceScore:0,practiceAnswered:false,recent:JSON.parse(LS.getItem('sh_recent')||'[]'),favorites:JSON.parse(LS.getItem('sh_favorites')||'{}'),mastery:JSON.parse(LS.getItem('sh_mastery')||'{}'),plan:JSON.parse(LS.getItem('sh_plan')||'[]'),vocabLimit:60,caseLimit:60,reviewTab:'due',writerPrompt:0};
- const viewNames={dashboard:['学习总览','把材料变成可调用的表达'],vocab:['规范词库','材料事实 → 规范表达'],strategy:['对策库','动作模板 → 可执行方案'],cases:['案例图谱','主题 → 关键词 → 案例'],format:['公文速查','先定文种，再排结构'],workspace:['真题作答','左读材料 · 右侧作答'],review:['复习中心','训练 · 收藏 · 笔记'],settings:['设置','外观偏好与数据备份']};
+ const viewNames={dashboard:['学习总览','把材料变成可调用的表达'],vocab:['规范词库','材料事实 → 规范表达'],strategy:['对策库','动作模板 → 可执行方案'],cases:['案例图谱','主题 → 关键词 → 案例'],format:['公文速查','先定文种，再排结构'],workspace:['真题作答','左读材料 · 右侧作答'],review:['复习中心','训练 · 收藏 · 笔记'],settings:['设置','外观偏好与数据备份'],lab:['申论练习室','短材料练要点 · 大作文练骨架']};
  const colors=['blue','orange','teal','purple'];
  function save(){LS.setItem('sh_favorites',JSON.stringify(state.favorites));LS.setItem('sh_recent',JSON.stringify(state.recent.slice(0,8)));LS.setItem('sh_mastery',JSON.stringify(state.mastery));LS.setItem('sh_plan',JSON.stringify(state.plan))}
  function key(type,id){return type+':'+id}
@@ -788,7 +792,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     ov.querySelector('.ac-btn.yes').onclick=()=>done(true);
   }
  function addRecent(type,id,title,sub){state.recent=[{type,id,title,sub},...state.recent.filter(x=>!(x.type===type&&String(x.id)===String(id)))].slice(0,6);save()}
- function openView(view){state.view=view;closeDrawer();const sb=$('#sidebar');if(sb)sb.classList.remove('open');const sc=$('#scrim');if(sc)sc.classList.remove('show');$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view)); $$('.nav button').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')}); $$('.tabbar button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view)); $('#page-title').textContent=viewNames[view][0];$('#page-subtitle').textContent=viewNames[view][1]; if(view==='dashboard')renderDashboard(); if(view==='vocab')renderVocab(); if(view==='strategy')renderStrategy(); if(view==='cases')renderCases(); if(view==='format')renderFormat(); if(view==='review')renderReview(); if(view==='settings')renderSettings(); if(view==='workspace')renderWorkspace()}
+ function openView(view){state.view=view;closeDrawer();const sb=$('#sidebar');if(sb)sb.classList.remove('open');const sc=$('#scrim');if(sc)sc.classList.remove('show');$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view)); $$('.nav button').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')}); $$('.tabbar button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view)); $('#page-title').textContent=viewNames[view][0];$('#page-subtitle').textContent=viewNames[view][1]; if(view==='dashboard')renderDashboard(); if(view==='vocab')renderVocab(); if(view==='strategy')renderStrategy(); if(view==='cases')renderCases(); if(view==='format')renderFormat(); if(view==='review')renderReview(); if(view==='settings')renderSettings(); if(view==='workspace')renderWorkspace(); if(view==='lab'&&window.SH_LABHOOK)SH_LABHOOK.render()}
  $$('.nav button').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
  $$('.tabbar button[data-view]').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
  const openSide=()=>{$('#sidebar').classList.add('open');$('#scrim').classList.add('show')};
@@ -798,7 +802,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
  $('#scrim').addEventListener('click',closeSide);
  $('#theme-btn').addEventListener('click',()=>{const cur=document.documentElement.getAttribute('data-theme');LS.setItem('sh_theme',cur==='dark'?'light':'dark');applyTheme();toast(cur==='dark'?'已切换为浅色模式':'已切换为深色模式')}); $$('[data-go]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openView(b.dataset.go)}));
  $('#collapse-btn').addEventListener('click',()=>$('#sidebar').classList.toggle('collapsed'));
- document.addEventListener('keydown',e=>{const tag=document.activeElement?.tagName;if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#global-search').focus()}if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();$('#global-search').focus()}if(e.key==='Escape'){closeDrawer();$('#global-results').classList.remove('open')}if(!['INPUT','TEXTAREA','SELECT'].includes(tag)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&/^[1-9]$/.test(e.key)){const nav=['dashboard','vocab','strategy','cases','format','workspace','review','settings'];openView(nav[+e.key-1])}});
+ document.addEventListener('keydown',e=>{const tag=document.activeElement?.tagName;if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#global-search').focus()}if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();$('#global-search').focus()}if(e.key==='Escape'){closeDrawer();$('#global-results').classList.remove('open')}if(!['INPUT','TEXTAREA','SELECT'].includes(tag)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&/^[1-9]$/.test(e.key)){const nav=['dashboard','vocab','strategy','cases','format','workspace','review','settings','lab'];openView(nav[+e.key-1])}});
  function renderDashboard(){
         const hr=new Date().getHours(),greet=hr<6?'夜深了':hr<12?'早上好':hr<18?'下午好':'晚上好';
         const d=new Date(),week='日一二三四五六'[d.getDay()];
@@ -864,7 +868,7 @@ function renderNotesPane(){const t=$('#note-text');if(t)t.value=LS.getItem('sh_n
     applyTheme();
 function copy(text){const ok=()=>toast('已复制到剪贴板'),fail=()=>toast('复制失败，请手动选择复制');const legacy=()=>{try{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();const r=document.execCommand('copy');document.body.removeChild(ta);r?ok():fail()}catch(e){fail()}};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok).catch(legacy)}else legacy()}
  $('#random-btn').addEventListener('click',()=>{const type=['vocab','strategy','case'][Math.floor(Math.random()*3)];if(type==='vocab'){openView('vocab');selectVocab(Math.floor(Math.random()*DATA.vocab.length))}else if(type==='strategy'){openView('strategy');selectStrategy(DATA.strategies[Math.floor(Math.random()*DATA.strategies.length)].id)}else{openView('cases');openCase(Math.floor(Math.random()*DATA.cases.length))}});
- function globalSearch(q){const box=$('#global-results');q=q.trim().toLowerCase();if(!q){box.innerHTML='<div class="gs-empty">输入关键词，跨规范词、对策和案例检索</div>';box.classList.add('open');return}const vs=DATA.vocab.map((x,i)=>({...x,id:i})).filter(x=>(x.term+x.scene).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene}));const ss=DATA.strategies.filter(x=>(x.title+x.text).toLowerCase().includes(q)).slice(0,2).map(x=>({type:'strategy',id:x.id,title:x.title,sub:x.text}));const cs=DATA.cases.map((x,i)=>({...x,id:i})).filter(x=>(x.title+x.keywords+x.case+x.topics).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'case',id:x.id,title:x.title,sub:x.case}));const items=[...vs,...ss,...cs];box.innerHTML=items.length?items.map(x=>`<button class="global-result" data-global="${x.type}:${x.id}"><span class="result-type">${x.type==='vocab'?'规范词':x.type==='strategy'?'对策':'案例'}</span><span><b>${hi(x.title,q)}</b><small>${esc(x.sub)}</small></span></button>`).join(''):'<div class="gs-empty">没有找到匹配内容，可以换一个更短的关键词</div>';box.classList.add('open');$$('[data-global]').forEach(b=>b.addEventListener('click',()=>{const [t,id]=b.dataset.global.split(':');box.classList.remove('open');$('#global-search').value='';if(t==='vocab'){openView('vocab');selectVocab(+id)}else if(t==='strategy'){openView('strategy');selectStrategy(+id)}else{openView('cases');openCase(+id)}}))}
+ function globalSearch(q){const box=$('#global-results');q=q.trim().toLowerCase();if(!q){box.innerHTML='<div class="gs-empty">输入关键词，跨规范词、对策和案例检索</div>';box.classList.add('open');return}const vs=DATA.vocab.map((x,i)=>({...x,id:i})).filter(x=>(x.term+x.scene).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'vocab',id:x.id,title:x.term,sub:x.scene}));const ss=DATA.strategies.filter(x=>(x.title+x.text).toLowerCase().includes(q)).slice(0,2).map(x=>({type:'strategy',id:x.id,title:x.title,sub:x.text}));const cs=DATA.cases.map((x,i)=>({...x,id:i})).filter(x=>(x.title+x.keywords+x.case+x.topics).toLowerCase().includes(q)).slice(0,3).map(x=>({type:'case',id:x.id,title:x.title,sub:x.case}));const items=[...vs,...ss,...cs,...(window.SH_LABHOOK&&SH_LABHOOK.search?SH_LABHOOK.search(q):[])];box.innerHTML=items.length?items.map(x=>`<button class="global-result" data-global="${x.type}:${x.m||''}:${x.id}"><span class="result-type">${x.type==='vocab'?'规范词':x.type==='strategy'?'对策':x.type==='lab'?(x.kind||'练习室'):'案例'}</span><span><b>${hi(x.title,q)}</b><small>${esc(x.sub)}</small></span></button>`).join(''):'<div class="gs-empty">没有找到匹配内容，可以换一个更短的关键词</div>';box.classList.add('open');$$('[data-global]').forEach(b=>b.addEventListener('click',()=>{const [t,m,id]=b.dataset.global.split(':');box.classList.remove('open');$('#global-search').value='';if(t==='vocab'){openView('vocab');selectVocab(+id)}else if(t==='strategy'){openView('strategy');selectStrategy(+id)}else if(t==='lab'){openView('lab');if(window.SH_LABHOOK)SH_LABHOOK.openItem(m,id)}else{openView('cases');openCase(+id)}}))}
  $('#global-search').addEventListener('focus',e=>globalSearch(e.target.value));$('#global-search').addEventListener('input',e=>globalSearch(e.target.value));document.addEventListener('click',e=>{if(!e.target.closest('.search'))$('#global-results').classList.remove('open')});
 /* ================= 真题作答台 ================= */
 /* ================= 五阅卷官批改引擎 =================
@@ -1654,6 +1658,9 @@ window.GRADE=GRADE;
 
   // initial
  renderDashboard();renderVocab();renderStrategy();renderCases();renderFormat();renderReview();renderSettings();
+ window.openView=openView;window.SH_RENDERALL=renderAll;
 })();
 </script>
+<script src="exams/lab/lab-data.js"></script>
+<script src="exams/lab/lab.js"></script>
 </body></html>

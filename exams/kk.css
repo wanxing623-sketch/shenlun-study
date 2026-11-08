@@ -91,3 +91,9 @@
 @media (max-width:760px){
   .kk-grid-host{min-height:132px}
 }
+
+/* 输入法组字提示：原生 textarea 文字透明，组字时用这个小气泡显示拼音/候选 */
+.kk-ime{position:absolute;z-index:4;max-width:min(240px,70%);padding:3px 8px;border-radius:8px;
+  background:var(--side);color:var(--side-ink);font-size:12px;line-height:1.5;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow);pointer-events:none}
+.kk-ime[hidden]{display:none}

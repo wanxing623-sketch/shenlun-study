@@ -381,8 +381,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 .ws-score{display:flex;gap:8px;margin:2px 0 8px;flex-wrap:wrap}
 .ws-answer{display:flex;flex-direction:column;padding:0 18px 15px;flex:1;min-height:0}
 .ws-answer .kk-grid-host{flex:1 1 auto;min-height:240px;max-height:none}
-.ws-answer>textarea#ws-answer-input{width:100%;min-height:210px;flex:1;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14px;line-height:1.95;background:var(--paper);color:var(--ink);outline:0}
-.ws-answer>textarea#ws-answer-input:focus{border-color:var(--brand)}
+@media (min-width:761px){.ws-answer .kk-grid-host{max-height:min(56vh,560px)}}
 .ws-ansfoot{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:11px;color:var(--muted);flex-wrap:wrap}
 .ws-count{font-weight:800;color:var(--ok);font-variant-numeric:tabular-nums}
 .ws-count.over{color:var(--accent)}
@@ -752,7 +751,6 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
     <div class="ws-answer">
       <div class="kk-grid-host" id="ws-grid-host" aria-label="方格作文纸作答区"></div>
       <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span class="kk-sub">拼音 / 语音 / 手写输入均可 · 每格一字 · 回车换行</span><span class="grow"></span><span id="ws-grid-tip">建议先在材料上标注要点，再组织答案</span></div>
-      <textarea id="ws-answer-input" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"></textarea>
       <div class="ws-gradecue" id="ws-gradecue" hidden></div>
       <div class="ws-ansfoot">
         <span class="ws-count" id="ws-count">0 字</span>
@@ -891,7 +889,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
         if(exN)$('#stat-exams').textContent=exN;
         const lastId=LS.getItem('sh_ws_last');
         const meta=(window.SH_EXAM_INDEX||[]).find(x=>x.id===lastId);
-        if(meta){$('#resume-name').textContent=meta.r+' '+meta.y+(meta.l?' · '+meta.l:'');$('#resume-meta').textContent='共 '+meta.q+' 题 · 材料约 '+(meta.c/10000).toFixed(1)+' 万字'}
+        if(meta){$('#resume-name').textContent=meta.r+' '+meta.y+(meta.l?' · '+meta.l:'');$('#resume-meta').textContent='共 '+wsQCount(meta)+' 题 · 材料约 '+(meta.c/10000).toFixed(1)+' 万字'}
         const el=$('#recent-list');
         if(!el)return;
         if(!state.recent.length){el.innerHTML='<div class="recent-empty">还没有最近查看，去词库或真题里挑一条吧。</div>';return}
@@ -982,6 +980,8 @@ const GRADE=(function(){
   ];
   const cnNum=n=>['一','二','三','四','五','六','七','八','九','十'][n-1]||String(n);
   const norm=t=>String(t||'').replace(/[\s，。；：、！？“”‘’（）《》〈〉·—…,.:;!?()'"-]/g,'');
+  /* 卷面字数：空格与换行不计，标点占格（与方格纸的计数一致） */
+  const cc=t=>String(t||'').replace(/\s/g,'').length;
   function qType(q){
     const t=q.t||'';
     if(/写一篇(文章|文章。)|自拟题目|为题[，,]写一篇|写一篇议论文/.test(t))return 'zuowen';
@@ -1135,14 +1135,20 @@ const GRADE=(function(){
   }
   // ---------- Skill D 格式卷面官 ----------
   function skillD(q,exam,ans){
-    const type=q._type,lim=q.lm||0,n=norm(ans).length;
+    const type=q._type;
+    const li=q._li||{max:q.lm||0,min:0};
+    const lim=li.max||0,lmin=li.min||0;
+    const n=cc(ans);
     let score=100;const details=[],issues=[],sugg=[];
     if(lim){
       const ratio=n/lim;
-      if(n>lim){const pen=Math.min(22,Math.round((n-lim)/lim*55));score-=pen;issues.push('超出字数 '+lim+' 字限制 '+(n-lim)+' 字（约扣 '+pen+' 分当量）：删减修饰与重复，保留要点主干');}
-      else if(ratio<0.6){const pen=Math.min(38,Math.round((1-ratio)*70));score-=pen;issues.push('仅写 '+n+' 字，不足限值的 60%：内容单薄是硬伤，按要点给分会大面积失分');sugg.push('按每 2–3 分一个要点补足内容，目标写到位数的 85%–95%');}
-      else if(ratio<0.85){score-=8;issues.push('字数 '+n+'/'+lim+'：还有约 '+(lim-Math.round(n))+' 字空间，可再补 1–2 个要点');}
+      if(n>lim){const pen=Math.min(22,Math.round((n-lim)/lim*55));score-=pen;issues.push('超出字数上限 '+lim+' 字共 '+(n-lim)+' 字（约扣 '+pen+' 分当量）：删减修饰与重复，保留要点主干');}
+      else if(ratio<0.6){const pen=Math.min(38,Math.round((1-ratio)*70));score-=pen;issues.push('仅写 '+n+' 字，不足 '+lim+' 字限值的 60%：内容单薄是硬伤，按要点给分会大面积失分');sugg.push('按每 2–3 分一个要点补足内容，目标写到位数的 85%–95%');}
+      else if(ratio<0.85){score-=8;issues.push('字数 '+n+'/'+lim+'：还有约 '+(lim-n)+' 字空间，可再补 1–2 个要点');}
       else details.push('字数 '+n+'/'+lim+'，控制得当');
+    }else if(lmin){
+      if(n<lmin){const pen=Math.min(30,Math.round((1-n/lmin)*60));score-=pen;issues.push('题面要求不少于 '+lmin+' 字，现写 '+n+' 字：字数不足会直接掉档');}
+      else details.push('字数 '+n+'，满足“不少于 '+lmin+' 字”的要求');
     }else if(type==='zuowen'){
       if(n<800){score-=30;issues.push('作文仅 '+n+' 字：不足 800 字按阅卷惯例要降档，务必写足');}
       else details.push('作文 '+n+' 字，篇幅达标');
@@ -1161,7 +1167,7 @@ const GRADE=(function(){
         if(key==='open')ok=/大家好|各位|今天|很荣幸/.test(ans.slice(0,90));
         if(key==='close')ok=/谢谢|让我们|祝愿|希望|号召/.test(ans.slice(-120));
         if(key==='view')ok=/^(我认为|笔者认为)|说明|表明|观点/.test(firstLine)||/说明|表明|可见|本质/.test(ans.slice(0,120));
-        if(key==='goal')ok/=/为了|旨在|目的|围绕|按照/.test(ans.slice(0,150));
+        if(key==='goal')ok=/为了|旨在|目的|围绕|按照/.test(ans.slice(0,150));
         if(key==='measures')ok=items(ans).n>=2;
         if(key==='body')ok=true;
         if(ok)details.push('✓ '+label+' 完整');
@@ -1244,7 +1250,7 @@ const GRADE=(function(){
     else band=comp>=80?'优秀':comp>=65?'良好':comp>=50?'合格':'待提高';
     const ranked=[...skills].sort((x,y)=>x.score-y.score);
     const top=[...new Set(ranked.slice(0,3).flatMap(s=>[...s.sugg,...s.issues]))].slice(0,4);
-    return {type,typeName:TYPE_NAME[type],comp,final,max,band,skills,top,weights:w,at:new Date().toISOString(),n:norm(ans).length};
+    return {type,typeName:TYPE_NAME[type],comp,final,max,band,skills,top,weights:w,at:new Date().toISOString(),n:cc(ans)};
   }
   function toText(r){
     const L=[];
@@ -1268,7 +1274,7 @@ const GRADE=(function(){
     L.push('—— 本地规则引擎批改（评分知识来自开源考公项目 SLB / kaogong-skill / kaogong-formalizer），仅供参考');
     return L.join('\n');
   }
-  return {grade,toText,qType,TYPE_NAME,norm,W:WEIGHTS,inferMax};
+  return {grade,toText,qType,TYPE_NAME,norm,cc,W:WEIGHTS,inferMax};
 })();
 window.GRADE=GRADE;
 
@@ -1279,14 +1285,82 @@ window.GRADE=GRADE;
       if(WS.loaded.has(grp)||window.SH_EXAMS&&window.SH_EXAMS.some(e=>e._grp===grp)) return res();
       const s=document.createElement('script');
       s.src='exams/'+grp+'.js';
-      s.onload=()=>{ (window.SH_EXAMS||[]).slice(-9999).forEach(e=>{if(e._grp===undefined)e._grp=grp}); WS.loaded.add(grp); res(); };
+      s.onload=()=>{ (window.SH_EXAMS||[]).forEach(e=>{if(e._grp===undefined)e._grp=grp;wsNormalize(e)}); WS.loaded.add(grp); res(); };
       s.onerror=()=>res();
       document.head.appendChild(s);
     });
   }
   function wsGetExam(id){ return (window.SH_EXAMS||[]).find(e=>e.id===id); }
+  /* 少数省考卷把同一年多套卷合并在一个文件里，出现完全相同的题目：去重，避免出现两个一模一样的分页 */
+  function wsNormalize(e){
+    if(!e||e._norm)return e;
+    e._norm=1;
+    if(!Array.isArray(e.q))e.q=[];
+    const seen={},out=[];
+    e.q.forEach(q=>{
+      const k=String(q&&q.t||'').replace(/\s/g,'');
+      if(k&&seen[k])return;
+      if(k)seen[k]=1;
+      out.push(q);
+    });
+    e.q=out;
+    return e;
+  }
+  function wsQCount(x){const e=wsGetExam(x.id);return e&&e.q?e.q.length:(x.q||0)}
+  function wsOptLabel(x){return x.r+' '+x.y+(x.l?' · '+x.l:'')+'（'+wsQCount(x)+' 题 / '+(x.c/10000).toFixed(1)+'万字）'}
+  function wsRefreshSelectLabel(ex){
+    const sel=$('#ws-exam');if(!sel||!ex)return;
+    const o=Array.prototype.slice.call(sel.options).filter(x=>x.value===ex.id)[0];
+    if(o)o.textContent=wsOptLabel(ex);
+  }
   function wsLS(){ return JSON.parse(LS.getItem('sh_ws_ans')||'{}'); }
   function wsAnsKey(){ return 'sh_ws_'+(WS.exam?WS.exam.id:'x'); }
+  /* 部分试卷（多卷合并的省考卷）里题号 no 会重复，用 no 当键会把不同题的作答/批改互相覆盖。
+     这里以“题序”为键：只有重复题号才加后缀，老数据仍按原题号读取，不需要迁移。 */
+  function wsQKey(exam,i){
+    const q=exam.q[i];if(!q)return '0';
+    const dup=exam.q.filter(x=>x.no===q.no).length>1;
+    return dup?q.no+'#'+i:String(q.no);
+  }
+  function wsFirstOfNo(exam,i){const q=exam.q[i];return exam.q.findIndex(x=>x.no===q.no)===i;}
+  function wsAnsGet(exam,i){
+    const b=wsLS()[exam.id]||{},k=wsQKey(exam,i);
+    if(b[k]!=null)return b[k];
+    const q=exam.q[i];
+    return wsFirstOfNo(exam,i)?(b[String(q.no)]||''):'';
+  }
+  function wsAnsSet(exam,i,v){
+    const all=wsLS();if(!all[exam.id])all[exam.id]={};
+    all[exam.id][wsQKey(exam,i)]=v;LS.setItem('sh_ws_ans',JSON.stringify(all));
+  }
+  function wsGradeAll(exam){return JSON.parse(LS.getItem('sh_ws_grade_'+exam.id)||'{}')}
+  function wsGradeGet(exam,i){
+    const st=wsGradeAll(exam),k=wsQKey(exam,i);
+    if(st[k])return st[k];
+    const q=exam.q[i];
+    return wsFirstOfNo(exam,i)?(st[String(q.no)]||null):null;
+  }
+  /* 字数上下限：数据里的 lm 不完整（55 道缺 lm，个别还把千字作文写成 250 字），
+     所以以“题干/要求”里写明的字数为准，lm 只在题面没写时兜底。 */
+  function wsLimitInfo(q){
+    if(q._li)return q._li;
+    const txt=((q&&q.rq)||'')+' '+((q&&q.t)||'');
+    let pmin=0,pmax=0,m;
+    if((m=txt.match(/(\d{3,4})\s*[～~—\-－至到]\s*(\d{3,4})\s*字?/))){pmin=+m[1];pmax=+m[2]}
+    else if((m=txt.match(/(?:不少于|不低于|至少)\s*(\d{3,4})\s*字/)))pmin=+m[1];
+    else if((m=txt.match(/(?:不超过|不多于|不高于)\s*(\d{3,4})\s*字/)))pmax=+m[1];
+    else if((m=txt.match(/(\d{3,4})\s*字\s*(?:以内|以下)/)))pmax=+m[1];
+    else if((m=txt.match(/(\d{3,4})\s*字\s*左右/)))pmax=Math.round(+m[1]*1.1);
+    let max=q&&q.lm>0?q.lm:0,min=0;
+    if(pmax){
+      if(!max||Math.abs(pmax-max)>Math.max(100,max*0.5))max=pmax;
+      min=pmin||0;
+    }else if(pmin){
+      min=pmin;
+      max=(max>pmin*1.2)?max:0;      // 只写“不少于”的题不设上限
+    }
+    const info={max:max||0,min:min||0};q._li=info;return info;
+  }
   function wsGetAnn(){ if(WSANN) return WSANN.load(); if(!WS.ann) WS.ann=JSON.parse(LS.getItem(wsAnsKey()+'_hl')||'{"ops":[]}'); return WS.ann; }
   function wsSaveAnn(){ if(WSANN){WSANN.save();return} if(WS.exam) LS.setItem(wsAnsKey()+'_hl',JSON.stringify(wsGetAnn())) }
   function wsRenderMaterial(){
@@ -1302,8 +1376,8 @@ window.GRADE=GRADE;
     wsAnnCount();
   }
   function wsAnnCount(){
-    const ops=wsGetAnn().ops.filter(o=>o.c!=='x');
-    const el=$('#ws-hl-count'); if(el) el.textContent='标注 '+ops.length+' 处';
+    const n=KL.countOps(wsGetAnn().ops,WS.matIdx);
+    const el=$('#ws-hl-count'); if(el) el.textContent='标注 '+n+' 处';
     const now=$('#ws-ann-now');
     if(now) now.innerHTML='<i class="kk-dot '+WS.brush+'"></i>当前：'+(KL.NAME[WS.brush]||'黄')+'笔';
     wsSyncFloat();
@@ -1380,7 +1454,7 @@ window.GRADE=GRADE;
     $('#pm-total').textContent=idx.length+' 套';
     $('#pm-count').textContent='共 '+rows.length+' 套'+(reg!=='全部'?' · '+reg:'')+(kw?' · 关键词「'+$('#pm-q').value.trim()+'」':'');
     const cur=WS.exam?WS.exam.id:null;
-    $('#pm-list').innerHTML=rows.length?rows.map(x=>'<button class="pm-item'+(x.id===cur?' cur':'')+'" data-id="'+esc(x.id)+'"><span class="pi-t">'+esc(x.r)+' '+x.y+(x.l?' · '+esc(x.l):'')+'</span>'+(x.id===cur?'<span class="pi-cur">当前</span>':'')+'<span class="pi-m">'+x.q+' 题 · '+(x.c/10000).toFixed(1)+'万字</span></button>').join(''):'<div class="pm-empty">没有匹配的套卷，换个关键词试试</div>';
+    $('#pm-list').innerHTML=rows.length?rows.map(x=>'<button class="pm-item'+(x.id===cur?' cur':'')+'" data-id="'+esc(x.id)+'"><span class="pi-t">'+esc(x.r)+' '+x.y+(x.l?' · '+esc(x.l):'')+'</span>'+(x.id===cur?'<span class="pi-cur">当前</span>':'')+'<span class="pi-m">'+wsQCount(x)+' 题 · '+(x.c/10000).toFixed(1)+'万字</span></button>').join(''):'<div class="pm-empty">没有匹配的套卷，换个关键词试试</div>';
   }
   function wsPickerPick(id){
     if(WS.exam&&WS.exam.id===id){wsPickerClose();return}
@@ -1394,10 +1468,10 @@ window.GRADE=GRADE;
   $('#pm-q').addEventListener('input',wsPickerRender);
   $('#pm-q').addEventListener('keydown',e=>{if(e.key==='Enter'){const f=$('#pm-list .pm-item');if(f)wsPickerPick(f.dataset.id)}});
   $('#pm-list').addEventListener('click',e=>{const it=e.target.closest('.pm-item');if(it)wsPickerPick(it.dataset.id)});
-  function wsGradeStore(){return JSON.parse(LS.getItem('sh_ws_grade_'+WS.exam.id)||'{}')}
+  function wsGradeStore(){return wsGradeAll(WS.exam)}
   function wsShowSavedReport(){
     const cue=$('#ws-gradecue');if(!cue||!WS.exam)return;
-    const r=wsGradeStore()[WS.exam.q[WS.qIdx].no];
+    const r=wsGradeGet(WS.exam,WS.qIdx);
     if(r){cue.hidden=false;cue.innerHTML='<span>上次批改：<b>'+r.final+'</b> 分 · '+r.band+'（'+r.typeName+'）</span><button class="mini-btn" id="ws-gradecue-open">查看报告</button>';$('#ws-gradecue-open').addEventListener('click',()=>wsShowReport(r))}
     else cue.hidden=true;
   }
@@ -1410,8 +1484,11 @@ window.GRADE=GRADE;
   $('#ws-grade-btn').addEventListener('click',()=>{
     if(!WS.exam||WS.grading)return;
     const txt=wsAnswerText().trim();
-    if(GRADE.norm(txt).length<20){toast('答案还太短，先写到 20 字以上再提交批改');return}
+    if(GRADE.cc(txt)<20){toast('答案还太短，先写到 20 字以上再提交批改');return}
     const q=WS.exam.q[WS.qIdx];
+    const exId=WS.exam.id, qi=WS.qIdx;   // 批改过程中切题/切卷时不要把报告写到别的题上
+    wsLimitInfo(q);                 // 批改要用到字数上下限（部分题目标注缺失时就地推断）
+    wsFlushSave();
     WS.grading=true;
     wsModalOpen();
     $('#grm-type').textContent=GRADE.TYPE_NAME[GRADE.qType(q)]||'';
@@ -1426,9 +1503,12 @@ window.GRADE=GRADE;
       if(i<crew.length){const cur=$('#gw-'+i);if(cur)cur.classList.add('on');i++;WS.gradingT=setTimeout(step,300+Math.random()*260)}
       else{
         WS.grading=false;
+        const all=JSON.parse(LS.getItem('sh_ws_grade_'+exId)||'{}');
+        all[wsQKey(wsGetExam(exId)||WS.exam,qi)]=report;
+        LS.setItem('sh_ws_grade_'+exId,JSON.stringify(all));
+        if(!WS.exam||WS.exam.id!==exId||WS.qIdx!==qi)return;   // 已经切走了：静默存盘，不弹报告
         wsRenderReport(report,true);
-        const all=wsGradeStore();all[q.no]=report;LS.setItem('sh_ws_grade_'+WS.exam.id,JSON.stringify(all));
-        wsRenderQuestion();wsShowSavedReport();
+        wsRenderQuestion();wsShowSavedReport();wsTabBadges();
         toast('五位阅卷官批改完成：'+report.final+' / '+report.max+' 分（'+report.band+'）');
       }
     };
@@ -1521,27 +1601,51 @@ window.GRADE=GRADE;
     $$('#ws-mat-tabs button').forEach(b=>b.addEventListener('click',()=>{WS.matIdx=+b.dataset.mat;wsRenderMaterial();wsMatTabs();const mb=$('#ws-material');if(mb)mb.scrollLeft=0}));
   }
   function wsCount(){
+    if(!WS.exam)return;
     const n=wsAnswerText().replace(/\s/g,'').length;
     const el=$('#ws-count');
-    const lim=WS.exam.q[WS.qIdx].lm;
-    if(el){el.textContent=n+' 字'+(lim?'/'+lim:'');el.className='ws-count'+(lim?(n>lim?' over':n<lim*0.5?' short':''):'')}
+    const li=wsLimitInfo(WS.exam.q[WS.qIdx]);
+    const max=li.max,min=li.min;
+    if(el){
+      el.textContent=n+' 字'+(max?' / '+max:min?' / ≥'+min:'');
+      el.className='ws-count'+((max&&n>max)||(min&&n<min)?' over':'')+((max&&n<max*0.5)?' short':'');
+    }
     const tip=$('#ws-grid-tip');
-    if(tip) tip.textContent=lim?(n>lim?'已超出 '+lim+' 字上限，超出部分不计分':n<lim*0.5?'还可以再写 '+(lim-n)+' 字':'字数在范围内'):'字数不限，写清要点即可';
+    if(!tip)return;
+    if(max&&n>max)tip.textContent='已超出 '+max+' 字上限 '+(n-max)+' 字，超出部分不计分';
+    else if(min&&n<min)tip.textContent='还差 '+(min-n)+' 字到下限，写不足会直接掉档';
+    else if(max&&n<max*0.5)tip.textContent='还可以再写 '+(max-n)+' 字';
+    else if(max||min)tip.textContent='字数在范围内';
+    else tip.textContent='字数不限，写清要点即可';
+  }
+  function wsTabBadges(){
+    const btns=$$('#ws-q-tabs button');
+    WS.exam.q.forEach((x,i)=>{
+      const b=btns[i];if(!b)return;
+      const n=wsAnsGet(WS.exam,i),g=wsGradeGet(WS.exam,i);
+      const wc=(n?n.replace(/\s/g,'').length+'字':'')+(g&&g.final!=null?' · 批'+g.final+'分':'');
+      let sp=b.querySelector('.mini');
+      if(!wc){if(sp)sp.parentNode.removeChild(sp);return}
+      if(!sp){sp=document.createElement('span');b.appendChild(sp)}
+      sp.className='mini'+(g?' gr':'');
+      sp.textContent=wc;
+    });
   }
   function wsRenderQuestion(){
     const q=WS.exam.q[WS.qIdx];
-    $('#ws-q-tabs').innerHTML=WS.exam.q.map((x,i)=>{
-      const n=(wsLS()[WS.exam.id]||{})[x.no];
-      const g=(WS.exam?wsGradeStore():{})[x.no]||null;
-      const wc=(n?n.replace(/\s/g,'').length+'字':'')+(g&&g.final!=null?' · 批'+g.final+'分':'');
-      return `<button class="${i===WS.qIdx?'active':''}" data-q="${i}">题 ${i+1}${wc?`<span class="mini${g?' gr':''}">${wc}</span>`:''}</button>`;
-    }).join('');
-    $$('#ws-q-tabs button').forEach(b=>b.addEventListener('click',()=>{wsFlushSave();WS.qIdx=+b.dataset.q;wsRenderQuestion();wsLoadAnswer();wsShowSavedReport()}));
+    $('#ws-q-tabs').innerHTML=WS.exam.q.map((x,i)=>`<button class="${i===WS.qIdx?'active':''}" data-q="${i}">题 ${i+1}</button>`).join('');
+    wsTabBadges();
+    $$('#ws-q-tabs button').forEach(b=>b.addEventListener('click',()=>{
+      if(+b.dataset.q===WS.qIdx)return;
+      wsFlushSave();WS.qIdx=+b.dataset.q;wsRenderQuestion();wsLoadAnswer();wsShowSavedReport();wsCount();
+    }));
     let html='<h3>'+esc(q.t)+'</h3><div class="ws-score">';
     const scMax=(window.GRADE?GRADE.inferMax(q,GRADE.qType(q)):(q.sc||0));
     if(scMax) html+='<span class="pill orange"'+(q.sc?'':' title="题目标注分值缺失，此为按题干/题型推断的满分"')+'>'+scMax+' 分</span>';
-    if(q.lm) html+='<span class="pill teal">限 '+q.lm+' 字</span>';
-    if(!q.lm) html+='<span class="pill">字数不限</span>';
+    const li=wsLimitInfo(q);
+    if(li.max) html+='<span class="pill teal">限 '+li.max+' 字</span>';
+    else if(li.min) html+='<span class="pill teal">不少于 '+li.min+' 字</span>';
+    else html+='<span class="pill">字数不限</span>';
     html+='</div>';
     if(q.rq) html+='<div class="ws-req"><b>要求：</b>'+esc(q.rq)+'</div>';
     $('#ws-question').innerHTML=html;
@@ -1554,29 +1658,27 @@ window.GRADE=GRADE;
     return WGRID;
   }
   function wsAnswerText(){
-    if(WGRID) return WGRID.getValue();
-    const ta=$('#ws-answer-input');
-    return ta?ta.value:'';
+    return WGRID?WGRID.getValue():'';
   }
   function wsLoadAnswer(){
+    clearTimeout(WS.saveT);WS.saveT=null;
     const q=WS.exam.q[WS.qIdx];
-    const v=((wsLS()[WS.exam.id]||{})[q.no])||'';
+    const v=wsAnsGet(WS.exam,WS.qIdx);
     const g=wsGridEnsure();
-    if(g){ g.setLimit(q.lm||0); g.setValue(v,{scroll:false}); }
-    const ta=$('#ws-answer-input'); if(ta) ta.value=v;
+    WS.loadingAns=true;
+    if(g){ g.setLimit(wsLimitInfo(q).max); g.setValue(v,{scroll:false}); }
+    WS.loadingAns=false;
     wsCount();
-    $('#ws-save-status').textContent='自动保存已开启';
+    $('#ws-save-status').textContent=v?'已恢复上次作答':'自动保存已开启';
   }
   function wsFlushSave(){
     if(!WS.exam) return;
-    const all=wsLS();
-    if(!all[WS.exam.id]) all[WS.exam.id]={};
-    all[WS.exam.id][WS.exam.q[WS.qIdx].no]=wsAnswerText();
-    LS.setItem('sh_ws_ans',JSON.stringify(all));
+    wsAnsSet(WS.exam,WS.qIdx,wsAnswerText());
   }
   function wsRenderMeta(){
     const e=WS.exam;
-    $('#ws-meta').innerHTML=`<span class="pill">${esc(e.r==='国考'?'国家公务员':e.r)}</span><span class="pill orange">${e.y}${e.l?' · '+esc(e.l):''}</span><span class="pill teal">材料 ${e.m.length} 份 · ${e.c>=10000?(e.c/10000).toFixed(1)+'万字':e.c+'字'}</span><span class="pill orange" id="ws-ann-total">标注 ${wsGetAnn().ops.filter(o=>o.c!=='x').length} 处</span><span class="ws-prog">${e.q.map((q,i)=>`<i class="${((wsLS()[e.id]||{})[q.no]||'').length>0?'on':''}"></i>`).join('')}</span>`;
+    const annN=KL.countOps(wsGetAnn().ops);
+    $('#ws-meta').innerHTML=`<span class="pill">${esc(e.r==='国考'?'国家公务员':e.r)}</span><span class="pill orange">${e.y}${e.l?' · '+esc(e.l):''}</span><span class="pill teal">材料 ${e.m.length} 份 · ${e.c>=10000?(e.c/10000).toFixed(1)+'万字':e.c+'字'}</span><span class="pill orange" id="ws-ann-total">标注 ${annN} 处</span><span class="ws-prog">${e.q.map((x,i)=>`<i class="${wsAnsGet(e,i).replace(/\s/g,'').length>0?'on':''}"></i>`).join('')}</span>`;
   }
   function wsFillSelect(){
     const idx=window.SH_EXAM_INDEX||[];
@@ -1584,7 +1686,7 @@ window.GRADE=GRADE;
     idx.forEach(x=>{ (groups[x.r==='国考'?'国家公务员考试':x.r]=groups[x.r==='国考'?'国家公务员考试':x.r]||[]).push(x) });
     let html='';
     Object.keys(groups).sort((a,b)=>a==='国家公务员考试'?-1:b==='国家公务员考试'?1:a.localeCompare(b,'zh')).forEach(r=>{
-      html+=`<optgroup label="${esc(r)}">`+groups[r].sort((a,b)=>b.y-a.y).map(x=>`<option value="${esc(x.id)}">${esc(x.r)} ${x.y}${x.l?' · '+esc(x.l):''}（${x.q} 题 / ${(x.c/10000).toFixed(1)}万字）</option>`).join('')+'</optgroup>';
+      html+=`<optgroup label="${esc(r)}">`+groups[r].sort((a,b)=>b.y-a.y).map(x=>`<option value="${esc(x.id)}">${esc(x.r)} ${x.y}${x.l?' · '+esc(x.l):''}（${wsQCount(x)} 题 / ${(x.c/10000).toFixed(1)}万字）</option>`).join('')+'</optgroup>';
     });
     $('#ws-exam').innerHTML=html;
   }
@@ -1610,18 +1712,25 @@ window.GRADE=GRADE;
     wsLayoutColumns();wsUpdatePage();
   }
   function wsSetExam(ex){
-    if(WS.exam&&WS.exam.id!==ex.id){LS.removeItem('sh_ws_'+WS.exam.id+'_hl');LS.removeItem('sh_ws_'+ex.id+'_hl')}
-    WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;if(WSANN)WSANN.reset();const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
+    /* 切卷前先把当前题的作答写盘，否则刚写的内容会随状态切换丢失 */
+    if(WS.exam&&WS.exam.id!==ex.id) wsFlushSave();
+    clearTimeout(WS.saveT);clearTimeout(WS.gradingT);WS.grading=false;
+    WS.exam=ex;WS.matIdx=0;WS.qIdx=0;WS.ann=null;WS.undoOps=null;
+    if(WSANN)WSANN.reset();
+    const ub=$('#ws-undo-mat');if(ub)ub.hidden=true;
     LS.setItem('sh_ws_last',ex.id);
-    $('#ws-exam').value=ex.id;wsUpdatePickBtn();
-    wsRenderMeta();wsMatTabs();wsRenderBrushes();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}WS.grading=false;wsModalClose();const gp=$('#ws-grade .grm-body');if(gp)gp.innerHTML='';wsShowSavedReport()
+    $('#ws-exam').value=ex.id;wsUpdatePickBtn();wsRefreshSelectLabel(ex);
+    wsRenderMeta();wsMatTabs();wsRenderBrushes();wsRenderMaterial();wsRenderQuestion();wsLoadAnswer();wsTimerShow();
+    const mb=$('#ws-material');if(mb){mb.scrollLeft=0;wsUpdatePage()}
+    wsModalClose();const gp=$('#ws-grade .grm-body');if(gp)gp.innerHTML='';
+    wsShowSavedReport();
   }
   $('#ws-exam').addEventListener('change',async e=>{
     const id=e.target.value;
     const grp=(window.SH_EXAM_INDEX.find(x=>x.id===id)||{}).grp||'gk';
     await wsLoadGroup(grp);
     const ex=wsGetExam(id);
-    if(ex){wsSetExam(ex);toast('已切换试卷，标注已自动清零，从干净的卷面开始')}
+    if(ex){const same=WS.exam&&WS.exam.id===ex.id;wsSetExam(ex);if(!same)toast('已切换试卷；每套卷的作答与标注分别保存，随时可以切回')}
   });
   /* ---------- 标注：统一走 KL 公用引擎 ---------- */
   WSANN=KL.Annotator({
@@ -1631,7 +1740,7 @@ window.GRADE=GRADE;
     getMats:()=>WS.exam?WS.exam.m:[],
     key:m=>'sh_ws_'+(WS.exam?WS.exam.id:'x')+'_hl',
     countEl:'#ws-hl-count',
-    onAfter:()=>{ wsSyncFloat(); },
+    onAfter:()=>{ wsSyncFloat(); wsSyncAnnPill(); },
     onBrush:b=>{ WS.brush=b; wsSyncFloat(); }
   });
   const ANN=WSANN;
@@ -1641,6 +1750,11 @@ window.GRADE=GRADE;
     const now=$('#ws-ann-now');
     if(now) now.innerHTML='<i class="kk-dot '+WS.brush+'"></i>当前：'+(KL.NAME[WS.brush]||'黄')+'笔';
     wsSyncFloat();
+  }
+  /* 顶栏“标注 N 处”要跟着画笔实时更新，别只在保存作答时刷新 */
+  function wsSyncAnnPill(){
+    const pill=$('#ws-ann-total');
+    if(pill&&WS.exam) pill.textContent='标注 '+KL.countOps(wsGetAnn().ops)+' 处';
   }
   function wsSyncFloat(){
     const f=$('#kk-float');
@@ -1655,7 +1769,6 @@ window.GRADE=GRADE;
       +'<button class="kk-float-x" data-float="close" aria-label="收起画笔条">✕</button>';
     f.dataset.ctx='ws';
   }
-  $$('#ws-brushes').forEach(()=>{}); // noop
   document.addEventListener('click',e=>{
     const b=e.target.closest('[data-brush]');
     if(!b) return;
@@ -1672,9 +1785,10 @@ window.GRADE=GRADE;
   function wsClearMat(){
     if(!WS.exam) return;
     const ann=wsGetAnn();
-    const n=ann.ops.filter(o=>o.m===WS.matIdx).length;
+    const mine=ann.ops.filter(o=>o.m===WS.matIdx);
+    const n=KL.countOps(mine,WS.matIdx);
     if(!n){toast('这一篇还没有标注');return}
-    WS.undoOps=ann.ops.filter(o=>o.m===WS.matIdx);
+    WS.undoOps=mine;
     ann.ops=ann.ops.filter(o=>o.m!==WS.matIdx);
     wsSaveAnn();wsRenderMaterial();wsMatTabs();wsRenderMeta();
     const ub=$('#ws-undo-mat'); if(ub) ub.hidden=false;
@@ -1688,22 +1802,29 @@ window.GRADE=GRADE;
     WS.undoOps=null;$('#ws-undo-mat').hidden=true;
     toast('已恢复标注');
   });
-  /* answer input */
+  /* answer input：方格纸的每次真实输入都会派发 kk:gridinput，600ms 后落盘 */
   function wsAnsChanged(){
+    if(!WS.exam||WS.loadingAns) return;
     wsCount();
     $('#ws-save-status').textContent='正在保存……';
     clearTimeout(WS.saveT);
-    WS.saveT=setTimeout(()=>{wsFlushSave();wsRenderMeta();$('#ws-save-status').textContent='已保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})},600);
+    WS.saveT=setTimeout(()=>{
+      wsFlushSave();wsRenderMeta();wsTabBadges();
+      $('#ws-save-status').textContent='已保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    },600);
   }
-  document.addEventListener('kk:gridchange',e=>{ if(e.detail&&e.detail.id==='ws') wsAnsChanged() });
-  $('#ws-answer-input').addEventListener('input',wsAnsChanged);
+  document.addEventListener('kk:gridinput',e=>{ if(e.detail&&e.detail.id==='ws-grid-host') wsAnsChanged() });
+  /* 离开页面 / 切到后台时立刻落盘 */
+  window.addEventListener('beforeunload',()=>{try{wsFlushSave()}catch(e){}});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){try{wsFlushSave()}catch(e){}}});
   $('#ws-copy-ans').addEventListener('click',()=>copy(wsAnswerText()||' '));
   $('#ws-clear-ans').addEventListener('click',()=>{
     if(!wsAnswerText()){toast('本题还没有作答');return}
     appConfirm('确定清空本题作答吗？',()=>{
       const g=wsGridEnsure(); if(g) g.setValue('');
-      const ta=$('#ws-answer-input'); if(ta) ta.value='';
-      wsFlushSave();wsCount();wsRenderMeta();toast('已清空本题');
+      wsFlushSave();wsCount();wsRenderMeta();wsTabBadges();
+      $('#ws-save-status').textContent='已清空并保存';
+      toast('已清空本题');
     },'清空');
   });
   /* timer */
@@ -1717,13 +1838,15 @@ window.GRADE=GRADE;
   function wsStopTimer(){ clearInterval(WS.timer);WS.timer=null;wsTimerShow() }
   $('#ws-timer-toggle').addEventListener('click',()=>{
     if(WS.timer){ wsStopTimer();return }
+    if(!WS.exam){toast('先选一套真题');return}
+    const id=WS.exam.id;               // 绑定当前试卷，切换试卷不会扣另一套卷的时间
     WS.timer=setInterval(()=>{
+      if(!WS.exam||WS.exam.id!==id){wsStopTimer();return}
       const t=JSON.parse(LS.getItem('sh_ws_timer')||'{}');
-      const id=WS.exam?WS.exam.id:'_';
       t[id]=Math.max(0,(t[id]||10800)-1);
       LS.setItem('sh_ws_timer',JSON.stringify(t));
       wsTimerShow();
-      if(!t[id]) wsStopTimer();
+      if(!t[id]){wsStopTimer();toast('考试时间到，可以继续写或提交批改')}
     },1000);
     wsTimerShow();
   });

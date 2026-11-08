@@ -66,6 +66,15 @@
     } catch (e) { return JSON.parse(JSON.stringify(DEF)); }
   }
   function saveS() { try { LS.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 无痕模式忽略 */ } }
+  /* 逐字输入不必每次都全量写 localStorage：合并 350ms 内的改动，离开页面前强制落盘 */
+  let saveT = null;
+  function queueSave() {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => { saveT = null; saveS(); }, 350);
+  }
+  function flushSave() { if (saveT) { clearTimeout(saveT); saveT = null; } saveS(); }
+  window.addEventListener('beforeunload', flushSave);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
 
   /* ---------- 题库池 ---------- */
   const LABEL = { sum: '短材料小题', essay: '大作文拆解', drill: '标题分论点训练' };
@@ -172,8 +181,18 @@
     return { points: cov, hitCount, total: pts.length, score: pts.length ? Math.round(hitCount / pts.length * 100) : 0 };
   }
 
+  /* 参与批改的字段：不含草稿纸内容（草稿不计入要点了） */
+  function draftText(draft) {
+    const d = draft || {};
+    return [d.answer, d.title, d.a1, d.a2, d.a3, d.end].map(x => String(x || '')).filter(Boolean).join(' ');
+  }
+  function draftChars(draft) {
+    const d = draft || {};
+    return countChars([d.answer, d.title, d.a1, d.a2, d.a3, d.end].map(x => String(x || '')).join(''));
+  }
+
   function scoreItem(item, draft) {
-    const text = Object.values(draft || {}).join(' ');
+    const text = draftText(draft);
     const keys = item.keys || [];
     const isSum = item._m === 'sum';
     if (isSum && (!keys.length || item.matcher === 'overlap')) {
@@ -273,7 +292,11 @@
   }
   function calcStreak() {
     let n = 0;
-    for (let i = 0; i < 400; i++) { if (S.days[dayShift(-i)]) n++; else if (i > 0) break; }
+    for (let i = 0; i < 400; i++) {
+      if (S.days[dayShift(-i)]) n++;
+      else if (i === 0) continue;   // 今天还没来得及练，不算断签
+      else break;
+    }
     return n;
   }
   function avgScore() {
@@ -437,27 +460,21 @@
 
     const editor = isSum ? `
       <div class="lb-field">
-        <label for="lb_answer_g">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</label>
+        <div class="lb-lab">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</div>
         <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
         <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span class="kk-sub">拼音 / 语音 / 手写输入均可 · 每格一字</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
-      <textarea class="lb-ta" id="lb_answer" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.answer || '')}</textarea>
     ` : `
-      <div class="lb-field"><label for="lb_title"><b>01</b>标题（4—14 字，最好含本题独有概念）</label>
-        <div class="kk-grid-host" id="lb_title_g" aria-label="标题 方格纸"></div>
-        <textarea class="lb-input" id="lb_title" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.title || '')}</textarea></div>
-      <div class="lb-field"><label for="lb_a1"><b>02</b>分论点一（方格纸，点格子即可改写）</label>
-        <div class="kk-grid-host" id="lb_a1_g" aria-label="分论点一 方格纸"></div>
-        <textarea class="lb-input" id="lb_a1" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a1 || '')}</textarea></div>
-      <div class="lb-field"><label for="lb_a2"><b>03</b>分论点二（起手字要与上一条不同）</label>
-        <div class="kk-grid-host" id="lb_a2_g" aria-label="分论点二 方格纸"></div>
-        <textarea class="lb-input" id="lb_a2" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a2 || '')}</textarea></div>
-      <div class="lb-field"><label for="lb_a3"><b>04</b>分论点三</label>
-        <div class="kk-grid-host" id="lb_a3_g" aria-label="分论点三 方格纸"></div>
-        <textarea class="lb-input" id="lb_a3" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a3 || '')}</textarea></div>
-      <div class="lb-field"><label for="lb_end"><b>05</b>收尾句（30—60 字，不落口号，落在具体的人或事上）</label>
-        <div class="kk-grid-host" id="lb_end_g" aria-label="收尾句 方格纸"></div>
-        <textarea class="lb-input" id="lb_end" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.end || '')}</textarea></div>
+      <div class="lb-field"><div class="lb-lab"><b>01</b>标题（4—14 字，最好含本题独有概念）</div>
+        <div class="kk-grid-host" id="lb_title_g" aria-label="标题 方格纸"></div></div>
+      <div class="lb-field"><div class="lb-lab"><b>02</b>分论点一（方格纸，点格子即可改写）</div>
+        <div class="kk-grid-host" id="lb_a1_g" aria-label="分论点一 方格纸"></div></div>
+      <div class="lb-field"><div class="lb-lab"><b>03</b>分论点二（起手字要与上一条不同）</div>
+        <div class="kk-grid-host" id="lb_a2_g" aria-label="分论点二 方格纸"></div></div>
+      <div class="lb-field"><div class="lb-lab"><b>04</b>分论点三</div>
+        <div class="kk-grid-host" id="lb_a3_g" aria-label="分论点三 方格纸"></div></div>
+      <div class="lb-field"><div class="lb-lab"><b>05</b>收尾句（30—60 字，不落口号，落在具体的人或事上）</div>
+        <div class="kk-grid-host" id="lb_end_g" aria-label="收尾句 方格纸"></div></div>
       <div class="lb-checker" id="lb_checker"></div>
     `;
 
@@ -594,7 +611,7 @@
       <div class="lb-verdict">
         <div class="lb-kicker">${sc.mode === 'overlap' ? '要点覆盖率' : sc.structOnly ? '结构完成度' : '本次得分率'}</div>
         <h3>${sc.score}%　${esc(vTitle)}</h3>
-        <div class="meta">${detail}　·　字数 ${countChars(Object.values(draft).join(''))}</div>
+        <div class="meta">${detail}　·　字数 ${draftChars(draft)}</div>
       </div>
       <div class="lb-actions">
         <button class="secondary" data-lb="jump" data-target="#lb_ref">看参考答案</button>
@@ -797,6 +814,7 @@
 
   function openItem(m, id) {
     if (!build()) return;
+    flushSave();
     if (m === 'lib') { TAB = 'lib'; renderLab(); return; }
     const item = POOL[m] && POOL[m].find(x => x.id === id);
     if (!item) { toast('没有找到这道题'); return; }
@@ -805,7 +823,8 @@
     if (TIMER) { clearInterval(TIMER); TIMER = null; }
     LAB.CUR = id;
     LAB.GRIDS = []; LAB.ANN = null; LAB.DRAFT = null;
-    MAIN.innerHTML = practiceView(m, item) + '<div id="lb_result"></div>';
+    /* practiceView 里已经带了一个 #lb_result，不要再追加一个同名节点 */
+    MAIN.innerHTML = practiceView(m, item);
     if (VIEW && typeof VIEW.scrollIntoView === 'function') VIEW.scrollIntoView({ behavior: 'auto', block: 'start' });
     bindPractice(m, item);
     const rec = S.rec[item.id];
@@ -842,7 +861,7 @@
   function bindPractice(m, item) {
     const isSum = m === 'sum';
     const draft = Object.assign({}, draftOf(item.id));
-    const persist = () => { S.drafts[item.id] = Object.assign({}, draft); saveS(); };
+    const persist = () => { S.drafts[item.id] = Object.assign({}, draft); queueSave(); };
     LAB.GRIDS = [];
     LAB.CUR = item.id;
 
@@ -856,14 +875,13 @@
         value: draft[f.k] || '',
         onChange: () => {
           const v = g ? g.getValue() : '';
-          draft[f.k] = v;
-          persist();
-          if (isSum) updateMeter(item); else updateChecker(draft);
+          if (draft[f.k] !== v) { draft[f.k] = v; persist(); }
+          if (isSum) updateMeter(item); else { updateChecker(draft); updateEssayMeter(draft); }
         }
       });
       LAB.GRIDS.push(g);
     });
-    if (isSum) updateMeter(item); else updateChecker(draft);
+    if (isSum) updateMeter(item); else { updateChecker(draft); updateEssayMeter(draft); }
 
     /* ---- 材料标注（与真题作答同一套画笔）；没有材料时给一张空白草稿纸 ---- */
     const wrap = document.getElementById('lb_mat');
@@ -894,14 +912,14 @@
         countEl: null,
         onAfter: () => {
           const n = document.querySelector('#lb_annbar .kk-ann-num');
-          if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
+          if (n) n.textContent = LAB.ANN ? KL.countOps(LAB.ANN.ops(), 0) : 0;
         },
         onBrush: b => { LAB.BRUSH = b; },
         headHTML: () => ''
       });
       LAB.ANN.render();
       const n0 = document.querySelector('#lb_annbar .kk-ann-num');
-      if (n0) n0.textContent = LAB.ANN.ops().length;
+      if (n0) n0.textContent = KL.countOps(LAB.ANN.ops(), 0);
     } else {
       LAB.ANN = null;
     }
@@ -912,7 +930,10 @@
       const dg = KL.Grid({
         el: draftHost, perRow: 20, rows: 4, indent: 0, limit: 0,
         value: draft.draft || '',
-        onChange: () => { draft.draft = dg ? dg.getValue() : ''; persist(); }
+        onChange: () => {
+          const v = dg ? dg.getValue() : '';
+          if (draft.draft !== v) { draft.draft = v; persist(); }
+        }
       });
       LAB.DRAFT = dg;
     }
@@ -928,8 +949,21 @@
       box.style.color = over ? 'var(--accent)' : '';
     }, 500);
 
+    /* 交卷/看答案前，先把方格纸里的最新内容同步进草稿（防止输入法刚上屏尚未触发回调） */
+    function syncDraft() {
+      map.forEach((f, i) => {
+        const g = LAB.GRIDS[i];
+        if (g) draft[f.k] = g.getValue();
+      });
+      if (LAB.DRAFT) draft.draft = LAB.DRAFT.getValue();
+      S.drafts[item.id] = Object.assign({}, draft);
+      flushSave();
+    }
+    const ANSWER_KEYS = ['answer', 'title', 'a1', 'a2', 'a3', 'end'];
+    const filledEnough = () => ANSWER_KEYS.some(k => countChars(draft[k]) >= 4);
     function submit() {
-      if (!Object.values(draft).some(v => String(v || '').replace(/\s/g, '').length >= 4)) { toast('先写一点内容再交卷'); return; }
+      syncDraft();
+      if (!filledEnough()) { toast('先写一点内容再交卷'); return; }
       const checker = document.getElementById('lb_checker');
       if (checker) checker.style.display = 'none';
       const sc = scoreItem(item, draft);
@@ -940,8 +974,10 @@
       softScroll(box);
     }
     function reveal() {
+      syncDraft();
       const sc = scoreItem(item, draft);
-      if (!S.rec[item.id]) finalize(item, sc.score); else saveS();
+      /* 没写过内容只是“看答案”时不计入练习记录，避免练习统计被 0 分刷满 */
+      if (filledEnough()) finalize(item, sc.score);
       const box = document.getElementById('lb_result');
       if (box) box.innerHTML = resultHTML(m, item, draft);
       toast('已显示参考答案');
@@ -959,14 +995,15 @@
         if (LAB.DRAFT) LAB.DRAFT.setValue('');
         draft.draft = '';
         persist();
-        if (isSum) updateMeter(item); else updateChecker(draft);
+        flushSave();
+        if (isSum) updateMeter(item); else { updateChecker(draft); updateEssayMeter(draft); }
         const ck = document.getElementById('lb_checker'); if (ck) ck.style.display = '';
         const box = document.getElementById('lb_result'); if (box) box.innerHTML = '';
         });
       },
       clearann() {
         if (!LAB.ANN) return;
-        const n = LAB.ANN.ops().length;
+        const n = KL.countOps(LAB.ANN.ops(), 0);
         if (!n) { toast('还没有标注'); return; }
         ask('清空这篇材料的全部标注？', '清空', () => {
           LAB.ANN.clearAll();
@@ -978,9 +1015,7 @@
 
   function updateMeter(item) {
     const g = LAB.GRIDS && LAB.GRIDS[0];
-    const ta = document.getElementById('lb_answer');
-    const text = g ? g.getValue() : (ta ? ta.value : '');
-    const n = countChars(text);
+    const n = g ? countChars(g.getValue()) : 0;
     const w = document.getElementById('lb_wc'), bar = document.getElementById('lb_wbar');
     const ratio = item.limit ? n / item.limit : 0;
     if (w) w.textContent = `${n} 字${item.limit ? ' ／ ' + item.limit : ''}`;
@@ -990,6 +1025,15 @@
     }
     const tip = document.getElementById('lb_grid_tip');
     if (tip) tip.textContent = item.limit ? (n > item.limit ? '超出 ' + (n - item.limit) + ' 字，考场不计入' : n < item.limit * 0.65 ? '还可以再写 ' + (item.limit - n) + ' 字' : '字数在范围内') : '';
+  }
+  /* 大作文的分块作答：底部也显示总字数，别一直停在 0 字 */
+  function updateEssayMeter(draft) {
+    const w = document.getElementById('lb_wc'), bar = document.getElementById('lb_wbar');
+    const n = draftChars(draft);
+    if (w) w.textContent = `${n} 字`;
+    if (bar) { bar.style.width = '0%'; bar.className = ''; }
+    const tip = document.getElementById('lb_grid_tip');
+    if (tip) tip.textContent = '';
   }
   /* 与「真题作答」共用：移动端浮动画笔条（练习室） */
   function syncLabFloat() {
@@ -1024,6 +1068,7 @@
     if (act === 'tab') {
       e.preventDefault();
       if (!VIEW || !VIEW.classList.contains('active')) return;
+      flushSave();
       TAB = el.dataset.tab;
       if (TIMER) { clearInterval(TIMER); TIMER = null; }
       renderLab();
@@ -1062,7 +1107,7 @@
       if (ft) {
         ft.innerHTML = KL.annBarHTML(b);
         const n = ft.querySelector('.kk-ann-num');
-        if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
+        if (n) n.textContent = LAB.ANN ? KL.countOps(LAB.ANN.ops(), 0) : 0;
       }
 
       return;
@@ -1107,7 +1152,7 @@
     if (ft) {
       ft.innerHTML = KL.annBarHTML(LAB.BRUSH);
       const n = ft.querySelector('.kk-ann-num');
-      if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
+      if (n) n.textContent = LAB.ANN ? KL.countOps(LAB.ANN.ops(), 0) : 0;
     }
     syncLabFloat();
 
@@ -1201,15 +1246,8 @@
   };
 
   function installSync() {
-    // 切到练习室时，把顶栏标题同步成本模块的标题
-    if (window.__LAB_PATCH__) return;
-    window.__LAB_PATCH__ = true;
-    const orig = window.openView;
-    if (typeof orig !== 'function') return;
-    window.openView = function (view) {
-      orig.apply(this, arguments);
-      if (view === 'lab' && window.SH_LABHOOK) window.SH_LABHOOK.render();
-    };
+    /* openView() 里已经会调用 SH_LABHOOK.render()，这里不再重复包一层，
+       否则每次进练习室都会渲染两遍（清空刚打开的面板） */
   }
 
   window.addEventListener('resize', () => { if (typeof syncLabFloat === 'function') syncLabFloat(); });
@@ -1217,7 +1255,15 @@
 
   window.SH_LABHOOK = {
     init: () => { build(); renderLab(); },
-    render: () => { renderLab(); },
+    /* 从别的页面切回练习室时，如果还停在某道题的作答页，就保留它（别把刚写的页面重建成列表） */
+    render: () => {
+      if (LAB.CUR && MAIN && MAIN.querySelector('#lb_mat')) {
+        syncSeg();
+        if (typeof syncLabFloat === 'function') syncLabFloat();
+        return;
+      }
+      renderLab();
+    },
     openItem: (m, id) => openItem(m, id),
     search: searchExtra,
     setTab: t => { TAB = t; renderLab(); },

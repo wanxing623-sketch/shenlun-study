@@ -217,3 +217,73 @@
   .lb-row .score{grid-column:2;justify-self:start}
   .lb-scorehero{padding:16px}
 }
+
+/* ---------- 材料标注区（练习室版，与真题作答同一套画笔） ---------- */
+.lb-mat{position:relative;margin-top:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface-2)}
+.lb-mat-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:2}
+.lb-mat-t{font-size:12px;font-weight:700;color:var(--muted)}
+.lb-mat-t b{color:var(--ink);font-weight:800}
+.lb-mat-hd .kk-brushes{margin-left:auto}
+.lb-mat-body{max-height:min(52vh,560px);overflow:auto;padding:14px 16px;font-size:14px;line-height:2;-webkit-overflow-scrolling:touch}
+.lb-mat-body p{margin:0 0 12px;text-indent:2em}
+.lb-mat-body .sn{cursor:pointer}
+.lb-mat-ft{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line);background:var(--surface);font-size:11.5px;color:var(--muted)}
+
+/* ---------- 方格纸在练习室里的排布 ---------- */
+.lb-field .kk-grid-host{border-radius:10px}
+.lb-field .kk-grid-foot{padding:6px 2px 0}
+#lb_a1_g .kk-cell,#lb_a2_g .kk-cell,#lb_a3_g .kk-cell,#lb_title_g .kk-cell{font-size:14px}
+
+/* ---------- 移动端：分栏、浮动条、触控目标 ---------- */
+@media (max-width:940px){
+  .lb-mat-body{max-height:none}
+}
+@media (max-width:760px){
+  .lb-ws{gap:12px}
+  .lb-pane{padding:14px 14px 12px;border-radius:14px}
+  .lb-phead h1{font-size:18px}
+  .lb-seg{position:sticky;top:calc(var(--topbar-h) + 4px);z-index:5;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .lb-seg::-webkit-scrollbar{display:none}
+  .lb-seg button{flex:none}
+  .lb-dock{gap:8px}
+  .lb-dock .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:100%}
+  .lb-dock .acts button{width:100%;min-height:44px;justify-content:center}
+  .lb-btnsm{min-height:40px}
+  .lb-mat-hd{padding:8px 10px}
+  .lb-mat-body{padding:12px 12px 8px;font-size:14px;line-height:1.95}
+  .lb-row{padding:11px 12px}
+  .lb-quotes,.lb-cases{grid-template-columns:1fr}
+  .lb-swap{grid-template-columns:1fr;gap:6px}
+  .lb-swap .ar{display:none}
+  .lb-pt{grid-template-columns:26px 1fr;gap:8px}
+  .lb-pt .pm{grid-column:2;text-align:left}
+  .lb-scorehero{gap:14px}
+  .lb-ring{width:64px;height:64px}
+  .lb-ring svg{width:64px;height:64px}
+  .lb-verdict{min-width:0}
+  .lb-ref{padding:16px 14px}
+  .lb-model{padding:13px 14px;max-height:none}
+  .lb-libtabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .lb-libtabs::-webkit-scrollbar{display:none}
+  .lb-libtabs button{flex:none;min-height:40px}
+  .lb-facets{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}
+  .lb-facets::-webkit-scrollbar{display:none}
+  .lb-facet{flex:none;min-height:34px}
+  .lb-stats{grid-template-columns:repeat(2,1fr)}
+  .lb-stat b{font-size:20px}
+  .lb-toolbar{flex-wrap:wrap}
+}
+@media (max-width:420px){
+  .lb-row{grid-template-columns:30px 1fr;gap:8px}
+  .lb-row .score{grid-column:2;justify-self:start;margin-top:2px}
+  .lb-stats{grid-template-columns:1fr 1fr}
+  .lb-stat{padding:11px 12px}
+  .lb-hero{padding:16px}
+  .lb-scorehero{padding:14px}
+  .lb-card{padding:14px 14px}
+}
+@media (pointer:coarse){
+  .lb-btnsm,.lb-facet,.lb-libtabs button{min-height:40px}
+  .lb-row{min-height:60px}
+  .lb-star{width:38px;height:38px;font-size:17px}
+}

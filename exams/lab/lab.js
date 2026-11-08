@@ -44,6 +44,12 @@
     el.textContent = msg; el.classList.add('show');
     clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2000);
   }
+  /* 确认弹窗：优先用工作台的弹窗（样式统一），降级到原生 confirm */
+  function ask(msg, okText, onOk) {
+    if (typeof window.SH_CONFIRM === 'function') window.SH_CONFIRM(msg, onOk, okText || '确定');
+    else if (window.confirm(msg)) onOk();
+  }
+
   function softScroll(el) {
     if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -124,7 +130,16 @@
     const txt = String(answer || '');
     let pts = txt.split(/\n+/).map(s => s.trim()).filter(s => s.length > 6)
       .filter(s => /^(\d{1,2}\s*[.、)）]|[一二三四五六七八九十]{1,3}\s*[、.])/.test(s));
-    if (pts.length < 3) pts = txt.split(/(?<=[。；！？])/).map(s => s.trim()).filter(s => s.length > 10);
+    if (pts.length < 3) {
+      // 不用正则后行断言（旧版 Safari 会直接报错），手工按句读切分
+      const parts = []; let cur = '';
+      for (let i = 0; i < txt.length; i++) {
+        cur += txt[i];
+        if ('。；！？\n'.indexOf(txt[i]) >= 0) { parts.push(cur.trim()); cur = ''; }
+      }
+      if (cur.trim()) parts.push(cur.trim());
+      pts = parts.filter(s => s.length > 10);
+    }
     return pts.map(s => s.replace(/^(\d{1,2}\s*[.、)）]|[一二三四五六七八九十]{1,3}\s*[、.])\s*/, '').trim())
       .filter(s => s.length > 6).slice(0, 10);
   }
@@ -266,7 +281,7 @@
     return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
   }
 
-  const LAB = { ACT: {}, CUR: null };
+  const LAB = { ACT: {}, CUR: null, GRIDS: [], ANN: null, PARAS: [], BRUSH: 'y' };
 
   /* ---------- 分段 & 筛选状态 ---------- */
   let TAB = 'home';
@@ -422,24 +437,30 @@
 
     const editor = isSum ? `
       <div class="lb-field">
-        <label for="lb_answer">作答（分条写：先总括句，再展开；用“一是／二是”或 1. 2. 3.）</label>
-        <textarea class="lb-ta" id="lb_answer" placeholder="一是……　二是……　三是……">${esc(draft.answer || '')}</textarea>
+        <label for="lb_answer_g">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</label>
+        <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
+        <div class="kk-grid-foot"><span>首行自动缩进两格 · 超出字数上限的格子标红</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
+      <textarea class="lb-ta" id="lb_answer" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.answer || '')}</textarea>
     ` : `
       <div class="lb-field"><label for="lb_title"><b>01</b>标题（4—14 字，最好含本题独有概念）</label>
-        <input class="lb-input" type="text" id="lb_title" maxlength="30" placeholder="例：《把标准刻在秤上》" value="${esc(draft.title || '')}"></div>
-      <div class="lb-field"><label for="lb_a1"><b>02</b>分论点一</label>
-        <input class="lb-input" type="text" id="lb_a1" placeholder="把／让／以……，一句话 20—35 字" value="${esc(draft.a1 || '')}"></div>
+        <div class="kk-grid-host" id="lb_title_g" aria-label="标题 方格纸"></div>
+        <textarea class="lb-input" id="lb_title" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.title || '')}</textarea></div>
+      <div class="lb-field"><label for="lb_a1"><b>02</b>分论点一（方格纸，点格子即可改写）</label>
+        <div class="kk-grid-host" id="lb_a1_g" aria-label="分论点一 方格纸"></div>
+        <textarea class="lb-input" id="lb_a1" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a1 || '')}</textarea></div>
       <div class="lb-field"><label for="lb_a2"><b>03</b>分论点二（起手字要与上一条不同）</label>
-        <input class="lb-input" type="text" id="lb_a2" value="${esc(draft.a2 || '')}"></div>
+        <div class="kk-grid-host" id="lb_a2_g" aria-label="分论点二 方格纸"></div>
+        <textarea class="lb-input" id="lb_a2" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a2 || '')}</textarea></div>
       <div class="lb-field"><label for="lb_a3"><b>04</b>分论点三</label>
-        <input class="lb-input" type="text" id="lb_a3" value="${esc(draft.a3 || '')}"></div>
+        <div class="kk-grid-host" id="lb_a3_g" aria-label="分论点三 方格纸"></div>
+        <textarea class="lb-input" id="lb_a3" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.a3 || '')}</textarea></div>
       <div class="lb-field"><label for="lb_end"><b>05</b>收尾句（30—60 字，不落口号，落在具体的人或事上）</label>
-        <textarea class="lb-input" id="lb_end" rows="3" placeholder="例：最好的执法，不是让人记住罚了多少钱，而是记住下次该怎么做。">${esc(draft.end || '')}</textarea></div>
+        <div class="kk-grid-host" id="lb_end_g" aria-label="收尾句 方格纸"></div>
+        <textarea class="lb-input" id="lb_end" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.end || '')}</textarea></div>
       <div class="lb-checker" id="lb_checker"></div>
     `;
 
-    const mat = materialHTML(item);
     return `
     <a class="lb-back" href="#" data-lb="tab" data-tab="${m}">← 返回${esc(LABEL[m])}</a>
     <div class="lb-phead">
@@ -456,10 +477,18 @@
         ${item.req ? `<div class="lb-req"><b>作答要求</b>${esc(item.req)}</div>` : ''}
         ${item.task ? `<div class="lb-req"><b>本次只写</b>${esc(item.task)}</div>` : ''}
         ${item.skeleton ? `<div class="lb-req"><b>骨架</b>${esc(item.skeleton)}</div>` : ''}
-        ${mat ? `<details class="lb-mat"${window.innerWidth > 760 ? ' open' : ''}>
-          <summary>给定资料<span class="fold">${countChars(item.material)} 字</span></summary>
-          <div class="body">${mat}</div>
-        </details>` : ''}
+        ${item.material ? `<div class="lb-mat" id="lb_mat_wrap">
+          <div class="lb-mat-hd">
+            <span class="lb-mat-t">给定资料 <b>${countChars(item.material)}</b> 字</span>
+            <span class="kk-brushes" id="lb_brushes"></span>
+          </div>
+          <div class="lb-mat-body" id="lb_mat"></div>
+          <div class="lb-mat-ft">
+            <span class="kk-annbar" id="lb_annbar"></span>
+            <span class="grow"></span>
+            <button class="lb-btnsm" data-lb="clearann">清空标注</button>
+          </div>
+        </div>` : ''}
       </div>
 
       <div class="lb-pane">
@@ -757,6 +786,7 @@
         : TAB === 'me' ? viewMe()
           : listView(TAB);
     if (y) MAIN.scrollTop = y;
+    if (typeof syncLabFloat === 'function') syncLabFloat();
   }
 
   function openItem(m, id) {
@@ -768,6 +798,7 @@
     syncSeg();
     if (TIMER) { clearInterval(TIMER); TIMER = null; }
     LAB.CUR = id;
+    LAB.GRIDS = []; LAB.ANN = null;
     MAIN.innerHTML = practiceView(m, item) + '<div id="lb_result"></div>';
     if (VIEW && typeof VIEW.scrollIntoView === 'function') VIEW.scrollIntoView({ behavior: 'auto', block: 'start' });
     bindPractice(m, item);
@@ -781,6 +812,7 @@
           <div class="meta">${rec.next <= todayStr() ? '今天该复习了' : '下次复习 ' + esc(rec.next)}</div></div>
         <div class="lb-actions"><button class="secondary" data-lb="reveal">看参考答案</button></div></div>`;
     }
+    if (typeof syncLabFloat === 'function') syncLabFloat();
     // 更新面包屑
     const pt = $('#page-title'), ps = $('#page-subtitle');
     if (pt) pt.textContent = '练习室';
@@ -789,32 +821,83 @@
 
   /* ---------- 练习页交互 ---------- */
   let TIMER = null;
+  /* 方格纸字段映射：小题只有 answer；大作文有 4 个短格 */
+  function gridFields(m, item) {
+    if (m === 'sum') return [{ k: 'answer', id: 'lb_answer_g', limit: item.limit || 0, rows: 6 }];
+    return [
+      { k: 'title', id: 'lb_title_g', limit: 16, rows: 1 },
+      { k: 'a1', id: 'lb_a1_g', limit: 45, rows: 1 },
+      { k: 'a2', id: 'lb_a2_g', limit: 45, rows: 1 },
+      { k: 'a3', id: 'lb_a3_g', limit: 45, rows: 1 },
+      { k: 'end', id: 'lb_end_g', limit: 70, rows: 2 }
+    ];
+  }
+
   function bindPractice(m, item) {
     const isSum = m === 'sum';
     const draft = Object.assign({}, draftOf(item.id));
     const persist = () => { S.drafts[item.id] = Object.assign({}, draft); saveS(); };
-    const fields = isSum ? ['answer'] : ['title', 'a1', 'a2', 'a3', 'end'];
+    LAB.GRIDS = [];
+    LAB.CUR = item.id;
 
-    const ids = { answer: 'lb_answer', title: 'lb_title', a1: 'lb_a1', a2: 'lb_a2', a3: 'lb_a3', end: 'lb_end' };
-    fields.forEach(f => {
-      const el = document.getElementById(ids[f]);
-      if (!el) return;
-      el.value = draft[f] || '';
-      el.addEventListener('input', () => {
-        draft[f] = el.value; persist();
-        if (isSum) updateMeter(item); else updateChecker(draft);
+    /* ---- 方格纸 ---- */
+    const map = gridFields(m, item);
+    map.forEach(f => {
+      const host = document.getElementById(f.id);
+      if (!host || !window.KL) return;
+      const g = KL.Grid({
+        el: host, perRow: 20, rows: f.rows, indent: isSum ? 2 : 0, limit: f.limit,
+        value: draft[f.k] || '',
+        onChange: () => {
+          const v = g ? g.getValue() : '';
+          draft[f.k] = v;
+          persist();
+          if (isSum) updateMeter(item); else updateChecker(draft);
+        }
       });
+      LAB.GRIDS.push(g);
     });
     if (isSum) updateMeter(item); else updateChecker(draft);
+
+    /* ---- 材料标注（与真题作答同一套画笔） ---- */
+    const wrap = document.getElementById('lb_mat');
+    if (wrap && item.material && window.KL) {
+      const paras = String(item.material).replace(/【材料\s*\d+】/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean);
+      LAB.PARAS = paras;
+      const bar = document.getElementById('lb_brushes');
+      const barBox = document.getElementById('lb_annbar');
+      if (bar) bar.innerHTML = KL.brushBarHTML(LAB.BRUSH || 'y');
+      if (barBox) barBox.innerHTML = KL.annBarHTML(LAB.BRUSH || 'y');
+      LAB.ANN = KL.Annotator({
+        el: '#lb_mat',
+        brush: LAB.BRUSH || 'y',
+        matIdx: () => 0,
+        getMats: () => [{ p: LAB.PARAS }],
+        key: () => 'sh_lab_ann_' + item.id,
+        countEl: null,
+        onAfter: () => {
+          const num = document.querySelector('#lb_annbar .kk-ann-num');
+          if (num) num.textContent = LAB.ANN ? LAB.ANN.count() : 0;
+        },
+        onBrush: b => { LAB.BRUSH = b; },
+        headHTML: () => ''
+      });
+      LAB.ANN.render();
+      // 首次渲染后补一次计数
+      const num = document.querySelector('#lb_annbar .kk-ann-num');
+      if (num) num.textContent = LAB.ANN.count();
+    } else {
+      LAB.ANN = null;
+    }
 
     clearInterval(TIMER);
     const t0 = Date.now();
     TIMER = setInterval(() => {
       const box = document.getElementById('lb_timer');
       if (!box) { clearInterval(TIMER); return; }
-      const s = Math.floor((Date.now() - t0) / 1000);
-      const over = item.minutes && s > item.minutes * 60;
-      box.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}${item.minutes ? ' / ' + item.minutes + '′' : ''}`;
+      const sec = Math.floor((Date.now() - t0) / 1000);
+      const over = item.minutes && sec > item.minutes * 60;
+      box.textContent = `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}${item.minutes ? ' / ' + item.minutes + '′' : ''}`;
       box.style.color = over ? 'var(--accent)' : '';
     }, 500);
 
@@ -840,19 +923,35 @@
     LAB.ACT = {
       submit, reveal,
       clear() {
-        if (!window.confirm('清空本题作答？')) return;
-        fields.forEach(f => { const el = document.getElementById(ids[f]); if (el) el.value = ''; draft[f] = ''; });
+        ask('清空本题作答？', '清空', () => {
+        map.forEach((f, i) => {
+          const g = LAB.GRIDS[i];
+          if (g) g.setValue('');
+          draft[f.k] = '';
+        });
         persist();
         if (isSum) updateMeter(item); else updateChecker(draft);
         const ck = document.getElementById('lb_checker'); if (ck) ck.style.display = '';
         const box = document.getElementById('lb_result'); if (box) box.innerHTML = '';
+        });
+      },
+      clearann() {
+        if (!LAB.ANN) return;
+        const n = LAB.ANN.ops().length;
+        if (!n) { toast('还没有标注'); return; }
+        ask('清空这篇材料的全部标注？', '清空', () => {
+          LAB.ANN.clearAll();
+          toast('已清空 ' + n + ' 处标注');
+        });
       }
     };
   }
 
   function updateMeter(item) {
-    const el = document.getElementById('lb_answer'); if (!el) return;
-    const n = countChars(el.value);
+    const g = LAB.GRIDS && LAB.GRIDS[0];
+    const ta = document.getElementById('lb_answer');
+    const text = g ? g.getValue() : (ta ? ta.value : '');
+    const n = countChars(text);
     const w = document.getElementById('lb_wc'), bar = document.getElementById('lb_wbar');
     const ratio = item.limit ? n / item.limit : 0;
     if (w) w.textContent = `${n} 字${item.limit ? ' ／ ' + item.limit : ''}`;
@@ -860,7 +959,24 @@
       bar.style.width = Math.min(100, ratio * 100) + '%';
       bar.className = ratio > 1 ? 'over' : ratio >= 0.85 ? 'mid' : '';
     }
+    const tip = document.getElementById('lb_grid_tip');
+    if (tip) tip.textContent = item.limit ? (n > item.limit ? '超出 ' + (n - item.limit) + ' 字，考场不计入' : n < item.limit * 0.65 ? '还可以再写 ' + (item.limit - n) + ' 字' : '字数在范围内') : '';
   }
+  /* 与「真题作答」共用：移动端浮动画笔条（练习室） */
+  function syncLabFloat() {
+    const f = document.getElementById('kk-float');
+    if (!f || !window.KL) return;
+    const view = document.getElementById('view-lab');
+    const on = view && view.classList.contains('active') && document.getElementById('lb_mat');
+    const narrow = window.matchMedia && window.matchMedia('(max-width:760px)').matches;
+    if (!on || !narrow || LAB.FLOAT_OFF) { if (f.dataset.ctx === 'lab') { f.hidden = true; f.innerHTML = ''; f.dataset.ctx = ''; } return; }
+    f.hidden = false; f.dataset.ctx = 'lab';
+    f.innerHTML = '<span class="kk-ann-now"><i class="kk-dot ' + LAB.BRUSH + '"></i></span>'
+      + KL.brushBarHTML(LAB.BRUSH)
+      + '<button class="kk-float-x" data-float="close" aria-label="收起画笔条">✕</button>';
+  }
+  document.addEventListener('kk:labfloat', syncLabFloat);
+
   function updateChecker(draft) {
     const box = document.getElementById('lb_checker'); if (!box) return;
     const filled = [draft.a1, draft.a2, draft.a3].filter(x => String(x || '').trim().length >= 6);
@@ -907,6 +1023,22 @@
       toast(on ? '已收藏' : '已取消收藏');
       return;
     }
+    if (act === 'brush') {
+      const b = el.dataset.v;
+      LAB.BRUSH = b;
+      if (LAB.ANN) LAB.ANN.setBrush(b);
+      const bar = document.getElementById('lb_brushes');
+      if (bar) bar.innerHTML = KL.brushBarHTML(b);
+      const ft = document.getElementById('lb_annbar');
+      if (ft) {
+        ft.innerHTML = KL.annBarHTML(b);
+        const n = ft.querySelector('.kk-ann-num');
+        if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
+      }
+      toast(b === 'x' ? '橡皮：点击句子或划选即可清除标注' : '已选择' + (KL.NAME[b] || '黄') + '色标注笔');
+      return;
+    }
+    if (act === 'clearann') { e.preventDefault(); if (LAB.ACT.clearann) LAB.ACT.clearann(); return; }
     if (act === 'submit' || act === 'reveal' || act === 'clear') {
       e.preventDefault();
       if (LAB.ACT[act]) LAB.ACT[act]();
@@ -924,9 +1056,32 @@
       toast('已导出练习记录'); return;
     }
     if (act === 'reset') {
-      if (!window.confirm('确定清空练习室的草稿、得分与收藏？此操作不可撤销（不影响原工作台的数据）。')) return;
-      S = JSON.parse(JSON.stringify(DEF)); saveS(); renderLab(); toast('已清空练习记录'); return;
+      ask('确定清空练习室的草稿、得分与收藏？此操作不可撤销（不影响原工作台的数据）。', '清空', () => {
+        S = JSON.parse(JSON.stringify(DEF)); saveS(); renderLab(); toast('已清空练习记录');
+      });
+      return;
     }
+  });
+
+  /* 画笔：练习室材料标注（与真题作答同一套按钮样式） */
+  document.addEventListener('click', e => {
+    const b = e.target.closest('.lb-mat [data-brush], #kk-float [data-brush]');
+    if (!b) return;
+    const view = document.getElementById('view-lab');
+    if (!view || !view.classList.contains('active')) return;
+    if (document.getElementById('view-workspace') && document.getElementById('view-workspace').classList.contains('active')) return;
+    LAB.BRUSH = b.dataset.brush;
+    if (LAB.ANN) LAB.ANN.setBrush(LAB.BRUSH);
+    const bar = document.getElementById('lb_brushes');
+    if (bar) bar.innerHTML = KL.brushBarHTML(LAB.BRUSH);
+    const ft = document.getElementById('lb_annbar');
+    if (ft) {
+      ft.innerHTML = KL.annBarHTML(LAB.BRUSH);
+      const n = ft.querySelector('.kk-ann-num');
+      if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
+    }
+    syncLabFloat();
+    toast(LAB.BRUSH === 'x' ? '橡皮：点击句子或划选即可清除标注' : '已选择' + (KL.NAME[LAB.BRUSH] || '黄') + '色标注笔');
   });
 
   // 搜索框 / 导入
@@ -960,6 +1115,13 @@
     $$('button', st).forEach(x => x.classList.toggle('on', Number(x.dataset.v) <= v));
     toast('已记录自评');
   });
+  // 浮动条关闭（练习室 / 真题作答共用）
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-float="close"]')) return;
+    const f = document.getElementById('kk-float');
+    if (f && f.dataset.ctx === 'lab') { LAB.FLOAT_OFF = true; f.hidden = true; f.innerHTML = ''; f.dataset.ctx = ''; }
+  });
+
   document.addEventListener('change', e => {
     if (e.target.id !== 'lb_import') return;
     const file = e.target.files[0]; if (!file) return;
@@ -1020,6 +1182,9 @@
       if (view === 'lab' && window.SH_LABHOOK) window.SH_LABHOOK.render();
     };
   }
+
+  window.addEventListener('resize', () => { if (typeof syncLabFloat === 'function') syncLabFloat(); });
+  window.addEventListener('orientationchange', () => setTimeout(() => { if (typeof syncLabFloat === 'function') syncLabFloat(); }, 260));
 
   window.SH_LABHOOK = {
     init: () => { build(); renderLab(); },

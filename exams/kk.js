@@ -120,8 +120,8 @@
   /* 笔刷条 HTML（做题处、练习室共用一套） */
   function brushBarHTML(active) {
     return BRUSH.map(b => '<button class="brush ' + b.cls + (b.k === (active || 'y') ? ' active' : '')
-      + '" data-brush="' + b.k + '" title="' + b.name + (b.k === 'x' ? '：点击或划选清除标注' : '笔：点击整句标注，划选精确标注')
-      + '" aria-label="' + b.name + '" aria-pressed="' + (b.k === (active || 'y')) + '">'
+      + '" data-brush="' + b.k + '" aria-label="' + b.name
+      + '" aria-pressed="' + (b.k === (active || 'y')) + '">'
       + (b.k === 'x' ? '擦' : NAME[b.k]) + '</button>').join('');
   }
 
@@ -462,13 +462,27 @@
       return best;
     }
 
+    /* 按可用宽度挑列数与格宽：任何屏幕都铺满整行，不留右侧空白 */
+    function metrics(w) {
+      const maxCols = st.perRow || 20;
+      const table = [[340, 12], [420, 15], [560, 18], [760, Math.min(20, maxCols)], [99999, maxCols]];
+      let cols = maxCols;
+      for (let i = 0; i < table.length; i++) {
+        if (w < table[i][0]) { cols = Math.min(table[i][1], maxCols); break; }
+      }
+      cols = Math.max(8, cols);
+      let cell = Math.floor((w - 2) / cols) - 1;      // 每格含 1px 边框
+      cell = Math.max(15, Math.min(28, cell));
+      return { cols: cols, cell: cell };
+    }
+
     function render() {
       let w = inner.clientWidth || host.clientWidth || 0;
       if (w < 120) w = Math.min(960, (window.innerWidth || 960) - 60);
       if (w < 120) w = 600;
-      const cell = w < 300 ? 21 : w < 380 ? 23 : 26;
-      const size = cell + 1;
-      st.cols = Math.max(10, Math.min(st.perRow, Math.floor((w - 2) / size)));
+      const mm = metrics(w);
+      const cell = mm.cell;
+      st.cols = mm.cols;
       st.cell = cell;
       inner.style.setProperty('--kk-cell', cell + 'px');
       const rows = st.model = layout(ta.value, st.cols);
@@ -598,8 +612,17 @@
 
     host.addEventListener('pointerdown', e => {
       if (e.target.closest('.kk-input')) return;
-      if (startAt(e.target)) e.preventDefault();
-    });
+      const i = idxAt(e.target);
+      if (i == null) {
+        // 点在纸上空白处：光标落到文末，直接继续写
+        if (document.activeElement !== ta) { try { ta.focus({ preventScroll: true }); } catch (err) { try { ta.focus(); } catch (e2) { } } }
+        anchor = null; placeCaret(ta.value.length);
+      } else {
+        anchor = i;
+        startAt(e.target);
+      }
+      e.preventDefault();
+    }, { passive: false });
     host.addEventListener('pointermove', e => {
       if (anchor == null) return;
       if (e.buttons === 0 && e.pointerType === 'mouse') { endDrag(); return; }

@@ -439,7 +439,7 @@
       <div class="lb-field">
         <label for="lb_answer_g">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</label>
         <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
-        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写汉字</span><span>· 拼音 / 语音 / 手写输入均可 · 每格一字 · 首行自动缩进两格</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
+        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span class="kk-sub">拼音 / 语音 / 手写输入均可 · 每格一字</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
       <textarea class="lb-ta" id="lb_answer" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.answer || '')}</textarea>
     ` : `
@@ -1064,7 +1064,7 @@
         const n = ft.querySelector('.kk-ann-num');
         if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
       }
-      toast(b === 'x' ? '橡皮：点击句子或划选即可清除标注' : '已选择' + (KL.NAME[b] || '黄') + '色标注笔');
+
       return;
     }
     if (act === 'clearann') { e.preventDefault(); if (LAB.ACT.clearann) LAB.ACT.clearann(); return; }
@@ -1110,7 +1110,7 @@
       if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
     }
     syncLabFloat();
-    toast(LAB.BRUSH === 'x' ? '橡皮：点击句子或划选即可清除标注' : '已选择' + (KL.NAME[LAB.BRUSH] || '黄') + '色标注笔');
+
   });
 
   // 搜索框 / 导入

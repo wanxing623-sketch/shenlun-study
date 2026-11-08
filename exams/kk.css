@@ -45,19 +45,20 @@
 
 /* ---------- 标准作文方格纸 ---------- */
 .kk-grid-host{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px;max-height:min(58vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}
-.kk-grid-inner{position:relative;outline:0;min-height:120px}
+.kk-grid-inner{position:relative;outline:0;min-height:120px;cursor:text;-webkit-user-select:none;user-select:none}
 /* 原生输入框：铺满方格纸、文字透明，真正承载输入法与光标
    方格只做显示，所以永远不会出现“只进字母”的问题 */
 .kk-input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;outline:0;resize:none;
   background:transparent;color:transparent;caret-color:var(--brand);overflow:hidden;
   font-family:inherit;font-size:16px;line-height:1;letter-spacing:0;z-index:2;
-  -webkit-text-fill-color:transparent;text-shadow:none;opacity:1;word-break:break-all}
+  -webkit-text-fill-color:transparent;text-shadow:none;opacity:1;word-break:break-all;
+  pointer-events:none;user-select:none;-webkit-user-select:none}
 .kk-input::selection{background:var(--info-soft);color:transparent;-webkit-text-fill-color:transparent}
 .kk-input::-webkit-scrollbar{display:none}
-.kk-grid-rows{position:relative;z-index:1;pointer-events:none}
+.kk-grid-rows{position:relative;z-index:1;pointer-events:auto}
 .kk-grid-rows{display:flex;flex-direction:column;gap:0}
 .kk-row{display:flex}
-.kk-cell{flex:none;width:var(--kk-cell,26px);height:var(--kk-cell,26px);line-height:calc(var(--kk-cell,26px) - 1px);text-align:center;font-size:15px;font-family:var(--serif,inherit);
+.kk-cell{flex:none;width:var(--kk-cell,26px);height:var(--kk-cell,26px);line-height:calc(var(--kk-cell,26px) - 1px);text-align:center;font-size:calc(var(--kk-cell,26px) * .58);font-family:var(--serif,inherit);
   border-right:1px solid var(--line);border-bottom:1px solid var(--line);box-sizing:border-box;position:relative;color:var(--ink);
   user-select:none;-webkit-user-select:none;cursor:text;-webkit-tap-highlight-color:transparent}
 .kk-row .kk-cell:first-child{border-left:1px solid var(--line)}
@@ -73,12 +74,11 @@
 .kk-grid-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding:8px 2px 2px}
 .kk-grid-foot b{font-variant-numeric:tabular-nums;color:var(--ink)}
 .kk-grid-foot .over{color:var(--accent);font-weight:700}
+.kk-grid-foot .grow{flex:1}
 @media (max-width:760px){
-  .kk-cell{font-size:14px}
-  .kk-grid-host{padding:9px 8px 4px;max-height:none}
-}
-@media (max-width:380px){
-  .kk-cell{font-size:13px}
+  .kk-grid-host{padding:8px 7px 4px;max-height:none;border-radius:10px}
+  .kk-grid-foot{font-size:11px;gap:8px;padding:7px 2px 2px}
+  .kk-grid-foot .kk-sub{display:none}    /* 窄屏只留一行关键提示 */
 }
 @media print{
   .kk-grid-host{max-height:none;border-color:#999}

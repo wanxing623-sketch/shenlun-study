@@ -41,8 +41,12 @@
   function toast(msg) {
     const el = $('#toast');
     if (!el) return;
-    el.textContent = msg; el.classList.add('show');
-    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2000);
+    const m = String(msg);
+    /* 同样的提示 1.5 秒内只弹一次，避免连续冒泡 */
+    if (window.__toastMsg === m && Date.now() - (window.__toastAt || 0) < 1500) return;
+    window.__toastMsg = m; window.__toastAt = Date.now();
+    el.textContent = m; el.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 1500);
   }
   /* 确认弹窗：优先用工作台的弹窗（样式统一），降级到原生 confirm */
   function ask(msg, okText, onOk) {

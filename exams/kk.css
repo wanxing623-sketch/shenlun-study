@@ -49,11 +49,12 @@
 /* 原生输入框：铺满方格纸、文字透明，真正承载输入法与光标
    方格只做显示，所以永远不会出现“只进字母”的问题 */
 .kk-input{position:absolute;inset:0;width:100%;height:100%;margin:0 !important;padding:0 !important;border:0 !important;outline:0 !important;resize:none !important;
-  background:transparent !important;box-shadow:none !important;border-radius:0 !important;color:transparent;caret-color:var(--brand);overflow:hidden;
+  background:transparent !important;box-shadow:none !important;border-radius:0 !important;color:transparent;caret-color:transparent!important;overflow:hidden;
   font-family:inherit;font-size:16px;line-height:1;letter-spacing:0;z-index:2;
   -webkit-text-fill-color:transparent;text-shadow:none;opacity:1;word-break:break-all;
   pointer-events:none;user-select:none;-webkit-user-select:none}
-.kk-input::selection{background:var(--info-soft);color:transparent;-webkit-text-fill-color:transparent}
+/* 输入框里的文字是透明的，选区也别画出来（选中的格子由 .kk-cell.sel 显示，位置才对） */
+.kk-input::selection{background:transparent;color:transparent;-webkit-text-fill-color:transparent}
 .kk-input::-webkit-scrollbar{display:none}
 .kk-grid-rows{position:relative;z-index:1;pointer-events:auto}
 .kk-grid-rows{display:flex;flex-direction:column;gap:0}
@@ -66,9 +67,12 @@
 .kk-cell.blank{color:transparent}
 .kk-cell.over{color:var(--accent);background:var(--accent-soft)}
 .kk-cell.sel{background:var(--info-soft)}
-.kk-cell.cur{background:var(--info-soft);box-shadow:inset 0 0 0 2px var(--brand)}
-.kk-grid-host.editing .kk-cell.cur::after{content:"";position:absolute;left:50%;top:3px;bottom:3px;width:2px;background:var(--brand);animation:kk-blink 1s steps(1) infinite}
-.kk-grid-host.editing .kk-cell.cur{background:var(--info-soft)}
+/* 唯一的方块光标：落在“将要输入”的那一格上，竖线压在格子左边（表示插在这个字之前） */
+.kk-cell.cur{background:var(--info-soft)}
+.kk-grid-host.editing .kk-cell.cur{background:var(--info-soft);box-shadow:inset 0 0 0 1.5px var(--brand)}
+.kk-grid-host.editing .kk-cell.cur::after{content:"";position:absolute;left:-1px;top:2px;bottom:2px;width:2px;border-radius:1px;background:var(--brand);z-index:3;animation:kk-blink 1.1s steps(1) infinite}
+/* 没在编辑时也留一个浅色方块，表示“下次从这一格接着写”，但不闪竖线 */
+.kk-grid-host:not(.editing) .kk-cell.cur{background:var(--info-soft);box-shadow:inset 0 0 0 1px var(--line-strong)}
 
 @keyframes kk-blink{0%,50%{opacity:1}51%,100%{opacity:0}}
 .kk-grid-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding:8px 2px 2px}
@@ -93,7 +97,8 @@
 }
 
 /* 输入法组字提示：原生 textarea 文字透明，组字时用这个小气泡显示拼音/候选 */
-.kk-ime{position:absolute;z-index:4;max-width:min(240px,70%);padding:3px 8px;border-radius:8px;
-  background:var(--side);color:var(--side-ink);font-size:12px;line-height:1.5;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow);pointer-events:none}
+/* 做成贴着光标的小字条，而不是“弹窗”：不投影、不抢眼，只在组字过程中出现 */
+.kk-ime{position:absolute;z-index:4;max-width:min(190px,58%);padding:1px 6px;border-radius:6px;
+  background:var(--info-soft);color:var(--ink);font-size:11.5px;line-height:1.5;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);opacity:.9;box-shadow:none;pointer-events:none}
 .kk-ime[hidden]{display:none}

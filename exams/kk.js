@@ -50,6 +50,48 @@
     return out;
   }
 
+  /* 把标注指令压平成“每段一个颜色数组”，后续操作都基于最终颜色判断 */
+  function colorOf(ops, m, p, len) {
+    const col = new Array(len);
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (op.m !== m || op.p !== p) continue;
+      const a = Math.max(0, op.s), b = Math.min(op.e, len);
+      for (let k = a; k < b; k++) col[k] = (op.c === 'x' ? null : op.c);
+    }
+    return col;
+  }
+
+  /* 统计真正可见的标注块数（同一句被反复改色只算 1 处，擦掉不算） */
+  function countOps(ops, m) {
+    if (!ops || !ops.length) return 0;
+    const groups = {};
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (m != null && op.m !== m) continue;
+      const k = op.m + '#' + op.p;
+      const g = groups[k] || (groups[k] = { len: 0, list: [] });
+      g.len = Math.max(g.len, op.e);
+      g.list.push(op);
+    }
+    let total = 0;
+    for (const k in groups) {
+      const g = groups[k];
+      const col = new Array(g.len);
+      for (let i = 0; i < g.list.length; i++) {
+        const op = g.list[i];
+        for (let j = Math.max(0, op.s); j < Math.min(op.e, g.len); j++) col[j] = (op.c === 'x' ? null : op.c);
+      }
+      let prev = null;
+      for (let i = 0; i < g.len; i++) {
+        const c = col[i] || null;
+        if (c && c !== prev) total++;
+        prev = c;
+      }
+    }
+    return total;
+  }
+
   /* 把 [s,e) 区间按颜色合并成 mark，保证相邻同色不重复包一层 */
   function paintRange(para, s, e, col) {
     let html = '', i = s;
@@ -163,9 +205,8 @@
     function resetCache() { st.ann = null; st.curMat = -1; }
 
     function count() {
-      if (!st.ann) return 0;
-      let n = 0;
-      for (let i = 0; i < st.ann.ops.length; i++) if (st.ann.ops[i].c !== 'x') n++;
+      if (!st.ann) { if (st.countEl) st.countEl.textContent = '标注 0 处'; return 0; }
+      const n = countOps(st.ann.ops, matIdx());
       if (st.countEl) st.countEl.textContent = '标注 ' + n + ' 处';
       const bump = st.el ? st.el.closest('.kk-wrap') : null;
       if (bump) {
@@ -192,7 +233,8 @@
 
     function apply(p, s, e, forceColor) {
       const list = mats();
-      const mat = list[matIdx()];
+      const mNow = matIdx();
+      const mat = list[mNow];
       const para = mat && mat.p ? mat.p[+p] : null;
       if (para == null) return;
       const len = String(para).length;
@@ -200,24 +242,40 @@
       e = Math.max(s, Math.min(+e, len));
       if (e - s < 1) return;
       const ann = load();
-      const col = new Array(len);
-      for (let i = 0; i < ann.ops.length; i++) {
-        const op = ann.ops[i];
-        if (op.p !== +p) continue;
-        for (let i2 = Math.max(0, op.s); i2 < Math.min(op.e, len); i2++) col[i2] = op.c;
-      }
-      let same = true, c0 = col[s] && col[s] !== 'x' ? col[s] : null;
-      for (let i = s; i < e; i++) { const c = col[i] && col[i] !== 'x' ? col[i] : null; if (c !== c0) { same = false; break; } }
+      if (!ann.ops) ann.ops = [];
+      const col = colorOf(ann.ops, mNow, +p, len);
+      let same = true, c0 = col[s] || null;
+      for (let i = s; i < e; i++) { if ((col[i] || null) !== c0) { same = false; break; } }
       let next = forceColor || st.brush;
       if (next === 'x') {
-        if (!same || !c0) return;   // 擦在空白处不做任何事，避免误伤
-        next = 'x';
+        let any = false;
+        for (let i = s; i < e; i++) { if (col[i]) { any = true; break; } }
+        if (!any) return;           // 擦在空白处不做任何事，避免误伤
+        next = null;                // 区间里不论几种颜色，一并擦掉
       } else if (same && c0 === next) {
-        next = 'x';                 // 同色再点一下 = 取消
+        next = null;                // 同色再点一下 = 取消
       }
-      ann.ops.push({ m: matIdx(), p: +p, s: s, e: e, c: next });
+      for (let i = s; i < e; i++) col[i] = next;
+
+      /* 把本段熔成“最终颜色块”，避免指令越堆越多、计数重复、存储膨胀 */
+      const keep = [];
+      for (let i = 0; i < ann.ops.length; i++) {
+        const op = ann.ops[i];
+        if (op.m === mNow && op.p === +p) continue;
+        keep.push(op);
+      }
+      let i = 0;
+      while (i < len) {
+        const c = col[i];
+        if (!c) { i++; continue; }
+        let j = i + 1;
+        while (j < len && col[j] === c) j++;
+        keep.push({ m: mNow, p: +p, s: i, e: j, c: c });
+        i = j;
+      }
+      ann.ops = keep;
       save(); render();
-      return next;
+      return next || 'x';
     }
 
     function clearAll() {
@@ -311,58 +369,6 @@
      - 首行缩进两格；超出字数上限的格子标红
      ============================================================ */
   /* ============================================================
-     全站唯一的方格纸输入通道（透明 textarea）
-     —— 中文输入法（拼音组合）、语音、手写、粘贴全部走这里
-     ============================================================ */
-  let PROXY = null, ACTIVE = null;
-  function ensureProxy() {
-    if (PROXY) return PROXY;
-    PROXY = document.createElement('textarea');
-    PROXY.className = 'kk-proxy';
-    PROXY.setAttribute('aria-hidden', 'true');
-    PROXY.setAttribute('autocapitalize', 'off');
-    PROXY.setAttribute('autocomplete', 'off');
-    PROXY.setAttribute('autocorrect', 'off');
-    PROXY.setAttribute('spellcheck', 'false');
-    PROXY.rows = 1;
-    document.body.appendChild(PROXY);
-    let composing = false;
-    function commit() {
-      if (!PROXY) return;
-      const v = PROXY.value;
-      PROXY.value = '';
-      if (v && ACTIVE && ACTIVE.insert) ACTIVE.insert(v);
-    }
-    PROXY.addEventListener('compositionstart', function () { composing = true; });
-    PROXY.addEventListener('compositionend', function () { composing = false; commit(); });
-    PROXY.addEventListener('input', function (e) {
-      if (composing || (e && e.isComposing)) return;   // 组字过程中的拼音/候选不落格
-      commit();
-    });
-    PROXY.addEventListener('keydown', function (e) {
-      if (!ACTIVE) return;
-      if (composing || e.isComposing) return;
-      const k = e.key;
-      if (k === 'Backspace') { if (!PROXY.value) { e.preventDefault(); ACTIVE.back(); } return; }
-      if (k === 'Delete') { e.preventDefault(); ACTIVE.del(); return; }
-      if (k === 'Enter') { e.preventDefault(); ACTIVE.insert('\n'); return; }
-      if (k === 'Tab') { e.preventDefault(); ACTIVE.moveNext(); return; }
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].indexOf(k) >= 0) {
-        e.preventDefault(); ACTIVE.key(e); return;
-      }
-      if (e.ctrlKey || e.metaKey || e.altKey) return;   // 保留 ⌘C/V/Z
-    });
-    PROXY.addEventListener('paste', function (e) {
-      try {
-        const txt = (e.clipboardData || window.clipboardData).getData('text');
-        if (txt && ACTIVE && ACTIVE.insert) { e.preventDefault(); ACTIVE.insert(String(txt).replace(/\r/g, '')); }
-      } catch (err) { }
-    });
-    return PROXY;
-  }
-  function activeGridIs(g) { return ACTIVE && ACTIVE.owner === g; }
-
-  /* ============================================================
      标准作文方格纸
      核心：输入交给浏览器原生的可编辑输入框（textarea），方格只负责显示
      —— 这样拼音组字、语音、手写、粘贴、撤销全部由浏览器处理，
@@ -380,7 +386,9 @@
       onChange: cfg.onChange || null,
       readOnly: !!cfg.readOnly,
       cursor: 0,
-      value: String(cfg.value == null ? '' : cfg.value)
+      value: String(cfg.value == null ? '' : cfg.value),
+      focused: false,
+      composing: false
     };
     host.classList.add('kk-grid-host');
     host.innerHTML =
@@ -392,9 +400,18 @@
     const inner = host.querySelector('.kk-grid-inner');
     const rowsEl = host.querySelector('.kk-grid-rows');
     const ta = host.querySelector('.kk-input');
+    /* 关键：把外部传入的已存作答真正写进输入框（否则重新打开就是空白，且会把存档覆盖成空） */
+    ta.value = st.value;
+    ta.readOnly = st.readOnly;
+    /* 输入法组字时的悬浮提示：原生输入框文字是透明的，不提示就看不到拼音/候选 */
+    const imeBox = document.createElement('div');
+    imeBox.className = 'kk-ime';
+    imeBox.hidden = true;
+    inner.appendChild(imeBox);
 
     const countChars = v => String(v || '').replace(/[\s\u3000]/g, '').length;
     const charsOf = v => Array.from(String(v == null ? '' : v));
+    const isSpace = ch => /[\s\u3000]/.test(ch);
 
     /* ---------- 文本折叠：去掉 glyph 顶到格外的重音符号 ---------- */
     const fold = v => String(v || '').replace(/([\u0300-\u036f]+)/g, '');
@@ -402,21 +419,25 @@
     /* ---------- 布局：把文本排成 cols 宽的行（首行缩进），每格带文本下标 ---------- */
     function layout(txt, cols) {
       const lines = String(txt).split('\n');
-      const cells = [];              // 线性格子流：{ch, idx} | {nl:true} | {blank:true}
-      let base = 0;
+      const cells = [];              // 线性格子流：{ch, idx, over} | {nl:true} | {blank:true}
+      let base = 0, vis = 0;         // vis = 计入字数的字符数（空格/换行不计，与“字数”统计一致）
       lines.forEach((line, li) => {
         const arr = charsOf(line);
-        if (li === 0 && st.indent) {
+        // 每段首行都缩进两格（含回车后的新段落），与考场答题纸一致
+        if (st.indent) {
           for (let k = 0; k < st.indent; k++) cells.push({ blank: true, indent: true });
         }
         arr.forEach((ch, ci) => {
           const idx = base + ci;
-          cells.push({ ch: ch, idx: idx, over: st.limit ? idx >= st.limit : false });
+          const counted = !isSpace(ch);
+          cells.push({ ch: ch, idx: idx, over: st.limit ? (counted && vis >= st.limit) : false });
+          if (counted) vis++;
         });
         if (li < lines.length - 1) cells.push({ nl: true, idx: base + arr.length });
         base += arr.length + 1;
       });
-      cells.push({ end: true, idx: String(txt).length });
+      cells.push({ end: true, idx: String(txt).length, vis: vis });
+      st.visLength = vis;
 
       const rows = [];
       let cur = [];
@@ -441,25 +462,35 @@
       return rows;
     }
 
-    /* 文本下标 → 格子 (行, 列) */
+    /* 文本下标 → 格子 (行, 列)；落在换行/文末时给“下一个落笔位”，不会跳回上一行 */
     function posOfIndex(idx) {
-      const cols = st.cols || 20;
       const rows = st.model || [];
+      let last = null;
       for (let r = 0; r < rows.length; r++) {
         for (let c = 0; c < rows[r].length; c++) {
           const g = rows[r][c];
-          if (g.idx != null && g.idx === idx && g.ch != null) return { row: r, col: c };
+          if (g.ch == null) continue;
+          if (g.idx === idx) return { row: r, col: c };
+          if (g.idx < idx) { last = { row: r, col: c }; }
+          else if (last && g.idx > idx) { /* 目标落在两字之间：用上一个字之后的位置 */ }
         }
       }
-      // 找不到精确的字符（可能在行尾/文末）：找最后一个 idx < 目标 的格子
-      let best = { row: 0, col: 0 };
-      for (let r = 0; r < rows.length; r++) {
-        for (let c = 0; c < rows[r].length; c++) {
-          const g = rows[r][c];
-          if (g.idx != null && g.idx <= idx) best = { row: r, col: c };
+      if (last) {
+        const row = rows[last.row] || [];
+        if (last.col + 1 < row.length) return { row: last.row, col: last.col + 1 };
+        if (last.row + 1 < rows.length) {
+          const nr = rows[last.row + 1];
+          let c = 0;
+          while (c < nr.length && nr[c].indent) c++;   // 跳到缩进之后
+          return { row: last.row + 1, col: c };
         }
+        return last;
       }
-      return best;
+      // 空答案：光标落在首行缩进之后
+      const r0 = rows[0] || [];
+      let c0 = 0;
+      while (c0 < r0.length && r0[c0].indent) c0++;
+      return { row: 0, col: Math.max(0, Math.min(c0, r0.length - 1)) };
     }
 
     /* 按可用宽度定列数与格宽：整行铺满且绝不横向溢出 */
@@ -498,6 +529,7 @@
         html += '</div>';
       }
       rowsEl.innerHTML = html;
+      st.value = ta.value;
       markCursor();
       if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
       try {
@@ -512,7 +544,7 @@
       const n = ta.value.length;
       let s = ta.selectionStart, e = ta.selectionEnd;
       if (s == null) { s = e = st.cursor; }
-      if (st.focused === false) { s = e = Math.min(st.cursor, n); }
+      if (!st.focused) { s = e = Math.min(st.cursor, n); }
       // 选中范围
       if (e > s) {
         const cellsAll = rowsEl.querySelectorAll('.kk-cell[data-i]');
@@ -524,14 +556,40 @@
       const p = posOfIndex(Math.min(s, n));
       const row = rowsEl.children[p.row];
       const cellEl = row && row.children[p.col];
-      if (cellEl) {
+      // 未聚焦时不显示闪烁光标，避免一打开就“假光标”停在格子上
+      if (cellEl && st.focused) {
         cellEl.classList.add('cur');
-        if (st.focused) {
-          const top = cellEl.offsetTop - host.clientHeight / 2;
-          if (top > host.scrollTop + 4 || top < host.scrollTop - 4) host.scrollTop = Math.max(0, top);
-        }
+        const top = cellEl.offsetTop - host.clientHeight / 2;
+        if (top > host.scrollTop + 4 || top < host.scrollTop - 4) host.scrollTop = Math.max(0, top);
+        positionIme(cellEl);
       }
       st.cursor = s;
+    }
+
+    /* 组字提示框跟随光标格 */
+    function positionIme(cellEl) {
+      if (!imeBox || imeBox.hidden || !cellEl) return;
+      const left = Math.max(0, cellEl.offsetLeft - 6);
+      const top = Math.max(0, cellEl.offsetTop - 30);
+      imeBox.style.left = left + 'px';
+      imeBox.style.top = top + 'px';
+    }
+    function showIme(text) {
+      if (!imeBox) return;
+      const t = String(text || '');
+      if (!t) { imeBox.hidden = true; imeBox.textContent = ''; return; }
+      imeBox.hidden = false;
+      imeBox.textContent = t;
+      const p = posOfIndex(Math.min(ta.selectionStart == null ? st.cursor : ta.selectionStart, ta.value.length));
+      const row = rowsEl.children[p.row];
+      positionIme(row && row.children[p.col]);
+    }
+    function emitInput() {
+      try {
+        document.dispatchEvent(new CustomEvent('kk:gridinput', {
+          detail: { id: host.id, length: countChars(ta.value), value: ta.value, limit: st.limit }
+        }));
+      } catch (e) { }
     }
 
     function placeCaret(idx) {
@@ -543,15 +601,22 @@
     }
 
     /* ---------- 原生输入框事件（输入法 / 语音 / 手写全部原生处理） ---------- */
-    ta.addEventListener('input', () => {
-      if (st.composing) {
+    ta.addEventListener('input', e => {
+      if (st.composing || (e && e.isComposing)) {
         if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
         return;
       }
       render();
+      emitInput();
     });
-    ta.addEventListener('compositionstart', () => { st.composing = true; });
-    ta.addEventListener('compositionend', () => { st.composing = false; render(); });
+    ta.addEventListener('compositionstart', () => { st.composing = true; showIme(''); });
+    ta.addEventListener('compositionupdate', e => { showIme(e.data || ''); });
+    ta.addEventListener('compositionend', () => {
+      st.composing = false; showIme('');
+      render();
+      emitInput();
+    });
+    ta.addEventListener('paste', () => { setTimeout(() => { render(); emitInput(); }, 0); });
     ta.addEventListener('keyup', () => { if (!st.composing) markCursor(); });
     ta.addEventListener('click', () => markCursor());
     ta.addEventListener('select', () => markCursor());
@@ -572,14 +637,15 @@
       if (!cellEl || !host.contains(cellEl)) return null;
       const i = cellEl.getAttribute('data-i');
       if (i !== null && i !== '') return +i;
-      // 空格子：取该行最后一个字符之后
-      let best = 0;
+      // 空格子：取该行最后一个字符之后；整行都空说明点在正文下方，落笔到文末
+      let best = null;
       const rowEl = cellEl.parentElement;
       const kids = rowEl ? rowEl.children : [];
       for (let k = 0; k < kids.length; k++) {
         const v = kids[k].getAttribute('data-i');
         if (v !== null && v !== '') best = +v + 1;
       }
+      if (best == null) return ta.value.length;
       return Math.min(best, ta.value.length);
     }
     function cellAtPoint(x, y) {
@@ -663,6 +729,8 @@
       focus: () => { try { ta.focus({ preventScroll: true }); } catch (e) { ta.focus(); } },
       blur: () => ta.blur(),
       length: () => countChars(ta.value),
+      visibleLength: () => (st.visLength != null ? st.visLength : countChars(ta.value)),
+      over: () => !!(st.limit && (st.visLength || 0) > st.limit),
       cursor: () => (ta.selectionStart == null ? st.cursor : ta.selectionStart),
       el_input: ta
     };
@@ -677,6 +745,8 @@
     brushBarHTML: brushBarHTML,
     annBarHTML: annBarHTML,
     NAME: NAME,
+    colorOf: colorOf,
+    countOps: countOps,
     Annotator: Annotator,
     Grid: Grid
   };

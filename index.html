@@ -850,7 +850,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
  function toggleFav(type,id){const k=key(type,id); if(state.favorites[k]) delete state.favorites[k]; else state.favorites[k]={type,id}; save(); renderAll(); if(state.view==='vocab'&&state.selectedVocab!==null&&DATA.vocab[state.selectedVocab])selectVocab(state.selectedVocab); if(state.view==='strategy'&&state.selectedStrategy!==null&&DATA.strategies.find(s=>s.id===state.selectedStrategy))selectStrategy(state.selectedStrategy); toast(state.favorites[k]?'已加入收藏':'已取消收藏')}
  function setMastery(id,level){state.mastery[id]=level;save();renderAll();if(state.view==='vocab')selectVocab(id);toast(level===2?'已标记为掌握':'已加入待复习')}
  function renderAll(){if(state.view==='dashboard')renderDashboard();if(state.view==='vocab')renderVocab();if(state.view==='strategy')renderStrategy();if(state.view==='cases')renderCases();if(state.view==='format')renderFormat();if(state.view==='review')renderReview();if(state.view==='settings')renderSettings();if(state.view==='workspace')renderWorkspace()}
- function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),1800)}
+ function toast(msg){const el=$('#toast');if(!el)return;const m=String(msg);/* 同样的提示 1.5 秒内只弹一次，避免一直冒 */if(window.__toastMsg===m&&Date.now()-(window.__toastAt||0)<1500)return;window.__toastMsg=m;window.__toastAt=Date.now();el.textContent=m;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),1500)}
   function appConfirm(msg,onOk,okText){
     let ov=document.getElementById('app-confirm');
     if(!ov){
@@ -1612,11 +1612,14 @@ window.GRADE=GRADE;
     }
     const tip=$('#ws-grid-tip');
     if(!tip)return;
-    if(max&&n>max)tip.textContent='已超出 '+max+' 字上限 '+(n-max)+' 字，超出部分不计分';
-    else if(min&&n<min)tip.textContent='还差 '+(min-n)+' 字到下限，写不足会直接掉档';
-    else if(max&&n<max*0.5)tip.textContent='还可以再写 '+(max-n)+' 字';
-    else if(max||min)tip.textContent='字数在范围内';
-    else tip.textContent='字数不限，写清要点即可';
+    /* 提示只在状态变化时改字，别每敲一个字都重刷一遍（看起来像一直冒提示） */
+    let t;
+    if(max&&n>max)t='已超出 '+max+' 字上限，超出部分不计分';
+    else if(min&&n<min)t='还差 '+(min-n)+' 字到下限，写不足会直接掉档';
+    else if(max&&n<max*0.5)t='还可以再写 '+(max-n)+' 字';
+    else if(max||min)t='字数在范围内';
+    else t='字数不限，写清要点即可';
+    if(tip.textContent!==t)tip.textContent=t;
   }
   function wsTabBadges(){
     const btns=$$('#ws-q-tabs button');
@@ -1730,7 +1733,7 @@ window.GRADE=GRADE;
     const grp=(window.SH_EXAM_INDEX.find(x=>x.id===id)||{}).grp||'gk';
     await wsLoadGroup(grp);
     const ex=wsGetExam(id);
-    if(ex){const same=WS.exam&&WS.exam.id===ex.id;wsSetExam(ex);if(!same)toast('已切换试卷；每套卷的作答与标注分别保存，随时可以切回')}
+    if(ex){wsSetExam(ex)}
   });
   /* ---------- 标注：统一走 KL 公用引擎 ---------- */
   WSANN=KL.Annotator({

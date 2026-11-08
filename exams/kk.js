@@ -425,7 +425,8 @@
         const arr = charsOf(line);
         // 每段首行都缩进两格（含回车后的新段落），与考场答题纸一致
         if (st.indent) {
-          for (let k = 0; k < st.indent; k++) cells.push({ blank: true, indent: true });
+          // 缩进格也带上本段起始下标：点缩进就能把光标放到段首（否则会跳到全文末尾）
+          for (let k = 0; k < st.indent; k++) cells.push({ blank: true, indent: true, idx: base });
         }
         arr.forEach((ch, ci) => {
           const idx = base + ci;
@@ -462,18 +463,26 @@
       return rows;
     }
 
-    /* 文本下标 → 格子 (行, 列)；落在换行/文末时给“下一个落笔位”，不会跳回上一行 */
+    /* 文本下标 → 光标所在格 (行, 列)；落在换行/文末时给“下一个落笔位”，不会跳回上一行 */
     function posOfIndex(idx) {
       const rows = st.model || [];
-      let last = null;
+      let last = null, emptyPara = null;
       for (let r = 0; r < rows.length; r++) {
         for (let c = 0; c < rows[r].length; c++) {
           const g = rows[r][c];
-          if (g.ch == null) continue;
-          if (g.idx === idx) return { row: r, col: c };
-          if (g.idx < idx) { last = { row: r, col: c }; }
-          else if (last && g.idx > idx) { /* 目标落在两字之间：用上一个字之后的位置 */ }
+          if (g.ch != null) {
+            if (g.idx === idx) return { row: r, col: c };
+            if (g.idx < idx) last = { row: r, col: c };
+            continue;
+          }
+          if (g.indent && g.idx === idx && !emptyPara) emptyPara = { row: r, col: c };
         }
+      }
+      /* 光标停在某个空段落的段首（刚打完回车）时，要落到这一段的缩进之后，
+         不能因为“上一个字在上一行”就跑到上一行行尾去 */
+      if (emptyPara) {
+        const row = rows[emptyPara.row] || [];
+        return { row: emptyPara.row, col: Math.min(emptyPara.col + (st.indent || 0), row.length - 1) };
       }
       if (last) {
         const row = rows[last.row] || [];
@@ -504,31 +513,63 @@
       return { cols: cols, cell: cell };
     }
 
+    /* 格子描述串：只有描述变了才去动 DOM（一次输入重建上千个格子会卡，光标就会“跟不上”） */
+    function descOf(g) {
+      return (g.ch == null ? '' : g.ch) + '|' + (g.idx == null ? '' : g.idx) + '|' + (g.over ? 1 : 0) + '|' + (g.ch == null ? 0 : 1);
+    }
+    function cellHTML(g, r, c) {
+      const cls = 'kk-cell' + (g.over ? ' over' : '') + (g.ch != null ? '' : ' blank');
+      return '<span class="' + cls + '" data-r="' + r + '" data-c="' + c + '"'
+        + (g.idx != null ? ' data-i="' + g.idx + '"' : '') + '>'
+        + (g.ch != null ? esc(g.ch) : '') + '</span>';
+    }
+    let DOMC = [], DESC = [], NR = -1, NC = -1;
     function render() {
       let w = inner.clientWidth || host.clientWidth || 0;
       if (w < 120) w = Math.min(960, (window.innerWidth || 960) - 60);
       if (w < 120) w = 600;
       const mm = metrics(w);
       const cell = mm.cell;
+      const colsChanged = st.cols !== mm.cols;
       st.cols = mm.cols;
       st.cell = cell;
       inner.style.setProperty('--kk-cell', cell + 'px');
       const rows = st.model = layout(ta.value, st.cols);
-      let html = '';
-      for (let r = 0; r < rows.length; r++) {
-        html += '<div class="kk-row">';
-        for (let c = 0; c < rows[r].length; c++) {
-          const g = rows[r][c];
-          const cls = 'kk-cell'
-            + (g.over ? ' over' : '')
-            + (g.ch != null ? '' : ' blank');
-          html += '<span class="' + cls + '" data-r="' + r + '" data-c="' + c + '"'
-            + (g.idx != null ? ' data-i="' + g.idx + '"' : '') + '>'
-            + (g.ch != null ? esc(g.ch) : '') + '</span>';
+      const nRows = rows.length, nCols = st.cols;
+      if (colsChanged || nRows !== NR || NC !== nCols) {
+        let html = '';
+        for (let r = 0; r < nRows; r++) {
+          html += '<div class="kk-row">';
+          for (let c = 0; c < rows[r].length; c++) html += cellHTML(rows[r][c], r, c);
+          html += '</div>';
         }
-        html += '</div>';
+        rowsEl.innerHTML = html;
+        NR = nRows; NC = nCols;
+        DOMC = []; DESC = [];
+        for (let r = 0; r < nRows; r++) {
+          const rowEl = rowsEl.children[r];
+          for (let c = 0; c < nCols; c++) {
+            DOMC.push(rowEl.children[c]);
+            DESC.push(descOf(rows[r][c]));
+          }
+        }
+      } else {
+        let k = 0;
+        for (let r = 0; r < nRows; r++) {
+          const rowEl = rowsEl.children[r];
+          for (let c = 0; c < nCols; c++, k++) {
+            const g = rows[r][c];
+            const d = descOf(g);
+            if (DESC[k] === d) continue;
+            DESC[k] = d;
+            const el = DOMC[k] || (DOMC[k] = rowEl.children[c]);
+            if (!el) continue;
+            el.textContent = g.ch != null ? g.ch : '';
+            if (g.idx != null) el.setAttribute('data-i', g.idx); else el.removeAttribute('data-i');
+            el.className = 'kk-cell' + (g.over ? ' over' : '') + (g.ch != null ? '' : ' blank');
+          }
+        }
       }
-      rowsEl.innerHTML = html;
       st.value = ta.value;
       markCursor();
       if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
@@ -537,18 +578,24 @@
       } catch (e) { }
     }
 
-    /* 光标格 + 选中格 */
+    /* 光标格 + 选中格
+       —— 原生输入框里的插入符已用 caret-color:transparent 藏起来，
+          页面上只显示这一个跟着格子走的方块光标（之前会出现两个光标） */
     function markCursor() {
       const olds = rowsEl.querySelectorAll('.kk-cell.cur,.kk-cell.sel');
       for (let i = 0; i < olds.length; i++) olds[i].classList.remove('cur', 'sel');
       const n = ta.value.length;
       let s = ta.selectionStart, e = ta.selectionEnd;
       if (s == null) { s = e = st.cursor; }
-      if (!st.focused) { s = e = Math.min(st.cursor, n); }
-      // 选中范围
+      if (!st.focused) { s = e = st.cursor; }
+      if (s > n) s = n;
+      if (e > n) e = n;
+      if (s < 0) s = 0;
+      if (e < 0) e = 0;
       if (e > s) {
         const cellsAll = rowsEl.querySelectorAll('.kk-cell[data-i]');
         for (let i = 0; i < cellsAll.length; i++) {
+          if (!cellsAll[i].textContent) continue;      // 缩进/空格子不参与选区高亮
           const ci = +cellsAll[i].getAttribute('data-i');
           if (ci >= s && ci < e) cellsAll[i].classList.add('sel');
         }
@@ -556,12 +603,17 @@
       const p = posOfIndex(Math.min(s, n));
       const row = rowsEl.children[p.row];
       const cellEl = row && row.children[p.col];
-      // 未聚焦时不显示闪烁光标，避免一打开就“假光标”停在格子上
-      if (cellEl && st.focused) {
+      if (cellEl) {
         cellEl.classList.add('cur');
-        const top = cellEl.offsetTop - host.clientHeight / 2;
-        if (top > host.scrollTop + 4 || top < host.scrollTop - 4) host.scrollTop = Math.max(0, top);
-        positionIme(cellEl);
+        if (st.focused) {
+          /* 只在光标将要跑出可视区时滚最小的距离，不把整块纸上下猛拉 */
+          const top = inner.offsetTop + cellEl.offsetTop;
+          const bottom = top + cellEl.offsetHeight;
+          const vh = host.clientHeight;
+          if (top < host.scrollTop + 2) host.scrollTop = Math.max(0, top - 8);
+          else if (bottom > host.scrollTop + vh - 2) host.scrollTop = bottom - vh + 8;
+          positionIme(cellEl);
+        }
       }
       st.cursor = s;
     }
@@ -604,6 +656,7 @@
     ta.addEventListener('input', e => {
       if (st.composing || (e && e.isComposing)) {
         if (st.onChange) st.onChange({ length: countChars(ta.value), value: ta.value, limit: st.limit });
+        markCursor();          // 组字过程中光标也要跟着格子走，不能停在原处
         return;
       }
       render();
@@ -632,34 +685,62 @@
     });
 
     /* ---------- 点格定位 / 拖选（textarea 只做输入，不接管指针） ---------- */
+    /* 点任意一格 → 文本下标。
+       有字的格：插在该字之前；缩进格：该段段首；行尾空白格：该行末字之后；
+       整行空白（正文下方）：接着往下写，落到文末。 */
     function idxAt(target) {
       const cellEl = target && target.closest ? target.closest('.kk-cell') : null;
       if (!cellEl || !host.contains(cellEl)) return null;
       const i = cellEl.getAttribute('data-i');
       if (i !== null && i !== '') return +i;
-      // 空格子：取该行最后一个字符之后；整行都空说明点在正文下方，落笔到文末
-      let best = null;
       const rowEl = cellEl.parentElement;
       const kids = rowEl ? rowEl.children : [];
+      const c0 = +(cellEl.getAttribute('data-c') || 0);
+      let next = null, lastText = null, lastAny = null;
       for (let k = 0; k < kids.length; k++) {
         const v = kids[k].getAttribute('data-i');
-        if (v !== null && v !== '') best = +v + 1;
+        if (v === null || v === '') continue;
+        if (kids[k].textContent !== '') {
+          lastText = +v; lastAny = +v;
+          if (k > c0 && next === null) next = +v;
+        } else {
+          lastAny = +v;          // 空段落只有缩进格带下标
+        }
       }
-      if (best == null) return ta.value.length;
-      return Math.min(best, ta.value.length);
+      const n = ta.value.length;
+      if (next !== null) return Math.min(next, n);
+      if (lastText !== null) return Math.min(lastText + 1, n);
+      if (lastAny !== null) return Math.min(lastAny, n);
+      return n;
     }
     function cellAtPoint(x, y) {
       const el = document.elementFromPoint ? document.elementFromPoint(x, y) : null;
       return el && el.closest ? el.closest('.kk-cell') : null;
     }
     let anchor = null, dragging = false;
+    let pendIdx = null, pendT = null;
+
+    /* 聚焦 + 定光标：iOS Safari 等浏览器 focus 之后会把插入符重置，
+       所以下一帧再确认一次，保证光标真的落在点中的那一格 */
+    function focusCaret(i) {
+      pendIdx = i;
+      clearTimeout(pendT);
+      pendT = setTimeout(function () { pendIdx = null; }, 500);
+      if (document.activeElement !== ta) { try { ta.focus({ preventScroll: true }); } catch (e) { try { ta.focus(); } catch (e2) { } } }
+      placeCaret(i);
+      setTimeout(function () {
+        if (pendIdx !== i || document.activeElement !== ta) return;
+        let cur = null;
+        try { cur = ta.selectionStart; } catch (e) { }
+        if (cur !== i) placeCaret(i);
+      }, 0);
+    }
 
     function startAt(target) {
       const i = idxAt(target);
       if (i == null) return false;
-      if (document.activeElement !== ta) { try { ta.focus({ preventScroll: true }); } catch (e) { try { ta.focus(); } catch (e2) { } } }
       anchor = i; dragging = false;
-      placeCaret(i);
+      focusCaret(i);
       return true;
     }
     function moveTo(x, y) {
@@ -678,8 +759,7 @@
       const i = idxAt(e.target);
       if (i == null) {
         // 点在纸上空白处：光标落到文末，直接继续写
-        if (document.activeElement !== ta) { try { ta.focus({ preventScroll: true }); } catch (err) { try { ta.focus(); } catch (e2) { } } }
-        anchor = null; placeCaret(ta.value.length);
+        anchor = null; focusCaret(ta.value.length);
       } else {
         anchor = i;
         startAt(e.target);
@@ -704,7 +784,11 @@
       const t = e.touches[0];
       if (t) moveTo(t.clientX, t.clientY);
     }, { passive: true });
-    host.addEventListener('touchend', endDrag);
+    host.addEventListener('touchend', () => {
+      /* iOS 上 pointerdown 里的 focus() 偶尔不弹键盘：抬手时再补一次 */
+      if (anchor != null && document.activeElement !== ta) focusCaret(anchor);
+      endDrag();
+    });
 
     /* 尺寸变化后重排 */
     if (window.ResizeObserver) {

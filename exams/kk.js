@@ -310,6 +310,58 @@
      - 点方格 → 光标落到该格；输入自动推进；方向键 / 退格 / 回车（换行）可用
      - 首行缩进两格；超出字数上限的格子标红
      ============================================================ */
+  /* ============================================================
+     全站唯一的方格纸输入通道（透明 textarea）
+     —— 中文输入法（拼音组合）、语音、手写、粘贴全部走这里
+     ============================================================ */
+  let PROXY = null, ACTIVE = null;
+  function ensureProxy() {
+    if (PROXY) return PROXY;
+    PROXY = document.createElement('textarea');
+    PROXY.className = 'kk-proxy';
+    PROXY.setAttribute('aria-hidden', 'true');
+    PROXY.setAttribute('autocapitalize', 'off');
+    PROXY.setAttribute('autocomplete', 'off');
+    PROXY.setAttribute('autocorrect', 'off');
+    PROXY.setAttribute('spellcheck', 'false');
+    PROXY.rows = 1;
+    document.body.appendChild(PROXY);
+    let composing = false;
+    function commit() {
+      if (!PROXY) return;
+      const v = PROXY.value;
+      PROXY.value = '';
+      if (v && ACTIVE && ACTIVE.insert) ACTIVE.insert(v);
+    }
+    PROXY.addEventListener('compositionstart', function () { composing = true; });
+    PROXY.addEventListener('compositionend', function () { composing = false; commit(); });
+    PROXY.addEventListener('input', function (e) {
+      if (composing || (e && e.isComposing)) return;   // 组字过程中的拼音/候选不落格
+      commit();
+    });
+    PROXY.addEventListener('keydown', function (e) {
+      if (!ACTIVE) return;
+      if (composing || e.isComposing) return;
+      const k = e.key;
+      if (k === 'Backspace') { if (!PROXY.value) { e.preventDefault(); ACTIVE.back(); } return; }
+      if (k === 'Delete') { e.preventDefault(); ACTIVE.del(); return; }
+      if (k === 'Enter') { e.preventDefault(); ACTIVE.insert('\n'); return; }
+      if (k === 'Tab') { e.preventDefault(); ACTIVE.moveNext(); return; }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].indexOf(k) >= 0) {
+        e.preventDefault(); ACTIVE.key(e); return;
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey) return;   // 保留 ⌘C/V/Z
+    });
+    PROXY.addEventListener('paste', function (e) {
+      try {
+        const txt = (e.clipboardData || window.clipboardData).getData('text');
+        if (txt && ACTIVE && ACTIVE.insert) { e.preventDefault(); ACTIVE.insert(String(txt).replace(/\r/g, '')); }
+      } catch (err) { }
+    });
+    return PROXY;
+  }
+  function activeGridIs(g) { return ACTIVE && ACTIVE.owner === g; }
+
   function Grid(cfg) {
     const host = typeof cfg.el === 'string' ? document.querySelector(cfg.el) : cfg.el;
     if (!host) return null;
@@ -490,58 +542,50 @@
       if (k && k.length === 1) { e.preventDefault(); insert(k); }
     }
 
-    /* 移动端唤起系统输入法（支持中文候选词） */
-    let proxy = null;
-    function ensureProxy() {
-      if (proxy) return proxy;
-      proxy = document.createElement('input');
-      proxy.type = 'text';
-      proxy.setAttribute('autocapitalize', 'off');
-      proxy.setAttribute('autocomplete', 'off');
-      proxy.setAttribute('autocorrect', 'off');
-      proxy.setAttribute('spellcheck', 'false');
-      proxy.className = 'kk-proxy';
-      proxy.setAttribute('aria-hidden', 'true');
-      proxy.tabIndex = -1;
-      document.body.appendChild(proxy);
-      let last = '';
-      proxy.addEventListener('input', () => {
-        const now = proxy.value;
-        if (now.length > last.length) insert(now.slice(last.length));
-        else if (now.length < last.length) for (let i = 0; i < last.length - now.length; i++) back();
-        last = now;
-        if (proxy.value.length > 20) { proxy.value = ''; last = ''; }
-      });
-      proxy.addEventListener('compositionend', () => { last = proxy.value; });
-      proxy.addEventListener('keydown', e => {
-        if (e.key === 'Backspace' && !proxy.value) { e.preventDefault(); back(); }
-        if (e.key === 'Enter') { e.preventDefault(); proxy.value = ''; last = ''; insert('\n'); }
-      });
-      return proxy;
-    }
+    /* ---------- 输入通道：全站共用一个透明输入框，指向“当前正在写的方格纸” ---------- */
     function focusProxy() {
       const p = ensureProxy();
-      p.value = ''; 
+      ACTIVE = self;
+      p.value = '';
       try { p.focus({ preventScroll: true }); } catch (e) { try { p.focus(); } catch (e2) { } }
       box.classList.add('editing');
+      setTimeout(function () { try { scrollCursor(); } catch (e) { } }, 260);
     }
     function blurProxy() {
-      if (proxy && document.activeElement === proxy) proxy.blur();
+      if (PROXY && document.activeElement === PROXY) PROXY.blur();
       box.classList.remove('editing');
     }
+    const self = { insert: insert, back: back, del: del, move: moveCursor, key: onKey, scroll: scrollCursor };
+    const api = { owner: self, insert: insert, back: back, del: del, move: moveCursor, key: onKey, scroll: scrollCursor,
+      moveNext: function () { moveCursor(st.cursor + 1); } };
 
+    /* ---------- 落点：任何输入方式（鼠标 / 触摸 / 笔）都落到某一格 ---------- */
+    function tapAt(target) {
+      if (!target || !target.closest) return false;
+      const cell = target.closest('.kk-cell');
+      if (!cell || !box.contains(cell)) return false;
+      const di = cell.getAttribute('data-i');
+      if (di !== null && di !== '') moveCursor(+di);
+      else moveCursor(+cell.getAttribute('data-at') || st.value.length);
+      return true;
+    }
     box.addEventListener('pointerdown', e => {
-      if (!onTap(e)) return;
-      const coarse = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
-      if (coarse) { e.preventDefault(); focusProxy(); }
-      else { try { inner.focus({ preventScroll: true }); } catch (er) { inner.focus(); } }
+      if (!tapAt(e.target)) return;
+      // 无论桌面还是手机，统一把焦点给输入通道：桌面打中文同样走输入法
+      if (e.cancelable) e.preventDefault();     // 避免触发虚拟键盘抖动
+      focusProxy();
     });
     box.addEventListener('touchstart', e => {
-      // iOS 上 pointerdown 若被 preventDefault 会影响，这里补一次定位
-      if (window.PointerEvent) return;
-      onTap(e);
+      if (window.PointerEvent) return;          // 有 PointerEvent 时上面已处理
+      if (tapAt(e.target)) focusProxy();
     }, { passive: true });
+    if (!window.PointerEvent) {
+      box.addEventListener('click', e => { if (tapAt(e.target)) focusProxy(); });
+    }
+    // 键盘 / 输入法之外的兜底：直接在方格纸上按键（老浏览器）
     inner.addEventListener('keydown', onKey);
+    inner.addEventListener('focus', () => { if (!st.readOnly) focusProxy(); });
+
     if (window.ResizeObserver) {
       let t = null;
       new ResizeObserver(() => { clearTimeout(t); t = setTimeout(render, 120); }).observe(box);
@@ -552,7 +596,7 @@
     // 初始化即画出格子（空纸也要可见）；延后一拍，避免 onChange 里引用尚未返回的实例
     setTimeout(render, 0);
 
-    return {
+    const inst = {
       el: box,
       render: render,
       setValue: setValue,
@@ -562,8 +606,11 @@
       blur: blurProxy,
       length: () => countChars(st.value),
       cursor: () => st.cursor,
-      insert: insert
+      insert: insert,
+      isActive: () => ACTIVE === self
     };
+    self.owner = inst;
+    return inst;
   }
 
   window.KL = {

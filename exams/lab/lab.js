@@ -439,7 +439,7 @@
       <div class="lb-field">
         <label for="lb_answer_g">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</label>
         <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
-        <div class="kk-grid-foot"><span>首行自动缩进两格 · 超出字数上限的格子标红</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
+        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span>· 拼音 / 语音 / 手写输入均可 · 首行自动缩进两格</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
       <textarea class="lb-ta" id="lb_answer" aria-hidden="true" tabindex="-1" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">${esc(draft.answer || '')}</textarea>
     ` : `
@@ -486,8 +486,8 @@
           </div>
           <div class="lb-mat-body" id="lb_mat"></div>
           ${item.material ? '' : `<div class="lb-draft">
-            <div class="lb-draft-hd">草稿纸 · 自由书写（自动保存，可用上面的画笔划选改色做批注）</div>
-            <textarea id="lb_draft" class="lb-draft-ta" placeholder="先在这里把思路写散：关键词、政策表述、可能的论据……"></textarea>
+            <div class="lb-draft-hd">草稿纸 · 方格（点格子就能写，自动保存）</div>
+            <div class="kk-grid-host" id="lb_draft_g" aria-label="草稿纸方格"></div>
           </div>`}
           <div class="lb-mat-ft">
             <span class="kk-annbar" id="lb_annbar"></span>
@@ -804,7 +804,7 @@
     syncSeg();
     if (TIMER) { clearInterval(TIMER); TIMER = null; }
     LAB.CUR = id;
-    LAB.GRIDS = []; LAB.ANN = null;
+    LAB.GRIDS = []; LAB.ANN = null; LAB.DRAFT = null;
     MAIN.innerHTML = practiceView(m, item) + '<div id="lb_result"></div>';
     if (VIEW && typeof VIEW.scrollIntoView === 'function') VIEW.scrollIntoView({ behavior: 'auto', block: 'start' });
     bindPractice(m, item);
@@ -906,15 +906,15 @@
       LAB.ANN = null;
     }
 
-    /* 草稿纸（无材料的训练题） */
-    const draftTa = document.getElementById('lb_draft');
-    if (draftTa) {
-      draftTa.value = draft.draft || '';
-      draftTa.addEventListener('input', () => {
-        draft.draft = draftTa.value;
-        persist();
-        if (!isSum) updateChecker(draft);
+    /* 草稿纸（无材料的训练题）：同样是方格纸 */
+    const draftHost = document.getElementById('lb_draft_g');
+    if (draftHost && window.KL) {
+      const dg = KL.Grid({
+        el: draftHost, perRow: 20, rows: 4, indent: 0, limit: 0,
+        value: draft.draft || '',
+        onChange: () => { draft.draft = dg ? dg.getValue() : ''; persist(); }
       });
+      LAB.DRAFT = dg;
     }
 
     clearInterval(TIMER);
@@ -956,8 +956,8 @@
           if (g) g.setValue('');
           draft[f.k] = '';
         });
-        const dt = document.getElementById('lb_draft');
-        if (dt) { dt.value = ''; draft.draft = ''; }
+        if (LAB.DRAFT) LAB.DRAFT.setValue('');
+        draft.draft = '';
         persist();
         if (isSum) updateMeter(item); else updateChecker(draft);
         const ck = document.getElementById('lb_checker'); if (ck) ck.style.display = '';

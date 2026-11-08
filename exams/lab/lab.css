@@ -287,3 +287,24 @@
   .lb-row{min-height:60px}
   .lb-star{width:38px;height:38px;font-size:17px}
 }
+
+/* ---------- 画笔更显眼 + 无材料练习的草稿纸 ---------- */
+.lb-brush-label{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--faint);margin-left:auto}
+.lb-mat-hd .kk-brushes{margin-left:0}
+.lb-mat-hd{position:sticky;top:0;z-index:3}
+.lb-mat-body .kk-para:last-child{margin-bottom:0}
+.lb-nomat-tip{font-size:12px;color:var(--muted);line-height:1.9;text-indent:0!important}
+.lb-draft{margin:0 12px 12px;border:1px dashed var(--line-strong);border-radius:11px;background:var(--surface);overflow:hidden}
+.lb-draft-hd{font-size:11px;font-weight:700;color:var(--muted);padding:8px 12px;background:var(--surface-2);border-bottom:1px dashed var(--line)}
+.lb-draft-ta{display:block;width:100%;min-height:120px;border:0;outline:0;resize:vertical;padding:11px 12px;font-size:13.5px;
+  line-height:1.95;background:var(--paper);color:var(--ink);font-family:inherit}
+.lb-draft-ta:focus{box-shadow:inset 0 0 0 2px var(--info-soft)}
+.lb-mat[data-nomat="1"] .lb-mat-body{max-height:none}
+@media (max-width:760px){
+  .lb-brush-label{display:none}          /* 窄屏用浮动画笔条，标题栏不再重复 */
+  .lb-draft{margin:0 10px 10px}
+  .lb-draft-ta{font-size:16px}          /* 避免 iOS 聚焦放大 */
+}
+@media (min-width:761px){
+  .lb-mat-hd .kk-brushes{display:flex}
+}

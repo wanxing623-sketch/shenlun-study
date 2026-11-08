@@ -477,18 +477,24 @@
         ${item.req ? `<div class="lb-req"><b>作答要求</b>${esc(item.req)}</div>` : ''}
         ${item.task ? `<div class="lb-req"><b>本次只写</b>${esc(item.task)}</div>` : ''}
         ${item.skeleton ? `<div class="lb-req"><b>骨架</b>${esc(item.skeleton)}</div>` : ''}
-        ${item.material ? `<div class="lb-mat" id="lb_mat_wrap">
+        <div class="lb-mat" id="lb_mat_wrap"${item.material ? '' : ' data-nomat="1"'}>
           <div class="lb-mat-hd">
-            <span class="lb-mat-t">给定资料 <b>${countChars(item.material)}</b> 字</span>
-            <span class="kk-brushes" id="lb_brushes"></span>
+            <span class="lb-mat-t">${item.material ? '给定资料 <b>' + countChars(item.material) + '</b> 字' : '材料区'}</span>
+            <span class="kk-ann-now" id="lb_brush_now"></span>
+            <span class="lb-brush-label">标注笔</span>
+            <span class="kk-brushes" id="lb_brushes" role="group" aria-label="标注笔"></span>
           </div>
           <div class="lb-mat-body" id="lb_mat"></div>
+          ${item.material ? '' : `<div class="lb-draft">
+            <div class="lb-draft-hd">草稿纸 · 自由书写（自动保存，可用上面的画笔划选改色做批注）</div>
+            <textarea id="lb_draft" class="lb-draft-ta" placeholder="先在这里把思路写散：关键词、政策表述、可能的论据……"></textarea>
+          </div>`}
           <div class="lb-mat-ft">
             <span class="kk-annbar" id="lb_annbar"></span>
             <span class="grow"></span>
             <button class="lb-btnsm" data-lb="clearann">清空标注</button>
           </div>
-        </div>` : ''}
+        </div>
       </div>
 
       <div class="lb-pane">
@@ -859,15 +865,26 @@
     });
     if (isSum) updateMeter(item); else updateChecker(draft);
 
-    /* ---- 材料标注（与真题作答同一套画笔） ---- */
+    /* ---- 材料标注（与真题作答同一套画笔）；没有材料时给一张空白草稿纸 ---- */
     const wrap = document.getElementById('lb_mat');
-    if (wrap && item.material && window.KL) {
-      const paras = String(item.material).replace(/【材料\s*\d+】/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean);
-      LAB.PARAS = paras;
-      const bar = document.getElementById('lb_brushes');
-      const barBox = document.getElementById('lb_annbar');
-      if (bar) bar.innerHTML = KL.brushBarHTML(LAB.BRUSH || 'y');
-      if (barBox) barBox.innerHTML = KL.annBarHTML(LAB.BRUSH || 'y');
+    const bar = document.getElementById('lb_brushes');
+    const barBox = document.getElementById('lb_annbar');
+    const nowBox = document.getElementById('lb_brush_now');
+    const hasMat = !!(item.material && String(item.material).trim());
+    const parasOf = () => {
+      if (hasMat) {
+        return String(item.material).replace(/【材料\s*\d+】/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean);
+      }
+      // 无材料：把训练任务当“题干”，再加一块空白草稿区
+      const head = [item.theme || '', item.stem || '', item.task || '', item.skeleton ? '骨架：' + item.skeleton : '']
+        .filter(Boolean).join('\n');
+      return (head ? head.split('\n') : []).concat(['\u3000']);
+    };
+    LAB.PARAS = parasOf();
+    if (bar) bar.innerHTML = KL.brushBarHTML(LAB.BRUSH || 'y');
+    if (barBox) barBox.innerHTML = KL.annBarHTML(LAB.BRUSH || 'y');
+    if (nowBox) nowBox.innerHTML = '<i class="kk-dot ' + (LAB.BRUSH || 'y') + '"></i>当前：' + (KL.NAME[LAB.BRUSH || 'y'] || '黄') + '笔';
+    if (wrap && window.KL) {
       LAB.ANN = KL.Annotator({
         el: '#lb_mat',
         brush: LAB.BRUSH || 'y',
@@ -876,18 +893,28 @@
         key: () => 'sh_lab_ann_' + item.id,
         countEl: null,
         onAfter: () => {
-          const num = document.querySelector('#lb_annbar .kk-ann-num');
-          if (num) num.textContent = LAB.ANN ? LAB.ANN.count() : 0;
+          const n = document.querySelector('#lb_annbar .kk-ann-num');
+          if (n) n.textContent = LAB.ANN ? LAB.ANN.ops().length : 0;
         },
         onBrush: b => { LAB.BRUSH = b; },
         headHTML: () => ''
       });
       LAB.ANN.render();
-      // 首次渲染后补一次计数
-      const num = document.querySelector('#lb_annbar .kk-ann-num');
-      if (num) num.textContent = LAB.ANN.count();
+      const n0 = document.querySelector('#lb_annbar .kk-ann-num');
+      if (n0) n0.textContent = LAB.ANN.ops().length;
     } else {
       LAB.ANN = null;
+    }
+
+    /* 草稿纸（无材料的训练题） */
+    const draftTa = document.getElementById('lb_draft');
+    if (draftTa) {
+      draftTa.value = draft.draft || '';
+      draftTa.addEventListener('input', () => {
+        draft.draft = draftTa.value;
+        persist();
+        if (!isSum) updateChecker(draft);
+      });
     }
 
     clearInterval(TIMER);
@@ -929,6 +956,8 @@
           if (g) g.setValue('');
           draft[f.k] = '';
         });
+        const dt = document.getElementById('lb_draft');
+        if (dt) { dt.value = ''; draft.draft = ''; }
         persist();
         if (isSum) updateMeter(item); else updateChecker(draft);
         const ck = document.getElementById('lb_checker'); if (ck) ck.style.display = '';

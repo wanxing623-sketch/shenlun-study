@@ -44,12 +44,12 @@
 }
 
 /* ---------- 标准作文方格纸 ---------- */
-.kk-grid-host{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px;max-height:min(58vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}
+.kk-grid-host{position:relative;display:block;width:100%;box-sizing:border-box;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px;max-height:min(58vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}
 .kk-grid-inner{position:relative;outline:0;min-height:120px;cursor:text;-webkit-user-select:none;user-select:none}
 /* 原生输入框：铺满方格纸、文字透明，真正承载输入法与光标
    方格只做显示，所以永远不会出现“只进字母”的问题 */
-.kk-input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;outline:0;resize:none;
-  background:transparent;color:transparent;caret-color:var(--brand);overflow:hidden;
+.kk-input{position:absolute;inset:0;width:100%;height:100%;margin:0 !important;padding:0 !important;border:0 !important;outline:0 !important;resize:none !important;
+  background:transparent !important;box-shadow:none !important;border-radius:0 !important;color:transparent;caret-color:var(--brand);overflow:hidden;
   font-family:inherit;font-size:16px;line-height:1;letter-spacing:0;z-index:2;
   -webkit-text-fill-color:transparent;text-shadow:none;opacity:1;word-break:break-all;
   pointer-events:none;user-select:none;-webkit-user-select:none}

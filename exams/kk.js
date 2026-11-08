@@ -462,17 +462,14 @@
       return best;
     }
 
-    /* 按可用宽度挑列数与格宽：任何屏幕都铺满整行，不留右侧空白 */
+    /* 按可用宽度定列数与格宽：整行铺满且绝不横向溢出 */
     function metrics(w) {
       const maxCols = st.perRow || 20;
-      const table = [[340, 12], [420, 15], [560, 18], [760, Math.min(20, maxCols)], [99999, maxCols]];
-      let cols = maxCols;
-      for (let i = 0; i < table.length; i++) {
-        if (w < table[i][0]) { cols = Math.min(table[i][1], maxCols); break; }
-      }
-      cols = Math.max(8, cols);
-      let cell = Math.floor((w - 2) / cols) - 1;      // 每格含 1px 边框
-      cell = Math.max(15, Math.min(28, cell));
+      const minCell = w < 420 ? 15 : 17;             // 手机允许更小的格，保证排得下
+      let cols = Math.floor((w - 2) / (minCell + 1));  // 每格含 1px 边框
+      cols = Math.max(5, Math.min(maxCols, cols));
+      let cell = Math.floor((w - 2) / cols) - 1;
+      cell = Math.max(13, Math.min(28, cell));
       return { cols: cols, cell: cell };
     }
 

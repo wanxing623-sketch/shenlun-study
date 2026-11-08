@@ -342,6 +342,8 @@ body.large-type .data-card p,body.large-type .review-item p,body.large-type .ws-
 .ws-timer button{background:rgba(255,255,255,.1);color:var(--side-ink);border-radius:8px;padding:5px 11px;font-size:11px;font-weight:700;min-height:30px}
 .ws-timer button:hover{background:rgba(255,255,255,.2)}
 .ws-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:stretch}
+/* 左题目 / 右作答：任何宽度都保持左右结构 */
+.ws-panel{min-width:0;min-height:0}
 .ws-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:340px}
 .ws-left{position:sticky;top:calc(var(--topbar-h) + 12px);height:calc(100vh - var(--topbar-h) - 24px);height:calc(100dvh - var(--topbar-h) - 24px)}
 .ws-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 13px;border-bottom:1px solid var(--line)}
@@ -377,9 +379,10 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 .ws-req{font-size:12px;color:var(--muted);line-height:1.85;margin-bottom:8px}
 .ws-req b{color:var(--accent)}
 .ws-score{display:flex;gap:8px;margin:2px 0 8px;flex-wrap:wrap}
-.ws-answer{display:flex;flex-direction:column;padding:0 18px 15px;flex:1}
-.ws-answer textarea{width:100%;min-height:210px;flex:1;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14px;line-height:1.95;background:var(--paper);color:var(--ink);outline:0}
-.ws-answer textarea:focus{border-color:var(--brand)}
+.ws-answer{display:flex;flex-direction:column;padding:0 18px 15px;flex:1;min-height:0}
+.ws-answer .kk-grid-host{flex:1 1 auto;min-height:240px;max-height:none}
+.ws-answer>textarea#ws-answer-input{width:100%;min-height:210px;flex:1;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:14px;line-height:1.95;background:var(--paper);color:var(--ink);outline:0}
+.ws-answer>textarea#ws-answer-input:focus{border-color:var(--brand)}
 .ws-ansfoot{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:11px;color:var(--muted);flex-wrap:wrap}
 .ws-count{font-weight:800;color:var(--ok);font-variant-numeric:tabular-nums}
 .ws-count.over{color:var(--accent)}
@@ -428,6 +431,13 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 .about-line span{color:var(--muted)}
 .about-line b{text-align:right}
 .settings-note{font-size:11.5px;color:var(--muted);line-height:1.9;margin:12px 0 0}
+/* 极窄屏（≤680px）：左右结构保留，但把作答栏权重加大，并允许折叠题面偏栏 */
+@media (max-width:680px){
+  .ws-grid{grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr);gap:7px}
+  .ws-answer{padding:0 9px 9px}
+  .ws-qwrap{padding:9px 9px 2px}
+  .ws-answer .kk-grid-host{min-height:200px}
+}
 /* ========== 提示 ========== */
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--side);color:var(--side-ink);padding:10px 20px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:140;max-width:88vw;box-shadow:var(--shadow)}
 .toast.show{opacity:1;transform:translateX(-50%)}
@@ -450,9 +460,9 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .ws-left{position:static}
 }
 @media (max-width:900px) and (min-width:761px){
-  .ws-grid{grid-template-columns:1fr;gap:12px}
-  .ws-left{position:static;height:min(60dvh,620px)}
-  .lb-ws{grid-template-columns:1fr}
+  .ws-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .ws-left{position:static;height:min(64dvh,640px)}
+  .ws-pane-r,.ws-panel{min-height:0}
 }
 @media (max-width:760px){
   body{padding-bottom:64px}
@@ -482,9 +492,9 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .crumb strong{font-size:15px}
   .top-actions .icon-btn{width:40px;height:40px}
   .toast{bottom:74px}
-  .ws-left{position:static;height:min(62dvh,560px)}
-  .ws-grid{grid-template-columns:1fr;gap:12px}
-  .ws-answer textarea{min-height:180px}
+  /* 手机也保持「左题目 / 右作答」左右结构，不做上下堆叠 */
+  .ws-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:8px}
+  .ws-left{position:static;height:min(58dvh,520px)}
   .ws-panel{min-height:0}
   .ws-timer{position:sticky;top:calc(var(--topbar-h));z-index:20;border-radius:0 0 12px 12px}
   .ws-material{font-size:14px;line-height:1.95;column-gap:22px}

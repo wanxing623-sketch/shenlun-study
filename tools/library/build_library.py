@@ -39,14 +39,17 @@ def write_js(path, var, payload, banner):
 
 
 def ensure_tags(html):
-    tags = ['<script src="data/formats.js"></script>', '<script src="data/problems.js"></script>']
-    if all(t in html for t in tags):
+    # 引入标签可能带内容指纹（?v=...，由 tools/stamp_assets.py 写入），两种写法都要认
+    def find(name):
+        return re.search(r'<script src="data/%s\.js(?:\?v=[0-9a-f]+)?"></script>' % name, html)
+    if find('formats') and find('problems'):
         return html, False
-    anchor = '<script src="data/library.js"></script>'
-    if anchor not in html:
+    anchor = find('library')
+    if not anchor:
         raise SystemExit('index.html 中找不到 data/library.js 的引入标签')
+    tags = ['<script src="data/%s.js"></script>' % n for n in ('formats', 'problems') if not find(n)]
     block = '\n'.join(tags) + '\n'
-    return html.replace(anchor, block + anchor, 1), True
+    return html[:anchor.start()] + block + html[anchor.start():], True
 
 
 def main():

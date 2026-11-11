@@ -23,7 +23,7 @@ def load(name):
 
 
 def strategies():
-    html = open(os.path.join(ROOT, 'index.html'), encoding='utf-8', newline='').read()
+    html = open(os.path.join(ROOT, 'data', 'library.js'), encoding='utf-8', newline='').read()
     i = html.index('const DATA=')
     j = html.index('; const FORMATS', i) if '; const FORMATS' in html[i:] else html.index(';const FORMATS', i)
     data = json.loads(html[i + len('const DATA='):j])
@@ -42,9 +42,9 @@ def ensure_tags(html):
     tags = ['<script src="data/formats.js"></script>', '<script src="data/problems.js"></script>']
     if all(t in html for t in tags):
         return html, False
-    anchor = '<script>const DATA='
+    anchor = '<script src="data/library.js"></script>'
     if anchor not in html:
-        raise SystemExit('index.html 中找不到 DATA 脚本锚点')
+        raise SystemExit('index.html 中找不到 data/library.js 的引入标签')
     block = '\n'.join(tags) + '\n'
     return html.replace(anchor, block + anchor, 1), True
 

@@ -80,6 +80,7 @@ exams/
 tools/
   library/              生成 formats.js 和 problems.js
   answers/              匹配参考答案
+  stamp_assets.py       给 index.html 里的 css / js 地址加内容指纹（上线前跑）
 ```
 
 改样式先看 `assets/app.css` 开头的变量：颜色、字号阶梯（`--t-xs` 到 `--t-3xl`）、圆角、间距都在那里，`exams/kk.css` 和 `exams/lab/lab.css` 只引用这些变量。
@@ -105,6 +106,16 @@ python3 -m http.server 4173
 1. 把整个目录推到 GitHub 仓库（需要 `index.html`、`manifest.webmanifest`、`assets/`、`data/`、`exams/`、`.nojekyll`）。
 2. Settings → Pages → Deploy from a branch → main / (root) → Save。
 3. 访问 `https://你的用户名.github.io/仓库名/`。
+
+**上线前**：只要改过 css 或 js，提交之前跑一次
+
+```
+python3 tools/stamp_assets.py
+```
+
+它会把 `index.html` 里的引用改成 `assets/app.js?v=1a2b3c4d` 这样带内容指纹的地址。GitHub Pages 让浏览器把每个文件各自缓存 10 分钟，不带指纹的话，上线或回滚后的这 10 分钟里，浏览器可能用新的页面去配缓存里旧的脚本和样式，页面会直接报错。带上指纹后文件一变地址就变，不会混用。`python3 tools/stamp_assets.py --check` 可以只检查不修改。
+
+回滚也是一次上线：用 `git revert` 撤销对应的合并提交，再跑一次上面的命令。
 
 ## 学习记录
 

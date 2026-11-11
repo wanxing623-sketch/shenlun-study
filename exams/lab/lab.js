@@ -333,19 +333,6 @@
      视图
      ============================================================ */
 
-  /* 选项多的筛选收进「筛选」按钮（开合、遮罩由 app.js 统一管）；不超过四五个的直接摆出来 */
-  const filterOpen = () => !!(window.SH_FILTER && SH_FILTER.isOpen('lb-filter'));
-  function filterBtn(active) {
-    return `<button class="filter-btn${active ? ' on' : ''}" data-fopen="lb-filter" aria-expanded="${filterOpen() ? 'true' : 'false'}" aria-controls="lb-filter">${ico('filter')}<span>筛选</span>${active ? '<b class="filter-n">1</b>' : ''}</button>`;
-  }
-  function filterPanel(label, chips, n, unit, resetAct) {
-    return `<div class="fpanel noanim" id="lb-filter" role="group" aria-label="筛选"${filterOpen() ? '' : ' hidden'}>
-      <div class="fpanel-head"><b>筛选</b><button class="sheet-close" data-fclose aria-label="关闭筛选">${ico('x')}</button></div>
-      <div class="fpanel-body"><div class="fgroup"><div class="fgroup-h">${label}</div><div class="chip-row">${chips}</div></div></div>
-      <div class="fpanel-foot"><button class="secondary" ${resetAct}>重置</button><button class="primary" data-fclose>查看 ${n} ${unit}</button></div>
-    </div>`;
-  }
-
   /* ---------- 总览 ---------- */
   function viewHome() {
     const due = ALL().filter(x => S.rec[x.id] && S.rec[x.id].next <= todayStr());
@@ -413,27 +400,22 @@
     const more = items.length > shown.length
       ? `<button class="load-more" data-lb="more" data-k="${k}">再显示 ${Math.min(PAGE, items.length - shown.length)} 道（还有 ${items.length - shown.length} 道）</button>` : '';
 
-    let filterExtra = '', fbtn = '', fpanel = '', factive = '';
+    let filterExtra = '';
     if (k === 'sum') {
       const types = ['全部', '概括', '综合分析', '提出对策'];
       filterExtra = `<div class="chip-row">${types.map(t => `<button class="chip${f.type === t ? ' active' : ''}" data-lb="ftype" data-k="${k}" data-v="${t}">${t}</button>`).join('')}</div>`;
     } else if (k === 'essay') {
       const regs = ['全部', ...Array.from(new Set(POOL.essay.map(x => x.region).filter(Boolean))).slice(0, 16)];
-      const on = f.region && f.region !== '全部';
-      fbtn = filterBtn(on);
-      fpanel = filterPanel('地区', regs.map(t => `<button class="chip${f.region === t ? ' active' : ''}" data-lb="fregion" data-k="${k}" data-v="${esc(t)}">${esc(t)}</button>`).join(''), items.length, '篇', `data-lb="fregion" data-k="${k}" data-v="全部"`);
-      if (on) factive = `<div class="active-filters"><button class="fchip" data-lb="fregion" data-k="${k}" data-v="全部" aria-label="去掉筛选：${esc(f.region)}"><span>${esc(f.region)}</span>${ico('x')}</button></div>`;
+      filterExtra = `<div class="chip-row">${regs.map(t => `<button class="chip${f.region === t ? ' active' : ''}" data-lb="fregion" data-k="${k}" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div>`;
     }
 
     return `
     <div class="filterbar">
       <label class="mini-search">${ico('search')}<input data-lb="q" data-k="${k}" type="search" enterkeyhint="search" placeholder="搜索题干、来源或年份" value="${esc(f.q)}" autocomplete="off"/></label>
-      ${fbtn}
       <button class="icon-btn" data-lb="rand" data-k="${k}" title="随机一题" aria-label="随机一题">${ico('shuffle')}</button>
     </div>
-    ${fpanel}
     ${filterExtra ? `<div class="chip-scroll">${filterExtra}</div>` : ''}
-    <div class="list-meta"><span class="result-count">${items.length === POOL[k].length ? '共 ' + items.length + ' 道' : items.length + ' / ' + POOL[k].length + ' 道'}</span>${factive}</div>
+    <div class="list-meta"><span class="result-count">${items.length === POOL[k].length ? '共 ' + items.length + ' 道' : items.length + ' / ' + POOL[k].length + ' 道'}</span></div>
     ${rows ? `<div class="lb-rows">${rows}</div>` : '<div class="lb-empty">没有找到。换个词，或把筛选改回「全部」。</div>'}
     ${more}`;
   }
@@ -638,8 +620,10 @@
     const cnt = {};
     list.forEach(x => { const t = getTag(x); cnt[t] = (cnt[t] || 0) + 1; });
     const tags = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
-    return `<button class="chip${libTag === '' ? ' active' : ''}" data-lb="ltag" data-v="">全部</button>`
-      + tags.map(t => `<button class="chip${libTag === t ? ' active' : ''}" data-lb="ltag" data-v="${esc(t)}">${esc(t)} <i>${cnt[t]}</i></button>`).join('');
+    return `<div class="lb-facets">
+      <button class="lb-facet${libTag === '' ? ' active' : ''}" data-lb="ltag" data-v="">全部 ${list.length}</button>
+      ${tags.map(t => `<button class="lb-facet${libTag === t ? ' active' : ''}" data-lb="ltag" data-v="${esc(t)}">${esc(t)} ${cnt[t]}</button>`).join('')}
+    </div>`;
   }
   function viewLib() {
     const d = raw() || { quotes: [], cases: [], phrases: [], swaps: [], frames: [] };
@@ -652,17 +636,17 @@
       ['swaps', '替换词典', d.swaps.length],
       ['frames', '骨架', d.frames.length]
     ];
-    let body = '', facets = '', shown = 0;
+    let body = '', facets = '';
     if (libTab === 'quotes') {
       const list = d.quotes.filter(x => has(x.t + x.tag) && (!libTag || x.tag === libTag));
-      facets = facetChips(d.quotes, x => x.tag); shown = list.length;
+      facets = facetChips(d.quotes, x => x.tag);
       body = `<div class="lb-quotes">${list.map((x, i) => `<div class="lb-quote"><p>${esc(x.t)}</p>
         <div class="m"><span>#${esc(x.tag)}</span>
         <button class="lb-star${isFav('q' + i) ? ' on' : ''}" data-lb="fav" data-id="q${i}" aria-label="收藏这句">${ico('star')}</button></div></div>`).join('')}</div>`
         + (list.length ? '' : '<div class="lb-empty">没有匹配的句子，换个词试试。</div>');
     } else if (libTab === 'cases') {
       const list = d.cases.filter(x => has(x.n + x.tag + x.y + x.use) && (!libTag || x.tag === libTag));
-      facets = facetChips(d.cases, x => x.tag); shown = list.length;
+      facets = facetChips(d.cases, x => x.tag);
       body = `<div class="lb-cases">${list.map((x, i) => `<div class="lb-case">
         <div class="hd"><b>${esc(x.n)}</b><span class="lb-chip tag">${esc(x.tag)}</span>
           <button class="lb-star${isFav('c' + i) ? ' on' : ''}" data-lb="fav" data-id="c${i}" aria-label="收藏这个案例">${ico('star')}</button></div>
@@ -697,9 +681,9 @@
     const total = d.quotes.length + d.cases.length + d.phrases.length + d.swaps.length + d.frames.length;
     return `
     <div class="lb-libtabs">${tabs.map(([k, l, n]) => `<button class="${libTab === k ? 'active' : ''}" data-lb="ltab" data-v-tab="${k}">${l}<i>${n}</i></button>`).join('')}</div>
-    <div class="filterbar"><label class="mini-search">${ico('search')}<input data-lb="lq" id="lb_lq" type="search" enterkeyhint="search" placeholder="搜索素材，如：法治、养老" value="${esc(libQ)}" autocomplete="off"/></label>${facets ? filterBtn(!!libTag) : ''}</div>
-    ${facets ? filterPanel('主题', facets, shown, '条', 'data-lb="ltag" data-v=""') : ''}
-    ${libTag ? `<div class="list-meta"><span class="result-count">${shown} 条</span><div class="active-filters"><button class="fchip" data-lb="ltag" data-v="" aria-label="去掉筛选：${esc(libTag)}"><span>${esc(libTag)}</span>${ico('x')}</button></div></div>` : ''}
+    <div class="filterbar"><label class="mini-search">${ico('search')}<input data-lb="lq" id="lb_lq" type="search" enterkeyhint="search" placeholder="搜索素材，如：法治、养老" value="${esc(libQ)}" autocomplete="off"/></div>
+</div>
+    ${facets}
     ${body}`;
   }
 
@@ -791,7 +775,6 @@
         : TAB === 'me' ? viewMe()
           : listView(TAB);
     if (y) MAIN.scrollTop = y;
-    if (filterOpen() && !document.getElementById('lb-filter')) SH_FILTER.close();
     if (typeof syncLabFloat === 'function') syncLabFloat();
   }
 
@@ -806,7 +789,6 @@
     if (TIMER) { clearInterval(TIMER); TIMER = null; }
     LAB.CUR = id;
     LAB.GRIDS = []; LAB.ANN = null; LAB.DRAFT = null;
-    if (window.SH_FILTER) SH_FILTER.close();
     /* practiceView 里已经带了一个 #lb_result，不要再追加一个同名节点 */
     MAIN.innerHTML = practiceView(m, item);
     if (VIEW) VIEW.classList.add('lb-practicing');

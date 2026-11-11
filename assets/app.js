@@ -106,46 +106,7 @@
    $('#sheet-scrim').classList.remove('show');root.classList.remove('sheet-open');
    return true;
  }
- /* 筛选面板：平时收在「筛选」按钮里。手机上从底部滑出，桌面在搜索栏下方展开。
-    打开的是哪一个记在 fOpen 里，练习模块整块重绘之后也能接着开着 */
- let fOpen='';
- const filterSync=()=>$$('[data-fopen]').forEach(b=>b.setAttribute('aria-expanded',b.dataset.fopen===fOpen?'true':'false'));
- function openFilter(id){
-   const el=document.getElementById(id);if(!el)return;
-   if(fOpen&&fOpen!==id)closeFilter();
-   closeSheet();
-   fOpen=id;el.style.transform='';el.classList.remove('noanim');el.hidden=false;
-   if(mqSheet.matches){$('#sheet-scrim').classList.add('show');root.classList.add('sheet-open')}
-   filterSync();
- }
- function closeFilter(){
-   if(!fOpen)return false;
-   const el=document.getElementById(fOpen);if(el){el.hidden=true;el.style.transform=''}
-   fOpen='';$('#sheet-scrim').classList.remove('show');root.classList.remove('sheet-open');filterSync();
-   return true;
- }
- const filterResets={};
- document.addEventListener('click',e=>{
-   const o=e.target.closest('[data-fopen]');
-   if(o){if(fOpen===o.dataset.fopen)closeFilter();else openFilter(o.dataset.fopen);return}
-   if(e.target.closest('[data-fclose]')){closeFilter();return}
-   const r=e.target.closest('[data-freset]');
-   if(r&&filterResets[r.dataset.freset]){filterResets[r.dataset.freset]();return}
-   const x=e.target.closest('.active-filters [data-fx]');
-   if(x){const box=x.closest('.active-filters'),acts=box._acts||[];if(x.dataset.fx==='all'){const f=filterResets[box.dataset.reset];if(f)f()}else if(acts[+x.dataset.fx])acts[+x.dataset.fx].x()}
- });
- if(mqSheet.addEventListener)mqSheet.addEventListener('change',closeFilter);
- window.SH_FILTER={isOpen:id=>fOpen===id,close:closeFilter};
- /* 筛选状态要看得见：按钮上的数字、列表上方可单独去掉的条件、面板里的「查看 N 条」 */
- function filterMeta(name,active,n){
-   const btn=$('[data-fopen="'+name+'-filter"]'),b=btn.querySelector('.filter-n');
-   btn.classList.toggle('on',active.length>0);b.hidden=!active.length;b.textContent=active.length;
-   const box=$('#'+name+'-active');box._acts=active;box.dataset.reset=name+'-filter';
-   box.innerHTML=active.map((a,i)=>`<button class="fchip" data-fx="${i}" aria-label="去掉筛选：${esc(a.t)}"><span>${esc(a.t)}</span>${ico('x')}</button>`).join('')+(active.length>1?'<button class="fchip-clear" data-fx="all">清除</button>':'');
-   const c=$('#'+name+'-filter [data-fcount]');if(c)c.textContent=n;
- }
-
- $('#sheet-scrim').addEventListener('click',()=>{closeFilter();closeSheet()});
+ $('#sheet-scrim').addEventListener('click',closeSheet);
  document.addEventListener('click',e=>{if(e.target.closest('[data-sheet-close]'))closeSheet()});
  function closeDrawer(){const d=$('#case-drawer');if(!d.classList.contains('open'))return false;d.classList.remove('open');d.querySelector('.drawer').style.transform='';root.classList.remove('sheet-open');return true}
  $('#drawer-close').onclick=closeDrawer;$('#drawer-back').onclick=closeDrawer;
@@ -170,7 +131,6 @@
    el.addEventListener('touchend',end);el.addEventListener('touchcancel',end);
  }
  $$('.detail-panel').forEach(p=>dragToClose(p,closeSheet));
- $$('.fpanel').forEach(p=>dragToClose(p,closeFilter));
  dragToClose($('#case-drawer .drawer'),closeDrawer);
 
  const searchWrap=$('#search-box');
@@ -183,7 +143,6 @@
    if(!$('#ws-ref').hidden){wsRefClose();return true}
    if(!$('#ws-grade').hidden){wsModalClose();return true}
    if(!$('#ws-picker').hidden){wsPickerClose();return true}
-   if(closeFilter())return true;
    if(closeDrawer())return true;
    if(closeSheet())return true;
    return false;
@@ -200,7 +159,7 @@
    if(!viewNames[view])view='dashboard';
    const prev=state.view,changed=prev!==view;
    if(changed)scrollPos[prev]=window.scrollY||0;
-   closeDrawer();closeSheet();closeFilter();closeSearch();
+   closeDrawer();closeSheet();closeSearch();
    state.view=view;
    const inLib=LIB.includes(view);
    if(inLib){state.libView=view;LS.setItem('sh_lib_last',view)}
@@ -346,11 +305,6 @@
    if(sort==='scene')arr.sort((a,b)=>a.scene.localeCompare(b.scene,'zh'));
    state.vocabOrder=arr.map(x=>x.id);
    $('#vocab-count').textContent=arr.length===DATA.vocab.length?'共 '+arr.length+' 条':arr.length+' / '+DATA.vocab.length+' 条';
-   const act=[];
-   if(state.vocabFilter!=='全部')act.push({t:state.vocabFilter,x:()=>{state.vocabFilter='全部';state.vocabLimit=60;renderVocab()}});
-   if(state.vocabPeriod!=='all')act.push({t:state.vocabPeriod,x:()=>{state.vocabPeriod='all';$('#vocab-period').value='all';state.vocabLimit=60;renderVocab()}});
-   if(state.vocabFav)act.push({t:'收藏',x:()=>{state.vocabFav=false;renderVocab()}});
-   filterMeta('vocab',act,arr.length);
    $('#vocab-list').innerHTML=arr.length?arr.slice(0,state.vocabLimit).map(x=>{
      const m=state.mastery[x.id];
      return `<article class="data-card${state.selectedVocab===x.id?' selected':''}" data-vocab="${x.id}" tabindex="0" role="button"><div class="card-main"><div class="card-title">${hi(x.term,q)}</div><p>${hi(x.scene,q)}</p><div class="card-meta"><span>${vocabCat(x)}</span><span>${esc(periodName(x.period))}</span>${m===2?'<span class="st-ok">已掌握</span>':m===1?'<span class="st-due">待复习</span>':''}</div></div>${starBtn('vocab',x.id)}</article>`;
@@ -384,7 +338,6 @@
  $('#vocab-period').addEventListener('change',e=>{state.vocabPeriod=e.target.value;state.vocabLimit=60;renderVocab()});
  $('#vocab-sort').addEventListener('change',renderVocab);
  $('#vocab-fav-only').addEventListener('click',()=>{state.vocabFav=!state.vocabFav;renderVocab()});
- filterResets['vocab-filter']=()=>{state.vocabFilter='全部';state.vocabPeriod='all';state.vocabFav=false;state.vocabLimit=60;$('#vocab-period').value='all';$('#vocab-sort').value='default';renderVocab()};
  $('#vocab-random').addEventListener('click',()=>{const o=state.vocabOrder.length?state.vocabOrder:DATA.vocab.map((x,i)=>i);selectVocab(o[Math.floor(Math.random()*o.length)])});
 
  /* ---------- 5. 对策（对策模板 + 问题表述） ---------- */
@@ -420,10 +373,6 @@
    if($('#strategy-sort').value==='title')arr=arr.slice().sort((a,b)=>a.title.localeCompare(b.title,'zh'));
    state.strategyOrder=arr.map(x=>x.id);
    $('#strategy-count').textContent=arr.length===items.length?'共 '+arr.length+' 条':arr.length+' / '+items.length+' 条';
-   const act=[];
-   if(state.strategyFilter!=='全部')act.push({t:state.strategyFilter,x:()=>{state.strategyFilter='全部';renderStrategy()}});
-   if(state.strategyFav)act.push({t:'收藏',x:()=>{state.strategyFav=false;renderStrategy()}});
-   filterMeta('strategy',act,arr.length);
    const sel=isP?state.selectedProblem:state.selectedStrategy;
    $('#strategy-list').innerHTML=arr.length?arr.map(x=>`<article class="data-card${sel===x.id?' selected':''}" data-lib="${x.id}" tabindex="0" role="button"><div class="card-main"><div class="card-title">${hi(x.title,q)}</div><p>${hi(x.text,q)}</p><div class="card-meta"><span>${esc(x.group)}</span>${isP?`<span>对应 ${x.strategies.length} 条对策</span>`:state.plan.includes(x.id)?'<span class="st-ok">已在组合</span>':''}</div></div>${starBtn(type,x.id)}</article>`).join('')
      :`<div class="empty">${state.strategyFav&&!q?'这里还没有收藏。':'没有找到。换个更短的词试试。'}</div>`;
@@ -491,7 +440,6 @@
  $('#strategy-search').addEventListener('input',e=>{state.strategyQuery=e.target.value;renderStrategy()});
  $('#strategy-sort').addEventListener('change',renderStrategy);
  $('#strategy-fav-only').addEventListener('click',()=>{state.strategyFav=!state.strategyFav;renderStrategy()});
- filterResets['strategy-filter']=()=>{state.strategyFilter='全部';state.strategyFav=false;$('#strategy-sort').value='default';renderStrategy()};
  $('#strategy-random').addEventListener('click',()=>{const o=state.strategyOrder;if(!o.length)return;const id=o[Math.floor(Math.random()*o.length)];if(state.strategyMode==='problem')selectProblem(id);else selectStrategy(id)});
  $$('[data-smode]').forEach(b=>b.addEventListener('click',()=>{if(state.strategyMode===b.dataset.smode)return;state.strategyMode=b.dataset.smode;resetLibFilter();renderStrategy();libEmptyDetail()}));
 
@@ -506,11 +454,6 @@
    const arr=DATA.cases.map((x,i)=>Object.assign({},x,{id:i})).filter(x=>(state.caseChapter==='all'||x.chapter===state.caseChapter)&&(state.caseSection==='all'||x.section===state.caseSection)&&(!state.caseFav||isFav('case',x.id))&&(!q||(x.title+x.keywords+x.case+x.topics).toLowerCase().includes(q)));
    state.caseOrder=arr.map(x=>x.id);
    $('#case-count').textContent=arr.length===DATA.cases.length?'共 '+arr.length+' 条':arr.length+' / '+DATA.cases.length+' 条';
-   const act=[];
-   if(state.caseChapter!=='all')act.push({t:chapterName(state.caseChapter),x:()=>{state.caseChapter='all';state.caseSection='all';state.caseLimit=40;renderCases()}});
-   if(state.caseSection!=='all')act.push({t:sectionName(state.caseSection),x:()=>{state.caseSection='all';state.caseLimit=40;renderCases()}});
-   if(state.caseFav)act.push({t:'收藏',x:()=>{state.caseFav=false;renderCases()}});
-   filterMeta('case',act,arr.length);
    $('#case-list').innerHTML=arr.length?arr.slice(0,state.caseLimit).map(x=>`<article class="data-card" data-case="${x.id}" tabindex="0" role="button"><div class="card-main"><div class="card-title">${hi(x.title,q)}</div><div class="case-desc">${hi(x.case,q)}</div><div class="card-meta"><span>${esc(sectionName(x.section))}</span>${x.keywords.split('丨').slice(0,2).map(k=>`<span>${hi(k,q)}</span>`).join('')}</div></div>${starBtn('case',x.id)}</article>`).join('')+(arr.length>state.caseLimit?`<button class="load-more" data-more>再显示 ${Math.min(40,arr.length-state.caseLimit)} 条（还有 ${arr.length-state.caseLimit} 条）</button>`:'')
      :`<div class="empty">${state.caseFav&&!q?'还没有收藏的案例。':'没有找到。换个更短的词试试。'}</div>`;
  }
@@ -536,7 +479,6 @@
  $('#case-section').addEventListener('change',e=>{state.caseSection=e.target.value;state.caseLimit=40;renderCases()});
  $('#case-search').addEventListener('input',e=>{state.caseQuery=e.target.value;state.caseLimit=40;renderCases()});
  $('#case-fav-only').addEventListener('click',()=>{state.caseFav=!state.caseFav;renderCases()});
- filterResets['case-filter']=()=>{state.caseChapter='all';state.caseSection='all';state.caseFav=false;state.caseLimit=40;renderCases()};
  $('#case-random').addEventListener('click',()=>{const o=state.caseOrder.length?state.caseOrder:DATA.cases.map((x,i)=>i);openCase(o[Math.floor(Math.random()*o.length)])});
 
  /* ---------- 7. 公文 ---------- */
@@ -659,7 +601,7 @@
    const sysDark=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
    const dark=pref==='dark'||(pref==='auto'&&sysDark);
    root.setAttribute('data-theme',dark?'dark':'light');
-   const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',dark?'#111215':'#ffffff');
+   const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',dark?'#161513':'#f4f2ed');
    const tb=$('#theme-btn');if(tb){tb.innerHTML=ico(dark?'moon':'sun');tb.title=dark?'切换到浅色':'切换到深色';tb.setAttribute('aria-label',tb.title)}
    $$('#theme-choice button').forEach(b=>{const on=b.dataset.themeChoice===pref;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});
  }
@@ -1238,7 +1180,7 @@ window.GRADE=GRADE;
   function wsUpdatePickBtn(){const b=$('#ws-exam-pick');if(b&&WS.exam)b.querySelector('.xp-label').textContent=(WS.exam.r+' '+WS.exam.y+(WS.exam.l?' · '+WS.exam.l:''))}
   function wsPickerOpen(){
     const p=$('#ws-picker');p.hidden=false;requestAnimationFrame(()=>p.classList.add('show'));
-    $('#pm-q').value='';wsPickerRegion('全部');
+    $('#pm-q').value='';$('#pm-chips').dataset.reg='全部';
     wsPickerRender();if(!wsNarrow())setTimeout(()=>$('#pm-q').focus(),60);const cur=$('#pm-list .pm-item.cur');if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:'center'});
   }
   function wsPickerClose(){const p=$('#ws-picker');if(!p||p.hidden)return;p.classList.remove('show');setTimeout(()=>{p.hidden=true},220)}
@@ -1248,7 +1190,7 @@ window.GRADE=GRADE;
     if(!chips.dataset.reg)chips.dataset.reg='全部';
     if(!chips.children.length){
       const regions=[...new Set(idx.map(x=>x.r))].sort((a,b)=>a==='国考'?-1:b==='国考'?1:a.localeCompare(b,'zh'));
-      chips.innerHTML=['全部'].concat(regions).map(r=>'<button class="pm-chip'+(r===chips.dataset.reg?' on':'')+'" data-r="'+esc(r)+'">'+(r==='全部'?'全部地区':esc(r)+' <i>'+idx.filter(x=>x.r===r).length+'</i>')+'</button>').join('');
+      chips.innerHTML=['全部'].concat(regions).map(r=>'<button class="pm-chip'+(r==='全部'?' on':'')+'" data-r="'+esc(r)+'">'+esc(r)+(r==='全部'?'':' <i>'+idx.filter(x=>x.r===r).length+'</i>')+'</button>').join('');
     }
     const reg=chips.dataset.reg,kw=($('#pm-q').value||'').trim().toLowerCase();
     let rows=idx.filter(x=>(reg==='全部'||x.r===reg)&&(!kw||((x.r+' '+x.y+' '+(x.l||'')+' '+x.id).toLowerCase().includes(kw))));
@@ -1267,15 +1209,7 @@ window.GRADE=GRADE;
   $('#ws-exam-pick').addEventListener('click',wsPickerOpen);
   $('#pm-close').addEventListener('click',wsPickerClose);
   $('#ws-picker .pm-mask').addEventListener('click',wsPickerClose);
-  /* 34 个地区平时收在「地区」按钮里，点开选一个就收回去 */
-  function wsPickerRegion(reg,open){
-    const chips=$('#pm-chips'),btn=$('#pm-region-btn');
-    chips.dataset.reg=reg;chips.querySelectorAll('.pm-chip').forEach(x=>x.classList.toggle('on',x.dataset.r===reg));
-    $('#pm-region-label').textContent=reg==='全部'?'地区':reg;btn.classList.toggle('on',reg!=='全部');
-    chips.hidden=!open;btn.setAttribute('aria-expanded',open?'true':'false');
-  }
-  $('#pm-region-btn').addEventListener('click',()=>{const chips=$('#pm-chips');wsPickerRegion(chips.dataset.reg||'全部',chips.hidden)});
-  $('#pm-chips').addEventListener('click',e=>{const c=e.target.closest('.pm-chip');if(!c)return;wsPickerRegion(c.dataset.r,false);wsPickerRender()});
+  $('#pm-chips').addEventListener('click',e=>{const c=e.target.closest('.pm-chip');if(!c)return;const chips=$('#pm-chips');chips.dataset.reg=c.dataset.r;chips.querySelectorAll('.pm-chip').forEach(x=>x.classList.toggle('on',x===c));wsPickerRender()});
   $('#pm-q').addEventListener('input',wsPickerRender);
   $('#pm-q').addEventListener('keydown',e=>{if(e.key==='Enter'){const f=$('#pm-list .pm-item');if(f)wsPickerPick(f.dataset.id)}});
   $('#pm-list').addEventListener('click',e=>{const it=e.target.closest('.pm-item');if(it)wsPickerPick(it.dataset.id)});

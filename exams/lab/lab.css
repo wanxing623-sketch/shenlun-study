@@ -163,12 +163,8 @@
 /* ---------- 素材库 ---------- */
 .lb-libtabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
 .lb-libtabs button{font-size:var(--t-sm);font-weight:600;color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;min-height:34px}
-.lb-libtabs button.active{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.lb-libtabs button.active{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand);font-weight:500}
 .lb-libtabs button i{font-style:normal;font-size:var(--t-2xs);opacity:.7;margin-left:4px}
-.lb-facets{display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 14px}
-.lb-facet{font-size:var(--t-xs);color:var(--muted);border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;min-height:30px}
-.lb-facet:hover{border-color:var(--line-strong);color:var(--ink)}
-.lb-facet.active{background:var(--info-soft);border-color:var(--brand);color:var(--brand);font-weight:600}
 .lb-quotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .lb-quote{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:14px 16px}
 .lb-quote p{margin:0 0 9px;font-size:var(--t-base);line-height:1.95}
@@ -266,9 +262,6 @@
   .lb-libtabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
   .lb-libtabs::-webkit-scrollbar{display:none}
   .lb-libtabs button{flex:none;min-height:40px}
-  .lb-facets{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;padding-bottom:2px}
-  .lb-facets::-webkit-scrollbar{display:none}
-  .lb-facet{flex:none;min-height:34px}
   .lb-stats{grid-template-columns:repeat(2,1fr)}
   .lb-stat b{font-size:var(--t-2xl)}
   .lb-toolbar{flex-wrap:wrap}
@@ -283,7 +276,7 @@
   .lb-card{padding:14px 14px}
 }
 @media (pointer:coarse){
-  .lb-btnsm,.lb-facet,.lb-libtabs button{min-height:40px}
+  .lb-btnsm,.lb-libtabs button{min-height:40px}
   .lb-row{min-height:60px}
   .lb-star{width:38px;height:38px;font-size:var(--t-xl)}
 }
@@ -363,26 +356,26 @@
   .lb-mat-body{max-height:min(46vh,260px)}
 }
 @media (pointer:coarse){
-  .lb-btnsm,.lb-facet,.lb-libtabs button{min-height:42px}
+  .lb-btnsm,.lb-libtabs button{min-height:42px}
   .lb-star{width:40px;height:40px}
   .lb-dock .acts button{min-height:44px}
 }
 
 
 /* ============================================================
-   统一视觉：和全站同一套「纸与墨」写法
+   统一视觉：和全站同一套写法（白底、墨字、蓝色主色）
    ============================================================ */
 /* 板块切换：贴在顶栏下方，横向可滑 */
 .lb-seg{display:flex;flex-wrap:nowrap;gap:2px;border:0;background:var(--surface-2);border-radius:10px;padding:3px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;max-width:100%}
 .lb-seg::-webkit-scrollbar{display:none}
 .lb-seg button{flex:1 0 auto;min-height:34px;padding:0 12px;border-radius:7px;font-size:var(--t-sm);font-weight:400;color:var(--muted);white-space:nowrap}
-.lb-seg button.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(40,32,18,.12),0 0 0 .5px rgba(40,32,18,.06)}
+.lb-seg button.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.12),0 0 0 .5px rgba(16,24,40,.06)}
 .lb-seg button i{font-size:var(--t-2xs);margin-left:4px;color:var(--faint)}
 .lb-seg button.active i{color:var(--faint)}
 .lb-sumcard{margin-bottom:0}
 .lb-kicker{font-size:var(--t-sm);font-weight:400;color:var(--faint)}
 .lb-chip{border:0;border-radius:var(--r-xs);padding:2px 8px;font-weight:400;font-size:var(--t-xs);line-height:1.6}
-.lb-chip.tag{color:var(--ink);background:var(--surface-3)}
+.lb-chip.tag{color:var(--brand);background:var(--brand-soft)}
 /* 题目列表：一整块分组，细线分隔 */
 .lb-rows{display:block;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);overflow:hidden;margin-top:0}
 .lb-row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;min-height:60px;padding:12px 14px 12px 16px;border:0;border-radius:0;background:none;position:relative}
@@ -411,16 +404,16 @@
 .lb-mat .mlab{color:var(--muted);background:var(--surface-2);font-weight:400;font-family:var(--sans)}
 .lb-brush-label{font-weight:400;font-size:var(--t-xs)}
 .lb-field>label,.lb-field>.lb-lab{font-size:var(--t-sm);font-weight:500;color:var(--ink)}
-.lb-field>label b,.lb-field>.lb-lab b{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--surface-3);color:var(--ink);font-size:var(--t-2xs);font-weight:500;margin-right:8px}
+.lb-field>label b,.lb-field>.lb-lab b{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-size:var(--t-2xs);font-weight:600;margin-right:8px}
 .lb-field .lb-lab small{font-size:var(--t-xs);font-weight:400;color:var(--faint);margin-left:4px}
 .lb-input,.lb-ta{border-radius:var(--r-s);font-size:var(--t-lg)}
-.lb-input:focus,.lb-ta:focus{border-color:var(--ink);box-shadow:none}
+.lb-input:focus,.lb-ta:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
 .lb-checker{border-radius:var(--r-s)}
 .lb-ck{font-size:var(--t-sm)}
 .lb-dock .bar{height:4px;background:var(--surface-3)}
-.lb-dock .bar i{background:var(--ink)}
+.lb-dock .bar i{background:var(--brand)}
 .lb-btnsm{border-color:var(--line-strong);border-radius:var(--r-s);font-weight:400;color:var(--ink);font-size:var(--t-sm)}
-.lb-btnsm:hover{color:var(--ink);border-color:var(--ink)}
+.lb-btnsm:hover{color:var(--brand);border-color:var(--brand)}
 /* 结果 */
 .lb-scorehero{border-radius:var(--r-m);border-left:1px solid var(--line)}
 .lb-ring .val{font-weight:600}
@@ -451,9 +444,8 @@
 .lb-stars button .ico{width:20px;height:20px}
 .lb-stars button.on .ico,.lb-star.on .ico{fill:currentColor}
 /* 素材 */
-.lb-libtabs button,.lb-facet{border-radius:var(--r-s);font-weight:400}
+.lb-libtabs button{border-radius:var(--r-s);font-weight:400}
 .lb-libtabs button{font-size:var(--t-sm)}
-.lb-facet.active{background:var(--surface-3);border-color:var(--ink);color:var(--ink);font-weight:500}
 .lb-quote{border:1px solid var(--line);border-radius:var(--r-m);padding:16px}
 .lb-quote p{font-family:var(--read);font-size:var(--t-read);line-height:1.9}
 .lb-star{width:36px;height:36px;display:inline-grid;place-items:center;padding:0;border-radius:50%;color:var(--line-strong)}
@@ -479,7 +471,7 @@
 .lb-stat{display:flex;flex-direction:column}
 .lb-stat b{font-size:var(--t-2xl);font-weight:600;margin:0;order:1}
 .lb-stat span{order:3;font-size:var(--t-xs)}
-.lb-spark i{background:var(--ink);opacity:.8;border-radius:2px 2px 0 0}
+.lb-spark i{background:var(--brand);opacity:.85;border-radius:2px 2px 0 0}
 .lb-card{border-radius:var(--r-m);padding:16px}
 .lb-card>h3{font-size:var(--t-sm);font-weight:500;color:var(--muted)}
 .lb-empty{border:0;font-size:var(--t-base);padding:44px 18px}

@@ -164,12 +164,12 @@
     return BRUSH.map(b => '<button class="brush ' + b.cls + (b.k === (active || 'y') ? ' active' : '')
       + '" data-brush="' + b.k + '" aria-label="' + b.name
       + '" aria-pressed="' + (b.k === (active || 'y')) + '">'
-      + (b.k === 'x' ? '擦' : NAME[b.k]) + '</button>').join('');
+      + '</button>').join('');
   }
 
   /* 悬浮小工具条：显示当前笔、已标注数、撤销/清空（移动端常驻在材料底部） */
   function annBarHTML(brush) {
-    return '<span class="kk-ann-now"><i class="kk-dot ' + (brush || 'y') + '"></i>当前：' + (NAME[brush] || '黄') + '笔</span>'
+    return '<span class="kk-ann-now"><i class="kk-dot ' + (brush || 'y') + '"></i>' + (brush === 'x' ? '橡皮' : (NAME[brush] || '黄') + '笔') + '</span>'
       + '<span class="kk-ann-n tip" data-tip="点击整句即可标注；长按拖动或划选可精确到字；选中「擦」再点=清除">标注 <b class="kk-ann-num">0</b> 处</span>';
   }
 
@@ -213,7 +213,7 @@
         const num = bump.querySelector('.kk-ann-num');
         if (num) num.textContent = n;
         const dot = bump.querySelector('.kk-ann-now');
-        if (dot) dot.innerHTML = '<i class="kk-dot ' + st.brush + '"></i>当前：' + (NAME[st.brush] || '黄') + '笔';
+        if (dot) dot.innerHTML = '<i class="kk-dot ' + st.brush + '"></i>' + (st.brush === 'x' ? '橡皮' : (NAME[st.brush] || '黄') + '笔');
       }
       return n;
     }
@@ -505,11 +505,11 @@
     /* 按可用宽度定列数与格宽：整行铺满且绝不横向溢出 */
     function metrics(w) {
       const maxCols = st.perRow || 20;
-      const minCell = w < 420 ? 15 : 17;             // 手机允许更小的格，保证排得下
-      let cols = Math.floor((w - 2) / (minCell + 1));  // 每格含 1px 边框
+      const minCell = w < 420 ? 19 : 17;             // 手机上宁可每行少几格，也要让字够大（约 12px 以上）
+      let cols = Math.floor((w - 1) / minCell);       // 格子是 border-box，边框算在格宽里
       cols = Math.max(5, Math.min(maxCols, cols));
-      let cell = Math.floor((w - 2) / cols) - 1;
-      cell = Math.max(13, Math.min(28, cell));
+      let cell = Math.floor((w - 1) / cols);
+      cell = Math.max(13, Math.min(30, cell));
       return { cols: cols, cell: cell };
     }
 

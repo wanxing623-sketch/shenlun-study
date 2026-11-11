@@ -81,7 +81,8 @@
   document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
 
   /* ---------- 题库池 ---------- */
-  const LABEL = { sum: '短材料小题', essay: '大作文拆解', drill: '标题分论点训练' };
+  const LABEL = { sum: '小题', essay: '大作文', drill: '标题分论点' };
+  const ico = window.ico || (() => '');
   let POOL = { sum: [], essay: [], drill: [] };
   let BYID = {};
   function build() {
@@ -342,69 +343,39 @@
     const total = ALL().length;
     const d = raw() || { quotes: [] };
     const q = d.quotes.length ? d.quotes[Math.floor(Math.random() * d.quotes.length)] : null;
+    const modes = [
+      ['sum', '小题', '概括、分析、对策。写完逐条对要点', POOL.sum.length + ' 道'],
+      ['essay', '大作文', '只写标题、三条分论点和收尾句', POOL.essay.length + ' 篇'],
+      ['drill', '标题分论点', '给一个主题，12 分钟立起骨架', POOL.drill.length + ' 组']
+    ];
     return `
-    <div class="lb-hero">
-      <div>
-        <div class="lb-kicker">练习室 / 概览</div>
-        <h2>短材料练要点，大作文练骨架</h2>
-        <p>小题写完立刻给出<b>要点覆盖</b>，大作文只写标题、三条分论点与收尾句，系统按<b>关键词 + 结构</b>打分，并对照题库参考答案。<br>
-        收入 ${POOL.sum.length} 道小题、${POOL.essay.length} 篇大作文、${POOL.drill.length} 组标题分论点专项拆练，以及 ${(d.quotes || []).length} 句金句 · ${(d.cases || []).length} 个案例 · ${(d.swaps || []).length} 组滥词替换 · ${(d.frames || []).length} 张骨架。</p>
-      </div>
-      <div class="lb-hero-cta">
-        <button class="primary" data-lb="tab" data-tab="sum">开始练小题</button>
-        <button class="secondary" data-lb="tab" data-tab="essay">看大作文</button>
-      </div>
+    ${done ? `<div class="review-hero lb-sumcard"><div class="review-nums">
+      <div><b>${done}</b><span>已练 / 共 ${total} 题</span></div>
+      <div><b>${avg === null ? '—' : avg + '%'}</b><span>平均得分率</span></div>
+      <div><b>${calcStreak()}</b><span>连续天数</span></div>
+    </div></div>` : ''}
+
+    <h2 class="sec-h"${done ? '' : ' style="margin-top:4px"'}>题型</h2>
+    <div class="rowlist">
+      ${modes.map(([k, t, d, c]) => `<button class="row" data-lb="tab" data-tab="${k}"><span class="row-main"><b>${t}</b><span>${d}</span></span><span class="row-side">${c}</span>${ico('right')}</button>`).join('')}
     </div>
 
-    <div class="lb-modegrid">
-      <button class="lb-modecard" data-lb="tab" data-tab="sum">
-        <div class="n">01</div><b>短材料小题</b>
-        <span>概括 / 分析 / 对策，材料 1—3 段。分条写答案，交卷后逐条比对参考要点，标出漏掉的。</span>
-        <em>${POOL.sum.length} 道 · 建议 15—25 分钟</em>
-      </button>
-      <button class="lb-modecard" data-lb="tab" data-tab="essay">
-        <div class="n">02</div><b>大作文拆解</b>
-        <span>整卷材料 + 原题。只写标题、三条分论点、收尾句，练“立得住”，再对照范文段落。</span>
-        <em>${POOL.essay.length} 篇 · 含题库参考范文</em>
-      </button>
-      <button class="lb-modecard" data-lb="tab" data-tab="drill">
-        <div class="n">03</div><b>标题 · 分论点训练</b>
-        <span>给主题，限时 12 分钟出标题 + 三条分论点首句 + 收尾句，附骨架提示与失分点。</span>
-        <em>${POOL.drill.length} 组 · 每组配范文</em>
-      </button>
+    <h2 class="sec-h">${due.length ? '今天该复习的' : '从这几道开始'}</h2>
+    <div class="rowlist">
+      ${queue.length ? queue.map(x => `
+        <button class="row" data-lb="go" data-m="${x._m}" data-id="${esc(x.id)}">
+          <span class="row-main"><b>${esc(x.title || x.theme || x.source || '未命名')}</b>
+            <span>${LABEL[x._m]}${x.region ? ' · ' + esc(x.region) : ''}${x.year ? ' · ' + esc(x.year) : ''}${x._m === 'sum' && x.limit ? ' · ' + esc(x.limit) + ' 字以内' : ''}</span></span>
+          ${ico('right')}
+        </button>`).join('') : '<div class="row-empty">题目还没有加载出来。</div>'}
     </div>
 
-    <div class="lb-stats">
-      <div class="lb-stat"><small>已练题目</small><b>${done}</b><span>／ ${total} 道</span></div>
-      <div class="lb-stat"><small>平均得分率</small><b>${avg === null ? '—' : avg + '%'}</b><span>取每题最佳</span></div>
-      <div class="lb-stat"><small>连续打卡</small><b>${calcStreak()}</b><span>天</span></div>
-      <div class="lb-stat"><small>今天待复习</small><b>${due.length}</b><span>到期 ${due.length} 道</span></div>
-    </div>
-
-    <div class="lb-card">
-      <h3>${due.length ? '今天该复习的' : '从这几道开始'}</h3>
-      <div class="lb-duelist">
-        ${queue.length ? queue.map((x, i) => `
-          <button class="lb-duerow" data-lb="go" data-m="${x._m}" data-id="${esc(x.id)}">
-            <span class="n">${pad(i + 1)}</span>
-            <span class="t">${esc(x.title || x.theme || x.source || '未命名')}
-              <small>${LABEL[x._m]}${x.region ? ' · ' + esc(x.region) : ''}${x.year ? ' · ' + esc(x.year) : ''}</small></span>
-            <span class="lb-chip">${x._m === 'sum' ? (x.limit ? '≤ ' + esc(x.limit) + ' 字' : '小题') : '骨架'}</span>
-          </button>`).join('') : '<div class="lb-empty">还没有题目数据</div>'}
-      </div>
-    </div>
-
-    ${q ? `<div class="lb-card"><h3>随机金句</h3><div class="lb-quote"><p>${esc(q.t)}</p><div class="m"><span>#${esc(q.tag)}</span></div></div></div>` : ''}
+    ${q ? `<h2 class="sec-h">金句</h2><div class="lb-quote"><p>${esc(q.t)}</p><div class="m"><span>${esc(q.tag)}</span></div></div>` : ''}
     `;
   }
 
   /* ---------- 题库列表 ---------- */
   function listView(k) {
-    const metas = {
-      sum: ['短材料小题', '概括 · 分析 · 对策', '把各卷小题拆下来单练：只放这一题对应的材料，写完立刻看要点覆盖与参考答案。'],
-      essay: ['大作文拆解', '材料齐全的国考 / 省考作文', '每份卷子的最后一题（大作文）＋原卷材料。只写标题、三条分论点、收尾句，再对照参考框架与范文。'],
-      drill: ['标题 · 分论点训练', '八组主题 · 每组配范文', '给主题，练标题、分论点首句、收尾句。每组配骨架提示、失分点与范文片段。']
-    }[k];
     const f = FILT[k];
     const items = filtered(k);
     const shown = items.slice(0, f.page * PAGE);
@@ -412,7 +383,7 @@
       const rec = S.rec[x.id];
       const band = !rec ? '' : rec.best >= 80 ? '' : rec.best >= 55 ? ' mid' : ' lo';
       const sub = k === 'sum'
-        ? [x.type, x.region, x.year ? x.year + ' 年' : '', x.limit ? '≤ ' + x.limit + ' 字' : '']
+        ? [x.type, x.region, x.year ? x.year + ' 年' : '', x.limit ? x.limit + ' 字以内' : '']
         : k === 'essay'
           ? [x.source, x.limit || '', x.score ? x.score + ' 分' : '']
           : [x.theme, x.limit || ''];
@@ -422,12 +393,12 @@
           <span class="ttl">${esc(x.title || x.theme || x.source || '未命名')}</span>
           <span class="sub">${sub.filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</span>
         </span>
-        <span class="score${band}">${rec ? '最佳 ' + rec.best + '%' : '未练'}</span>
+        ${rec ? `<span class="score${band}">${rec.best}%</span>` : '<span></span>'}
       </button>`;
     }).join('');
 
     const more = items.length > shown.length
-      ? `<button class="load-more" data-lb="more" data-k="${k}">加载更多（还有 ${items.length - shown.length} 道）</button>` : '';
+      ? `<button class="load-more" data-lb="more" data-k="${k}">再显示 ${Math.min(PAGE, items.length - shown.length)} 道（还有 ${items.length - shown.length} 道）</button>` : '';
 
     let filterExtra = '';
     if (k === 'sum') {
@@ -439,16 +410,13 @@
     }
 
     return `
-    <div class="lb-kicker">练习室 / ${esc(metas[1])}</div>
-    <h1 style="font-size:clamp(20px,2.4vw,24px);margin:6px 0 6px">${esc(metas[0])}</h1>
-    <p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:66ch">${esc(metas[2])}</p>
-    <div class="toolbar">
-      <div class="mini-search">⌕ <input data-lb="q" data-k="${k}" placeholder="搜索题干、来源、年份…" value="${esc(f.q)}" autocomplete="off"/></div>
-      <button class="mini-btn" data-lb="rand" data-k="${k}">⤨ 随机一题</button>
-      <span class="lb-small lb-dim" style="margin-left:auto">共 ${POOL[k].length} 道，筛选后 ${items.length} 道</span>
+    <div class="filterbar">
+      <label class="mini-search">${ico('search')}<input data-lb="q" data-k="${k}" type="search" enterkeyhint="search" placeholder="搜索题干、来源或年份" value="${esc(f.q)}" autocomplete="off"/></label>
+      <button class="icon-btn" data-lb="rand" data-k="${k}" title="随机一题" aria-label="随机一题">${ico('shuffle')}</button>
     </div>
-    ${filterExtra}
-    ${rows ? `<div class="lb-rows">${rows}</div>` : '<div class="lb-empty">没有匹配的题目，换个关键词或清空筛选。</div>'}
+    ${filterExtra ? `<div class="chip-scroll">${filterExtra}</div>` : ''}
+    <div class="list-meta"><span class="result-count">${items.length === POOL[k].length ? '共 ' + items.length + ' 道' : items.length + ' / ' + POOL[k].length + ' 道'}</span></div>
+    ${rows ? `<div class="lb-rows">${rows}</div>` : '<div class="lb-empty">没有找到。换个词，或把筛选改回「全部」。</div>'}
     ${more}`;
   }
 
@@ -457,33 +425,33 @@
     const isSum = m === 'sum';
     const draft = draftOf(item.id);
     const head = isSum
-      ? `<span class="lb-chip tag">${esc(item.type || '小题')}</span>${item.limit ? `<span class="lb-chip">≤ ${esc(item.limit)} 字</span>` : ''}${item.minutes ? `<span class="lb-chip">建议 ${esc(item.minutes)} 分钟</span>` : ''}`
+      ? `<span class="lb-chip tag">${esc(item.type || '小题')}</span>${item.limit ? `<span class="lb-chip">${esc(item.limit)} 字以内</span>` : ''}${item.minutes ? `<span class="lb-chip">建议 ${esc(item.minutes)} 分钟</span>` : ''}`
       : `<span class="lb-chip tag">${esc(item.type || item.theme || LABEL[m])}</span>${item.limit ? `<span class="lb-chip">${esc(item.limit)}</span>` : ''}${item.minutes ? `<span class="lb-chip">建议 ${esc(item.minutes)} 分钟</span>` : ''}`;
     const title = isSum ? (item.title || item.source || '小题') : (item.theme || item.source || LABEL[m]);
     const sub = isSum ? [item.source, item.region, item.year].filter(Boolean).join(' · ') : [item.source, item.region].filter(Boolean).join(' · ');
 
     const editor = isSum ? `
       <div class="lb-field">
-        <div class="lb-lab">作答（标准作文方格纸 · 点格子落笔，每格一字；回车换行）</div>
+        <div class="lb-lab">作答</div>
         <div class="kk-grid-host" id="lb_answer_g" aria-label="方格作文纸作答区"></div>
-        <div class="kk-grid-foot"><span class="kk-hint">点格子就能写</span><span class="kk-sub">拼音 / 语音 / 手写输入均可 · 每格一字</span><span class="grow"></span><span id="lb_grid_tip"></span></div>
+        <div class="kk-grid-foot"><span class="grow"></span><span id="lb_grid_tip"></span></div>
       </div>
     ` : `
-      <div class="lb-field"><div class="lb-lab"><b>01</b>标题（4—14 字，最好含本题独有概念）</div>
+      <div class="lb-field"><div class="lb-lab"><b>1</b>标题 <small>4–14 字，带上这道题特有的概念</small></div>
         <div class="kk-grid-host" id="lb_title_g" aria-label="标题 方格纸"></div></div>
-      <div class="lb-field"><div class="lb-lab"><b>02</b>分论点一（方格纸，点格子即可改写）</div>
+      <div class="lb-field"><div class="lb-lab"><b>2</b>分论点一</div>
         <div class="kk-grid-host" id="lb_a1_g" aria-label="分论点一 方格纸"></div></div>
-      <div class="lb-field"><div class="lb-lab"><b>03</b>分论点二（起手字要与上一条不同）</div>
+      <div class="lb-field"><div class="lb-lab"><b>3</b>分论点二 <small>开头别和上一条重复</small></div>
         <div class="kk-grid-host" id="lb_a2_g" aria-label="分论点二 方格纸"></div></div>
-      <div class="lb-field"><div class="lb-lab"><b>04</b>分论点三</div>
+      <div class="lb-field"><div class="lb-lab"><b>4</b>分论点三</div>
         <div class="kk-grid-host" id="lb_a3_g" aria-label="分论点三 方格纸"></div></div>
-      <div class="lb-field"><div class="lb-lab"><b>05</b>收尾句（30—60 字，不落口号，落在具体的人或事上）</div>
+      <div class="lb-field"><div class="lb-lab"><b>5</b>收尾句 <small>30–60 字，落在具体的人或事上</small></div>
         <div class="kk-grid-host" id="lb_end_g" aria-label="收尾句 方格纸"></div></div>
       <div class="lb-checker" id="lb_checker"></div>
     `;
 
     return `
-    <a class="lb-back" href="#" data-lb="tab" data-tab="${m}">← 返回${esc(LABEL[m])}</a>
+    <button class="lb-back" type="button" data-lb="tab" data-tab="${m}">${ico('left')}${esc(LABEL[m])}</button>
     <div class="lb-phead">
       <div class="lb-chips">${head}</div>
       <h1>${esc(cut(title, 60))}</h1>
@@ -502,7 +470,6 @@
           <div class="lb-mat-hd">
             <span class="lb-mat-t">${item.material ? '给定资料 <b>' + countChars(item.material) + '</b> 字' : '材料区'}</span>
             <span class="kk-ann-now" id="lb_brush_now"></span>
-            <span class="lb-brush-label">标注笔</span>
             <span class="kk-brushes" id="lb_brushes" role="group" aria-label="标注笔"></span>
           </div>
           <div class="lb-mat-body" id="lb_mat"></div>
@@ -613,13 +580,13 @@
     <div class="lb-scorehero${band}">
       <div class="lb-ring">${ringSVG(sc.score)}</div>
       <div class="lb-verdict">
-        <div class="lb-kicker">${sc.mode === 'overlap' ? '要点覆盖率' : sc.structOnly ? '结构完成度' : '本次得分率'}</div>
+        <div class="lb-kicker">${sc.mode === 'overlap' ? '要点覆盖率' : sc.structOnly ? '结构完成度' : '得分率'}</div>
         <h3>${sc.score}%　${esc(vTitle)}</h3>
         <div class="meta">${detail}　·　字数 ${draftChars(draft)}</div>
       </div>
       <div class="lb-actions">
         <button class="secondary" data-lb="jump" data-target="#lb_ref">看参考答案</button>
-        ${next ? `<button class="primary" data-lb="go" data-m="${m}" data-id="${esc(next.id)}">下一题 →</button>` : ''}
+        ${next ? `<button class="primary" data-lb="go" data-m="${m}" data-id="${esc(next.id)}">下一题${ico('right')}</button>` : ''}
       </div>
     </div>
     ${missHTML}
@@ -628,19 +595,19 @@
     ${structHTML}
     ${ref}
     <details class="lb-self">
-      <summary>自评（读完参考答案再打，1—5 分五项，只存本机）</summary>
+      <summary>自评</summary>
       <div class="in">
         <div class="lb-rubric">
           ${dims.map((d, i) => `<div class="lb-rub">
             <span>${d}</span>
             <div class="lb-stars" data-dim="${i}">
-              ${[1, 2, 3, 4, 5].map(v => `<button data-v="${v}" class="${(prior[d] || 0) >= v ? 'on' : ''}" aria-label="${d} ${v} 分">★</button>`).join('')}
+              ${[1, 2, 3, 4, 5].map(v => `<button data-v="${v}" class="${(prior[d] || 0) >= v ? 'on' : ''}" aria-label="${d} ${v} 分">${ico('star')}</button>`).join('')}
             </div></div>`).join('')}
         </div>
       </div>
     </details>
     <div class="lb-actions" style="margin-top:16px">
-      ${next ? `<button class="primary" data-lb="go" data-m="${m}" data-id="${esc(next.id)}">下一题 →</button>` : ''}
+      ${next ? `<button class="primary" data-lb="go" data-m="${m}" data-id="${esc(next.id)}">下一题${ico('right')}</button>` : ''}
       <button class="secondary" data-lb="tab" data-tab="${m}">返回列表</button>
     </div>`;
   }
@@ -675,14 +642,14 @@
       facets = facetChips(d.quotes, x => x.tag);
       body = `<div class="lb-quotes">${list.map((x, i) => `<div class="lb-quote"><p>${esc(x.t)}</p>
         <div class="m"><span>#${esc(x.tag)}</span>
-        <button class="lb-star${isFav('q' + i) ? ' on' : ''}" data-lb="fav" data-id="q${i}" aria-label="收藏这句">★</button></div></div>`).join('')}</div>`
+        <button class="lb-star${isFav('q' + i) ? ' on' : ''}" data-lb="fav" data-id="q${i}" aria-label="收藏这句">${ico('star')}</button></div></div>`).join('')}</div>`
         + (list.length ? '' : '<div class="lb-empty">没有匹配的句子，换个词试试。</div>');
     } else if (libTab === 'cases') {
       const list = d.cases.filter(x => has(x.n + x.tag + x.y + x.use) && (!libTag || x.tag === libTag));
       facets = facetChips(d.cases, x => x.tag);
       body = `<div class="lb-cases">${list.map((x, i) => `<div class="lb-case">
         <div class="hd"><b>${esc(x.n)}</b><span class="lb-chip tag">${esc(x.tag)}</span>
-          <button class="lb-star${isFav('c' + i) ? ' on' : ''}" data-lb="fav" data-id="c${i}" aria-label="收藏这个案例">★</button></div>
+          <button class="lb-star${isFav('c' + i) ? ' on' : ''}" data-lb="fav" data-id="c${i}" aria-label="收藏这个案例">${ico('star')}</button></div>
         <p>${esc(x.y)}</p><div class="use"><b>能用在</b>${esc(x.use)}</div></div>`).join('')}</div>`
         + (list.length ? '' : '<div class="lb-empty">没有匹配的案例，换个词试试。</div>');
     } else if (libTab === 'phrases') {
@@ -695,7 +662,7 @@
     } else if (libTab === 'swaps') {
       const list = d.swaps.filter(x => has(x.bad + x.better + x.why));
       body = `<p class="lb-small lb-dim" style="margin:0 0 12px">这些词一旦出现，阅卷人立刻判定“背过模板”。左边是滥词，右边是能落地的写法；交卷时的结构检查也会自动标出。</p>`
-        + list.map(x => `<div class="lb-swap"><span class="bad">${esc(x.bad)}</span><span class="ar">→</span>
+        + list.map(x => `<div class="lb-swap"><span class="bad">${esc(x.bad)}</span><span class="ar">${ico('arrow-right')}</span>
           <span class="good">${esc(x.better)}<span>${esc(x.why)}</span></span></div>`).join('')
         + (list.length ? '' : '<div class="lb-empty">没有匹配的词，换个词试试。</div>');
     } else {
@@ -713,12 +680,9 @@
 
     const total = d.quotes.length + d.cases.length + d.phrases.length + d.swaps.length + d.frames.length;
     return `
-    <div class="lb-kicker">练习室 / 素材库</div>
-    <h1 style="font-size:clamp(20px,2.4vw,24px);margin:6px 0 6px">写作素材库</h1>
-    <p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:66ch">${d.quotes.length} 句金句 · ${d.cases.length} 个真实案例 · ${d.phrases.length} 组规范表述 · ${d.swaps.length} 组滥词替换 · ${d.frames.length} 张骨架。收藏的内容会出现在“我的练习”里，考前扫一遍。</p>
     <div class="lb-libtabs">${tabs.map(([k, l, n]) => `<button class="${libTab === k ? 'active' : ''}" data-lb="ltab" data-v-tab="${k}">${l}<i>${n}</i></button>`).join('')}</div>
-    <div class="toolbar"><div class="mini-search">⌕ <input data-lb="lq" id="lb_lq" placeholder="搜索：法治／养老／压舱石……（${total} 条）" value="${esc(libQ)}" autocomplete="off"/></div>
-      <span class="lb-small lb-dim" style="margin-left:auto">${libTag ? '已按「' + esc(libTag) + '」筛选' : '点下面的主题缩小范围'}</span></div>
+    <div class="filterbar"><label class="mini-search">${ico('search')}<input data-lb="lq" id="lb_lq" type="search" enterkeyhint="search" placeholder="搜索素材，如：法治、养老" value="${esc(libQ)}" autocomplete="off"/></div>
+</div>
     ${facets}
     ${body}`;
   }
@@ -736,13 +700,10 @@
       return arr[n] || null;
     }).filter(Boolean);
     return `
-    <div class="lb-kicker">练习室 / 我的练习</div>
-    <h1 style="font-size:clamp(20px,2.4vw,24px);margin:6px 0 6px">练习记录</h1>
-    <p style="color:var(--muted);font-size:13px;margin:0 0 14px;max-width:66ch">记录只保存在这台设备的浏览器里（与原工作台的收藏、笔记分开存放）。换设备可导出 / 导入。</p>
     <div class="lb-stats">
       <div class="lb-stat"><small>已练题目</small><b>${recs.length}</b><span>／ ${ALL().length} 道</span></div>
       <div class="lb-stat"><small>平均得分率</small><b>${avg === null ? '—' : avg + '%'}</b><span>取每题最佳</span></div>
-      <div class="lb-stat"><small>连续打卡</small><b>${calcStreak()}</b><span>天</span></div>
+      <div class="lb-stat"><small>连续天数</small><b>${calcStreak()}</b><span>天</span></div>
       <div class="lb-stat"><small>累计作答</small><b>${Object.values(S.rec).reduce((a, r) => a + (r.n || 0), 0)}</b><span>次</span></div>
     </div>
     <div class="lb-card"><h3>最近 12 次成绩</h3>
@@ -763,7 +724,7 @@
       </div>
     </div>
     <div class="lb-card"><h3>收藏的句子与案例</h3>
-      ${favs.length ? favs.map(f => `<div class="lb-pitfall" style="background:var(--surface-2);border-left-color:var(--brand)">${esc(f.t || f.n)}${f.y ? `<span class="lb-small lb-dim" style="display:block;margin-top:4px">${esc(f.y)}</span>` : ''}</div>`).join('') : '<div class="lb-small lb-dim">在素材库里点 ★ 收藏。</div>'}
+      ${favs.length ? favs.map(f => `<div class="lb-pitfall" style="background:var(--surface-2);border-left-color:var(--brand)">${esc(f.t || f.n)}${f.y ? `<span class="lb-small lb-dim" style="display:block;margin-top:4px">${esc(f.y)}</span>` : ''}</div>`).join('') : '<div class="lb-small lb-dim">还没有收藏。在素材库里点星标就能收藏。</div>'}
     </div>
     <div class="lb-card"><h3>备份与重置</h3>
       <div class="lb-actions">
@@ -789,7 +750,7 @@
 
   function segHTML() {
     const items = [
-      ['home', '概览'], ['sum', '小题'], ['essay', '大作文'], ['drill', '标题分论点'], ['lib', '素材库'], ['me', '我的练习']
+      ['home', '概览'], ['sum', '小题'], ['essay', '大作文'], ['drill', '分论点'], ['lib', '素材'], ['me', '记录']
     ];
     return items.map(([k, l]) => `<button class="${TAB === k ? 'active' : ''}" data-lb="tab" data-tab="${k}">${l}${
       k === 'sum' ? `<i>${POOL.sum.length}</i>` : k === 'essay' ? `<i>${POOL.essay.length}</i>` : k === 'drill' ? `<i>${POOL.drill.length}</i>` : ''
@@ -806,6 +767,7 @@
     }
     syncSeg();
     LAB.CUR = null;
+    if (VIEW) VIEW.classList.remove('lb-practicing');
     // 保持滚动位置：仅内容区替换
     const y = MAIN.scrollTop;
     MAIN.innerHTML = TAB === 'home' ? viewHome()
@@ -829,7 +791,8 @@
     LAB.GRIDS = []; LAB.ANN = null; LAB.DRAFT = null;
     /* practiceView 里已经带了一个 #lb_result，不要再追加一个同名节点 */
     MAIN.innerHTML = practiceView(m, item);
-    if (VIEW && typeof VIEW.scrollIntoView === 'function') VIEW.scrollIntoView({ behavior: 'auto', block: 'start' });
+    if (VIEW) VIEW.classList.add('lb-practicing');
+    window.scrollTo(0, 0);
     bindPractice(m, item);
     const rec = S.rec[item.id];
     if (rec) {
@@ -837,15 +800,11 @@
       if (box) box.innerHTML = `<div class="lb-scorehero" style="margin-top:18px">
         <div class="lb-ring">${ringSVG(rec.best)}</div>
         <div class="lb-verdict"><div class="lb-kicker">上次成绩</div>
-          <h3>得分率 ${rec.best}%　·　第 ${rec.n} 次</h3>
+          <h3>最好 ${rec.best}%，练过 ${rec.n} 次</h3>
           <div class="meta">${rec.next <= todayStr() ? '今天该复习了' : '下次复习 ' + esc(rec.next)}</div></div>
         <div class="lb-actions"><button class="secondary" data-lb="reveal">看参考答案</button></div></div>`;
     }
     if (typeof syncLabFloat === 'function') syncLabFloat();
-    // 更新面包屑
-    const pt = $('#page-title'), ps = $('#page-subtitle');
-    if (pt) pt.textContent = '练习室';
-    if (ps) ps.textContent = LABEL[m] + ' · ' + (item.title || item.theme || '');
   }
 
   /* ---------- 练习页交互 ---------- */
@@ -905,7 +864,7 @@
     LAB.PARAS = parasOf();
     if (bar) bar.innerHTML = KL.brushBarHTML(LAB.BRUSH || 'y');
     if (barBox) barBox.innerHTML = KL.annBarHTML(LAB.BRUSH || 'y');
-    if (nowBox) nowBox.innerHTML = '<i class="kk-dot ' + (LAB.BRUSH || 'y') + '"></i>当前：' + (KL.NAME[LAB.BRUSH || 'y'] || '黄') + '笔';
+    if (nowBox) nowBox.innerHTML = '<i class="kk-dot ' + (LAB.BRUSH || 'y') + '"></i>' + (LAB.BRUSH === 'x' ? '橡皮' : (KL.NAME[LAB.BRUSH || 'y'] || '黄') + '笔');
     if (wrap && window.KL) {
       LAB.ANN = KL.Annotator({
         el: '#lb_mat',
@@ -949,7 +908,7 @@
       if (!box) { clearInterval(TIMER); return; }
       const sec = Math.floor((Date.now() - t0) / 1000);
       const over = item.minutes && sec > item.minutes * 60;
-      box.textContent = `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}${item.minutes ? ' / ' + item.minutes + '′' : ''}`;
+      box.textContent = `${pad(Math.floor(sec / 60))}:${pad(sec % 60)}${item.minutes ? ' / ' + item.minutes + ' 分钟' : ''}`;
       box.style.color = over ? 'var(--accent)' : '';
     }, 500);
 
@@ -974,7 +933,7 @@
       finalize(item, sc.score);
       const box = document.getElementById('lb_result');
       if (box) box.innerHTML = resultHTML(m, item, draft);
-      toast(`得分率 ${sc.score}%　·　${sc.score >= 80 ? '很稳，保持' : '看要点补一遍'}`);
+      toast(`得分率 ${sc.score}%`);
       softScroll(box);
     }
     function reveal() {
@@ -1040,25 +999,44 @@
     if (tip) tip.textContent = '';
   }
   /* 与「真题作答」共用：移动端浮动画笔条（练习室） */
+  /* 手机上的悬浮标注笔：只在练习页、且材料区在屏幕里时出现，离开就收走 */
+  let FLOAT_KEY = '';
   function syncLabFloat() {
     const f = document.getElementById('kk-float');
     if (!f || !window.KL) return;
     const view = document.getElementById('view-lab');
-    const on = view && view.classList.contains('active') && document.getElementById('lb_mat');
+    const mat = document.getElementById('lb_mat_wrap');
     const narrow = window.matchMedia && window.matchMedia('(max-width:760px)').matches;
-    if (!on || !narrow || LAB.FLOAT_OFF) { if (f.dataset.ctx === 'lab') { f.hidden = true; f.innerHTML = ''; f.dataset.ctx = ''; } return; }
+    let on = !!(narrow && view && view.classList.contains('active') && mat && !mat.dataset.nomat);
+    if (on) {
+      const r = mat.getBoundingClientRect(), vh = window.innerHeight || 800;
+      on = r.top < vh * 0.5 && r.bottom > vh * 0.62;   // 材料占着屏幕中段才算「正在读材料」
+    }
+    if (!on) {
+      if (f.dataset.ctx === 'lab') { f.hidden = true; f.innerHTML = ''; f.dataset.ctx = ''; FLOAT_KEY = ''; }
+      return;
+    }
+    const key = (LAB.FLOAT_OFF ? 'mini' : 'bar') + '|' + (LAB.BRUSH || 'y');
+    if (f.dataset.ctx === 'lab' && key === FLOAT_KEY && !f.hidden) return;
+    FLOAT_KEY = key;
     f.hidden = false; f.dataset.ctx = 'lab';
-    f.innerHTML = '<span class="kk-ann-now"><i class="kk-dot ' + LAB.BRUSH + '"></i></span>'
-      + KL.brushBarHTML(LAB.BRUSH)
-      + '<button class="kk-float-x" data-float="close" aria-label="收起画笔条">✕</button>';
+    f.classList.toggle('mini', !!LAB.FLOAT_OFF);
+    f.innerHTML = LAB.FLOAT_OFF
+      ? '<button class="kk-float-x" data-float="open" aria-label="展开标注笔">' + ico('pen') + '</button>'
+      : KL.brushBarHTML(LAB.BRUSH) + '<button class="kk-float-x" data-float="close" aria-label="收起标注笔">' + ico('right') + '</button>';
   }
+  let floatRaf = 0;
+  window.addEventListener('scroll', () => {
+    if (floatRaf) return;
+    floatRaf = requestAnimationFrame(() => { floatRaf = 0; syncLabFloat(); });
+  }, { passive: true });
   document.addEventListener('kk:labfloat', syncLabFloat);
 
   function updateChecker(draft) {
     const box = document.getElementById('lb_checker'); if (!box) return;
     const filled = [draft.a1, draft.a2, draft.a3].filter(x => String(x || '').trim().length >= 6);
     if (!filled.length) {
-      box.innerHTML = '<div class="lb-ck"><span class="dot" style="background:var(--line-strong)"></span><span class="lb-dim">填完分论点后，这里会自动检查：起手字是否重复、长短是否雷同、有没有滥词与具体物象。</span></div>';
+      box.innerHTML = '<div class="lb-ck"><span class="dot" style="background:var(--line-strong)"></span><span class="lb-dim">写完三条分论点，这里会提示开头重复、长短雷同和套话。</span></div>';
       return;
     }
     box.innerHTML = checkStructure(draft).map(c => `<div class="lb-ck ${c.lv === 'ok' ? '' : c.lv}"><span class="dot"></span><span>${esc(c.t)}</span></div>`).join('');
@@ -1076,7 +1054,7 @@
       TAB = el.dataset.tab;
       if (TIMER) { clearInterval(TIMER); TIMER = null; }
       renderLab();
-      if (VIEW && typeof VIEW.scrollIntoView === 'function') VIEW.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo(0, 0);
       return;
     }
     if (!VIEW || !VIEW.classList.contains('active')) { if (act !== 'go') return; }
@@ -1195,9 +1173,10 @@
   });
   // 浮动条关闭（练习室 / 真题作答共用）
   document.addEventListener('click', e => {
-    if (!e.target.closest('[data-float="close"]')) return;
+    const b = e.target.closest('[data-float]');
+    if (!b) return;
     const f = document.getElementById('kk-float');
-    if (f && f.dataset.ctx === 'lab') { LAB.FLOAT_OFF = true; f.hidden = true; f.innerHTML = ''; f.dataset.ctx = ''; }
+    if (f && f.dataset.ctx === 'lab') { LAB.FLOAT_OFF = b.dataset.float === 'close'; syncLabFloat(); }
   });
 
   document.addEventListener('change', e => {
@@ -1271,7 +1250,10 @@
     openItem: (m, id) => openItem(m, id),
     search: searchExtra,
     setTab: t => { TAB = t; renderLab(); },
+    syncFloat: () => syncLabFloat(),
     ready: true
   };
   installSync();
+  /* 直接用 #lab 链接打开时，app.js 先于本文件执行，这里补渲染一次 */
+  if (document.body.dataset.view === 'lab') window.SH_LABHOOK.render();
 })();

@@ -1,12 +1,11 @@
 /* ============================================================
-   KL 公用样式：画笔标注 + 标准作文方格纸
-   两个做题模块共用，深浅色自动适配
+   KL 公用样式：标注笔 + 作文方格纸
+   真题和练习两个模块共用；颜色、字号取自 assets/app.css 的令牌
    ============================================================ */
 
 /* ---------- 画笔标注 ---------- */
 .sn{cursor:pointer;border-radius:3px;transition:background .12s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-.sn:hover{background:rgba(201,154,46,.16)}
-:root[data-theme="dark"] .sn:hover{background:rgba(212,172,99,.18)}
+@media (hover:hover){.sn:hover{background:color-mix(in srgb,var(--gold) 14%,transparent)}}
 .hy{border-radius:3px;padding:0 1px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .hly{background:var(--mark-y);color:inherit}
 .hlg{background:var(--mark-g);color:inherit}
@@ -15,36 +14,46 @@
 .kk-para{margin:0 0 1em}
 .kk-para .sn{white-space:normal}
 
-/* 笔刷条：桌面靠右，触屏放大，窄屏可横向滚动不挤压 */
-.kk-brushes{display:flex;gap:6px;align-items:center;margin-left:auto;overflow-x:auto;scrollbar-width:none;max-width:100%;flex-wrap:nowrap}
+/* 标注笔：四色圆点 + 橡皮。选中的那支外面套一圈 */
+.kk-brushes{display:flex;gap:4px;align-items:center;margin-left:auto;overflow-x:auto;scrollbar-width:none;max-width:100%;flex-wrap:nowrap}
 .kk-brushes::-webkit-scrollbar{display:none}
-.brush{width:32px;height:32px;border-radius:9px;border:2px solid transparent;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;opacity:.55;flex:none;transition:.15s;-webkit-tap-highlight-color:transparent}
-.brush:hover{opacity:.85}
-.brush.active{opacity:1;border-color:var(--ink);transform:scale(1.08);box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.brush.by{background:#c99a2e}.brush.bg{background:#4f8a5f}.brush.bb{background:#41729c}.brush.bo{background:#c2604a}.brush.bx{background:#8b9aa3}
+.brush{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;position:relative;color:var(--muted);font-size:0;-webkit-tap-highlight-color:transparent}
+.brush::before{content:"";width:18px;height:18px;border-radius:50%;background:currentColor;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);transition:transform .15s}
+.brush.by{color:#f2cf4a}.brush.bg{color:#86c98a}.brush.bb{color:#7fb4e0}.brush.bo{color:#f0a184}
+.brush.bx{color:var(--muted)}
+.brush.bx::before{width:20px;height:20px;border-radius:0;box-shadow:none;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21'/%3E%3Cpath d='m5.082 11.09 8.828 8.828'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21'/%3E%3Cpath d='m5.082 11.09 8.828 8.828'/%3E%3C/svg%3E") center/contain no-repeat}
+.brush.active{box-shadow:inset 0 0 0 2px var(--ink)}
+.brush.bx.active{color:var(--ink)}
+.brush:hover::before{transform:scale(1.1)}
 
-/* 标注小工具条（当前笔 / 标注数） */
-.kk-annbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
-.kk-ann-now{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--ink)}
-.kk-dot{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
-.kk-dot.y{background:#c99a2e}.kk-dot.g{background:#4f8a5f}.kk-dot.b{background:#41729c}.kk-dot.o{background:#c2604a}.kk-dot.x{background:#8b9aa3}
+/* 当前笔 / 标注数 */
+.kk-annbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:var(--t-xs);color:var(--muted)}
+.kk-ann-now{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.kk-dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.kk-dot.y{background:#f2cf4a}.kk-dot.g{background:#86c98a}.kk-dot.b{background:#7fb4e0}.kk-dot.o{background:#f0a184}.kk-dot.x{background:var(--muted)}
 .kk-ann-n b{font-variant-numeric:tabular-nums;color:var(--ink)}
 
-/* 悬浮按钮组：移动端把画笔收进一个浮动条，避免挤压题面 */
+/* 手机上的悬浮标注笔：贴在底部标签栏上方，可以收成一个小圆钮 */
 .kk-float{display:none}
 @media (max-width:760px){
-  .kk-float{display:flex;position:fixed;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:36;gap:6px;align-items:center;
-    background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 8px;box-shadow:0 8px 24px -8px rgba(15,25,32,.45)}
-  .kk-float .brush{width:34px;height:34px;border-radius:50%}
-  .kk-float .kk-float-x{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);color:var(--muted);display:grid;place-items:center;font-size:14px}
-  .kk-float-tip{position:fixed;right:12px;bottom:calc(126px + env(safe-area-inset-bottom));z-index:36;background:var(--side);color:var(--side-ink);font-size:11.5px;border-radius:10px;padding:6px 10px;box-shadow:var(--shadow);max-width:70vw}
+  .kk-float:not([hidden]){display:flex;position:fixed;right:12px;bottom:calc(var(--tabbar-h,56px) + 12px + env(safe-area-inset-bottom));z-index:36;gap:2px;align-items:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;box-shadow:0 2px 6px rgba(40,32,18,.08),0 10px 28px -10px rgba(40,32,18,.4)}
+  .kk-float .brush{width:40px;height:40px}
+  .kk-float .brush::before{width:22px;height:22px}
+  .kk-float .kk-float-x{width:36px;height:40px;border-radius:50%;color:var(--faint);display:grid;place-items:center}
+  .kk-float .kk-float-x .ico{width:18px;height:18px}
+  .kk-float.mini .kk-float-x{width:44px;height:44px;color:var(--ink)}
+  .kk-float.mini .kk-float-x .ico{width:20px;height:20px}
 }
 @media (pointer:coarse){
-  .brush{width:36px;height:36px;font-size:13px}
+  .brush{width:38px;height:38px}
+  .brush::before{width:20px;height:20px}
 }
 
 /* ---------- 标准作文方格纸 ---------- */
-.kk-grid-host{position:relative;display:block;width:100%;box-sizing:border-box;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 12px 6px;max-height:min(58vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}
+.kk-grid-host{position:relative;display:block;width:100%;box-sizing:border-box;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-s);padding:12px 12px 6px;max-height:min(58vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin}
 .kk-grid-inner{position:relative;outline:0;min-height:120px;cursor:text;-webkit-user-select:none;user-select:none}
 /* 原生输入框：铺满方格纸、文字透明，真正承载输入法与光标
    方格只做显示，所以永远不会出现“只进字母”的问题 */
@@ -57,32 +66,30 @@
 .kk-input::selection{background:transparent;color:transparent;-webkit-text-fill-color:transparent}
 .kk-input::-webkit-scrollbar{display:none}
 .kk-grid-rows{position:relative;z-index:1;pointer-events:auto}
-.kk-grid-rows{display:flex;flex-direction:column;gap:0}
+.kk-grid-rows{display:flex;flex-direction:column;gap:0;width:max-content;margin:0 auto}
 .kk-row{display:flex}
-.kk-cell{flex:none;width:var(--kk-cell,26px);height:var(--kk-cell,26px);line-height:calc(var(--kk-cell,26px) - 1px);text-align:center;font-size:calc(var(--kk-cell,26px) * .58);font-family:var(--serif,inherit);
+.kk-cell{flex:none;width:var(--kk-cell,26px);height:var(--kk-cell,26px);line-height:calc(var(--kk-cell,26px) - 1px);text-align:center;font-size:calc(var(--kk-cell,26px) * .64);font-family:var(--serif,inherit);
   border-right:1px solid var(--line);border-bottom:1px solid var(--line);box-sizing:border-box;position:relative;color:var(--ink);
   user-select:none;-webkit-user-select:none;cursor:text;-webkit-tap-highlight-color:transparent}
 .kk-row .kk-cell:first-child{border-left:1px solid var(--line)}
 .kk-grid-rows>.kk-row:first-child .kk-cell{border-top:1px solid var(--line)}
 .kk-cell.blank{color:transparent}
 .kk-cell.over{color:var(--accent);background:var(--accent-soft)}
-.kk-cell.sel{background:var(--info-soft)}
+.kk-cell.sel{background:var(--gold-soft)}
 /* 唯一的方块光标：落在“将要输入”的那一格上，竖线压在格子左边（表示插在这个字之前） */
-.kk-cell.cur{background:var(--info-soft)}
-.kk-grid-host.editing .kk-cell.cur{background:var(--info-soft);box-shadow:inset 0 0 0 1.5px var(--brand)}
-.kk-grid-host.editing .kk-cell.cur::after{content:"";position:absolute;left:-1px;top:2px;bottom:2px;width:2px;border-radius:1px;background:var(--brand);z-index:3;animation:kk-blink 1.1s steps(1) infinite}
+.kk-cell.cur{background:var(--gold-soft)}
+.kk-grid-host.editing .kk-cell.cur{background:var(--gold-soft);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.kk-grid-host.editing .kk-cell.cur::after{content:"";position:absolute;left:-1px;top:2px;bottom:2px;width:2px;border-radius:1px;background:var(--accent);z-index:3;animation:kk-blink 1.1s steps(1) infinite}
 /* 没在编辑时也留一个浅色方块，表示“下次从这一格接着写”，但不闪竖线 */
-.kk-grid-host:not(.editing) .kk-cell.cur{background:var(--info-soft);box-shadow:inset 0 0 0 1px var(--line-strong)}
+.kk-grid-host:not(.editing) .kk-cell.cur{background:var(--gold-soft);box-shadow:inset 0 0 0 1px var(--line-strong)}
 
 @keyframes kk-blink{0%,50%{opacity:1}51%,100%{opacity:0}}
-.kk-grid-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);padding:8px 2px 2px}
+.kk-grid-foot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:20px;font-size:var(--t-xs);color:var(--muted);padding:8px 2px 2px}
 .kk-grid-foot b{font-variant-numeric:tabular-nums;color:var(--ink)}
-.kk-grid-foot .over{color:var(--accent);font-weight:700}
+.kk-grid-foot .over{color:var(--accent);font-weight:500}
 .kk-grid-foot .grow{flex:1}
 @media (max-width:760px){
-  .kk-grid-host{padding:8px 7px 4px;max-height:none;border-radius:10px}
-  .kk-grid-foot{font-size:11px;gap:8px;padding:7px 2px 2px}
-  .kk-grid-foot .kk-sub{display:none}    /* 窄屏只留一行关键提示 */
+  .kk-grid-host{padding:8px 7px 4px;max-height:none}
 }
 @media print{
   .kk-grid-host{max-height:none;border-color:#999}
@@ -90,8 +97,7 @@
 }
 
 /* 格子获得焦点时的提示（点一下就进入可输入状态） */
-.kk-grid-host.editing{box-shadow:inset 0 0 0 2px var(--brand)}
-.kk-grid-foot .kk-hint{color:var(--brand);font-weight:700}
+.kk-grid-host.editing{border-color:var(--ink)}
 @media (max-width:760px){
   .kk-grid-host{min-height:132px}
 }
@@ -99,6 +105,6 @@
 /* 输入法组字提示：原生 textarea 文字透明，组字时用这个小气泡显示拼音/候选 */
 /* 做成贴着光标的小字条，而不是“弹窗”：不投影、不抢眼，只在组字过程中出现 */
 .kk-ime{position:absolute;z-index:4;max-width:min(190px,58%);padding:1px 6px;border-radius:6px;
-  background:var(--info-soft);color:var(--ink);font-size:11.5px;line-height:1.5;white-space:nowrap;
+  background:var(--surface);color:var(--ink);font-size:var(--t-xs);line-height:1.5;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line);opacity:.9;box-shadow:none;pointer-events:none}
 .kk-ime[hidden]{display:none}

@@ -1,0 +1,17 @@
+{
+  "name": "申论词库",
+  "short_name": "申论词库",
+  "description": "申论规范词、对策、案例、公文格式，加真题作答和分项练习。数据只存在本机。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f2ed",
+  "theme_color": "#f4f2ed",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#1d2b36" />
+<meta name="theme-color" content="#f3f1e9" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#131512" media="(prefers-color-scheme: dark)" />
+<meta name="description" content="申论规范表达、问题与对策、公文速查与真题作答，离线可用的本地学习工作台。" />
 <meta name="format-detection" content="telephone=no" />
 <meta name="color-scheme" content="light dark" />
-<title>申论词库 · 写作训练台</title>
+<title>申论工作台 · 规范表达与真题</title>
 <link rel="stylesheet" href="exams/kk.css" />
 <link rel="stylesheet" href="exams/lab/lab.css" />
 <style>
@@ -541,6 +543,310 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 /* ========== 提示 ========== */
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(16px);background:var(--side);color:var(--side-ink);padding:10px 20px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.22s;z-index:140;max-width:88vw;box-shadow:var(--shadow)}
 .toast.show{opacity:1;transform:translateX(-50%)}
+/* ==================== 视觉修订 · 纸墨案头 ==================== */
+:root{
+  --bg:#f3f1e9; --surface:#fdfcf7; --surface-2:#f6f4ec; --paper:#fffdf6;
+  --ink:#20221d; --muted:#5d6158; --faint:#6f7369;
+  --line:#e2ded2; --line-strong:#c9c4b5;
+  --brand:#2e4a3d; --brand-hover:#243c31; --on-brand:#fbfaf5;
+  --accent:#a34a35; --accent-soft:#f3e6df;
+  --ok:#3f6b50; --ok-soft:#e6efe7;
+  --gold:#846428; --gold-soft:#f3ead6;
+  --info:#4b6157; --info-soft:#e9efea;
+  --side:#191d19; --side-ink:#ece9df; --side-dim:#93998d;
+  --side-active:rgba(255,255,255,.075); --side-active-ink:#fff;
+  --shadow:0 1px 2px rgba(32,34,29,.04);
+  --r-s:6px; --r-m:10px; --r-l:14px;
+  --topbar-h:60px;
+}
+:root[data-theme="dark"]{
+  --bg:#131512; --surface:#1b1e1a; --surface-2:#22261f; --paper:#1d211b;
+  --ink:#e9e6dc; --muted:#aaada1; --faint:#82887c;
+  --line:#2d332b; --line-strong:#454c40;
+  --brand:#a3bda9; --brand-hover:#b8cfbd; --on-brand:#141712;
+  --accent:#d98c73; --accent-soft:#382822;
+  --ok:#85b797; --ok-soft:#1e2f24;
+  --gold:#d0ad6a; --gold-soft:#312a1a;
+  --info:#a6bcb0; --info-soft:#232c25;
+  --side:#0e110e; --side-ink:#e6e3d9; --side-dim:#858c80;
+  --side-active:rgba(255,255,255,.08); --side-active-ink:#fff;
+  --shadow:0 1px 2px rgba(0,0,0,.25);
+}
+html{background:var(--bg)}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","MiSans","Source Han Sans SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.75;letter-spacing:0;color:var(--ink);background:var(--bg);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-tap-highlight-color:transparent;
+}
+h1,.page-head h1,.dash-head h1,.brand strong,.panel-head h2,.drawer h2,.detail-panel h2,.format-body h2,.stat-card .num,.review-stat b,.resume-txt b,.score-number,.gr-score b{
+  font-family:"Source Han Serif SC","Noto Serif CJK SC","Songti SC","STSong","SimSun",serif;
+  font-weight:600;letter-spacing:.01em;
+}
+.sh-sprite{position:absolute;width:0;height:0;overflow:hidden}
+.ico{width:18px;height:18px;display:block;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+button:active{opacity:.86}
+::selection{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+
+/* 侧栏 */
+.sidebar{width:232px;padding:22px 12px 16px;background:var(--side);border-right:1px solid rgba(255,255,255,.05)}
+.brand{gap:10px;padding:2px 10px 22px}
+.brand-mark{width:34px;height:34px;border-radius:4px;background:#a34a35;border:1px solid #a34a35;color:#fbf6ef;font-family:"Songti SC","STSong",serif;font-size:18px;font-weight:600}
+.brand strong{font-size:16.5px;letter-spacing:.08em;color:#fff;line-height:1.4}
+.brand small{font-size:10.5px;letter-spacing:.06em;color:var(--side-dim);margin-top:3px}
+.nav-title{color:var(--side-dim);font-size:10px;letter-spacing:.2em;padding:15px 11px 6px;opacity:.78}
+.nav{gap:2px}
+.nav button{position:relative;min-height:40px;padding:8px 11px;border-radius:6px;color:var(--side-dim);font-size:13.5px;gap:10px}
+.nav button:hover{background:rgba(255,255,255,.045);color:var(--side-ink)}
+.nav button.active{background:var(--side-active);color:var(--side-active-ink);font-weight:600}
+.nav button.active::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:2px;border-radius:2px;background:var(--accent)}
+.nav-ico{width:19px;display:grid;place-items:center;font-size:0;color:inherit}
+.nav-ico .ico{width:17px;height:17px;stroke-width:1.55}
+.side-bottom{padding:14px 10px 0;font-size:11px;line-height:1.9;opacity:.8}
+.side-bottom b{font-weight:600;color:var(--side-ink)}
+
+/* 顶栏 */
+.topbar{height:var(--topbar-h);background:var(--bg);border-bottom:1px solid var(--line);padding:0 clamp(16px,2.4vw,30px);gap:14px}
+@supports (backdrop-filter:blur(1px)){
+  .topbar{background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(14px) saturate(1.05)}
+}
+.crumb{gap:9px}
+.crumb strong{font-family:"Source Han Serif SC","Noto Serif CJK SC","Songti SC",serif;font-size:16.5px;font-weight:600;letter-spacing:.02em}
+.crumb span{font-size:11.5px;color:var(--faint)}
+.search{max-width:380px;height:38px;border-radius:7px;background:var(--surface-2);border-color:transparent;padding:0 10px;gap:9px;color:var(--faint);transition:border-color .15s,background .15s}
+.search:focus-within{background:var(--surface);border-color:var(--line-strong)}
+.search-ico{display:grid;place-items:center}
+.search-ico .ico{width:16px;height:16px}
+.search input{font-size:13px}
+.shortcut{font-size:9.5px;border-color:var(--line);background:transparent;color:var(--faint);padding:1px 5px;border-radius:3px}
+.top-actions{gap:2px}
+.icon-btn{width:36px;height:36px;border:0;background:transparent;border-radius:7px;color:var(--muted)}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink);border:0}
+.icon-btn .ico{width:18px;height:18px}
+.menu-btn .ico{width:20px;height:20px}
+
+/* 底部导航 */
+.tabbar{background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));grid-template-columns:repeat(5,1fr)}
+.tabbar button{min-height:48px;gap:3px;border-radius:6px;font-size:0;color:var(--faint);position:relative}
+.tabbar .tab-ico{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button span{font-size:10.5px;font-weight:500;letter-spacing:.02em}
+.tabbar button.active{color:var(--ink)}
+.tabbar button.active .tab-ico{stroke:var(--accent)}
+.tabbar button.active span{color:var(--ink);font-weight:600}
+
+/* 按钮与表单 */
+.primary,.secondary,.next{min-height:38px;padding:8px 15px;border-radius:7px;font-size:12.5px;font-weight:600;letter-spacing:.01em}
+.primary{background:var(--brand);color:var(--on-brand)}
+.primary:hover{background:var(--brand-hover)}
+.secondary{background:transparent;border-color:var(--line-strong);color:var(--ink)}
+.secondary:hover{border-color:var(--ink);color:var(--ink)}
+.next{background:var(--accent);color:#fff}
+.next:hover{background:color-mix(in srgb,var(--accent) 88%,#000)}
+.mini-btn{min-height:30px;border-radius:5px;background:transparent;border-color:var(--line-strong);font-size:11.5px;font-weight:500;color:var(--muted);padding:4px 10px}
+.mini-btn:hover{color:var(--ink);border-color:var(--ink)}
+.text-btn{font-size:12px;font-weight:500;color:var(--accent)}
+.text-btn:hover{text-decoration:none;opacity:.78}
+.select{height:38px;border-radius:7px;background:var(--surface);font-size:12.5px}
+.mini-search{height:38px;border-radius:7px;background:var(--surface);min-width:180px;font-size:12.5px}
+.mini-search input{font-size:13px}
+.mini-search .ico{width:15px;height:15px}
+.chip{min-height:32px;padding:5px 11px;border-radius:4px;background:transparent;border-color:var(--line-strong);font-size:11.5px;font-weight:500;color:var(--muted);letter-spacing:.01em}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip.active{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.result-count{font-size:11.5px;color:var(--faint);letter-spacing:.02em}
+
+/* 页头 */
+.page-head{margin-bottom:20px;align-items:flex-end}
+.page-head h1{font-size:clamp(25px,2.5vw,31px);line-height:1.3;margin:3px 0 7px}
+.page-head p{font-size:13px;line-height:1.75;color:var(--muted);max-width:56ch}
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:10.5px;font-weight:600;letter-spacing:.16em;color:var(--faint);margin-bottom:7px}
+.eyebrow::before{content:"";width:15px;height:1px;background:var(--accent);flex:none}
+.head-actions{gap:8px}
+
+/* 面板与卡片 */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:none;padding:20px}
+.panel-head{margin-bottom:12px;align-items:baseline}
+.panel-head h2{font-size:16.5px;font-weight:600}
+.panel-head small{font-size:11px;color:var(--faint);letter-spacing:.04em}
+.card-grid{gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.data-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:15px 16px;gap:8px;box-shadow:none;transition:border-color .15s,background .15s}
+.data-card:hover{transform:none;box-shadow:none;border-color:var(--line-strong);background:var(--surface)}
+.card-id{font-size:10.5px;letter-spacing:.14em;color:var(--faint)}
+.card-title{font-size:14.5px;font-weight:600;line-height:1.6;margin-top:1px}
+.data-card p{font-size:12.5px;line-height:1.72;color:var(--muted)}
+.star{width:32px;height:32px;border-radius:6px;color:var(--faint);font-size:14px}
+.star:hover,.star.on{background:transparent;color:var(--gold)}
+.pill{font-size:10.5px;font-weight:500;letter-spacing:.02em;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:3px;padding:2px 6px}
+.pill.orange{color:var(--accent);background:transparent;border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.pill.teal{color:var(--ok);background:transparent;border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
+.keyword{font-size:10.5px;color:var(--gold);background:transparent;border:1px solid color-mix(in srgb,var(--gold) 26%,var(--line));border-radius:3px;padding:2px 6px;font-weight:500}
+.source-line{font-size:10px;color:var(--faint)}
+.case-desc{font-size:12.5px;line-height:1.72}
+.empty,.review-empty{border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--faint);background:var(--surface)}
+.load-more{border:1px solid var(--line);border-radius:7px;font-size:12px;font-weight:500;background:transparent}
+
+/* 双栏资料库 */
+.library-layout{grid-template-columns:minmax(0,1fr) 370px;gap:20px}
+.detail-panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:none;padding:22px}
+.detail-panel h2{font-size:19px}
+.detail-copy{font-size:12.5px;line-height:1.85;color:var(--muted)}
+.quote-text{background:var(--surface-2);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;padding:12px 14px;font-size:13.5px;line-height:1.9}
+.highlight{background:transparent;border-bottom:1px solid var(--gold);padding:0 1px}
+.detail-actions button{min-height:36px;border-radius:6px;border-color:var(--line-strong);background:transparent;font-size:12px;font-weight:500}
+.detail-actions button:hover{border-color:var(--ink);color:var(--ink)}
+.detail-actions button:first-child{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.replace-input{border-radius:6px;background:var(--surface-2);border-color:var(--line);font-size:13px}
+.link-list button{background:transparent;border-color:var(--line);border-radius:5px;font-size:12px;padding:8px 10px}
+.link-list button:hover{border-color:var(--line-strong);color:var(--ink)}
+.signal-list span{background:transparent;border:1px solid var(--line);border-radius:3px;font-size:10.5px;color:var(--muted);padding:3px 8px}
+.src-note{font-size:11px;color:var(--faint)}
+.detail-sub h3{font-size:10px;letter-spacing:.16em;color:var(--faint)}
+
+/* 问题/对策切换 */
+.lib-modes{display:flex;gap:26px;width:100%;padding:0;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;margin-bottom:14px}
+.lib-modes button{position:relative;min-height:42px;padding:9px 0;border-radius:0;background:transparent;color:var(--muted);font-size:13px;font-weight:500;gap:7px}
+.lib-modes button b{font-size:9.5px;font-weight:500;color:var(--faint);background:transparent;padding:0;border-radius:0}
+.lib-modes button.active{background:transparent;box-shadow:none;color:var(--ink);font-weight:600}
+.lib-modes button.active b{background:transparent;color:var(--accent)}
+.lib-modes button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+
+/* 对策组合器 */
+.plan-bar{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 13px;font-size:11.5px}
+.plan-label{color:var(--faint);font-size:10.5px;font-weight:600;letter-spacing:.08em}
+.plan-chip{background:transparent;border:1px solid var(--line-strong);color:var(--ink);border-radius:4px;font-size:11px;font-weight:500}
+.plan-action{border-radius:5px;background:var(--brand);font-size:11.5px}
+
+/* 公文速查 */
+.format-layout{grid-template-columns:230px minmax(0,1fr);gap:22px}
+.format-nav{gap:0;padding-right:8px}
+.format-nav-group{gap:0}
+.format-nav-group+.format-nav-group{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.format-nav-title{font-size:10px;letter-spacing:.18em;color:var(--faint);padding:0 8px 6px;font-weight:600}
+.format-nav button{background:transparent;border:0;border-left:2px solid transparent;border-radius:0;padding:8px 10px;min-height:42px}
+.format-nav button:hover{background:var(--surface-2)}
+.format-nav button b{font-size:12.5px;font-weight:500}
+.format-nav button small{font-size:10px;color:var(--faint);margin-top:1px}
+.format-nav button.active{background:var(--surface-2);border-left-color:var(--accent)}
+.format-nav button.active b{color:var(--ink);font-weight:600}
+.format-body{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:none;padding:24px}
+.format-body h2{font-size:22px}
+.format-step{background:transparent;border:1px solid var(--line);border-radius:6px;font-size:13px;line-height:1.75;padding:11px 13px}
+.step-no{width:22px;height:22px;background:transparent;border:1px solid var(--brand);color:var(--brand);font-size:10.5px;font-weight:600;margin-top:1px}
+.format-tip{background:var(--surface-2);border-left:2px solid var(--accent);border-radius:0 6px 6px 0;font-size:12.5px;line-height:1.8}
+.format-tip b{color:var(--accent)}
+.checklist{border:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;padding:14px 0}
+.check-row{font-size:12.5px;color:var(--muted);padding:7px 0}
+.format-cols{gap:20px}
+.format-paper{box-shadow:none;border-color:#ddd6c6;border-radius:3px;font-size:13px;line-height:2.05}
+:root[data-theme="dark"] .format-paper{background:#26241f;color:#e9e4d8;border-color:#423e34}
+:root[data-theme="dark"] .fp-meta{color:#a9a397;border-color:#4a463c}
+:root[data-theme="dark"] .fp-foot{color:#a9a397;border-color:#423e34}
+.paper-head b{font-size:11.5px;font-weight:600;letter-spacing:.04em}
+.paper-head span{font-size:10.5px;color:var(--faint)}
+.paper-note{font-size:10.5px}
+
+/* 总览 */
+.dash-head{margin-bottom:22px;align-items:flex-end}
+.dash-head h1{font-size:clamp(27px,3vw,34px);line-height:1.3;margin:3px 0 8px}
+.dash-head p{font-size:13px;color:var(--muted);max-width:46ch}
+.resume-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:none;padding:13px 16px;min-height:70px;gap:12px}
+.resume-card:hover{border-color:var(--line-strong);transform:none}
+.resume-ico{width:36px;height:36px;border-radius:5px;background:transparent;border:1px solid var(--line-strong);color:var(--accent);font-size:0}
+.resume-ico .ico{width:18px;height:18px}
+.resume-txt small{font-size:10px;letter-spacing:.12em;color:var(--faint);font-weight:600}
+.resume-txt b{font-size:14px;font-weight:600;margin:1px 0}
+.resume-txt span{font-size:10.5px;color:var(--muted)}
+.resume-arrow{font-size:15px;color:var(--faint);margin-left:4px}
+.stat-grid{grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:24px}
+.stat-card{border:0;border-right:1px solid var(--line);border-radius:0;background:transparent;padding:17px 20px 15px;box-shadow:none}
+.stat-card:last-child{border-right:0}
+.stat-card .label{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:500}
+.stat-card .num{font-size:32px;font-weight:600;letter-spacing:0;margin-top:5px;line-height:1.25}
+.stat-card .trend{font-size:11px;color:var(--faint);margin-top:1px}
+.dash-grid{grid-template-columns:1.05fr 1fr;gap:18px}
+.quick-grid{grid-template-columns:1fr 1fr;gap:0}
+.quick{background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;padding:12px 2px;min-height:64px;gap:10px}
+.quick:nth-child(odd){padding-right:14px}
+.quick:nth-child(even){padding-left:14px;border-left:1px solid var(--line)}
+.quick:hover{border-color:var(--line);background:transparent}
+.quick:hover b{color:var(--accent)}
+.quick i{width:24px;height:24px;border-radius:0;background:transparent;color:var(--faint);font-size:0}
+.quick i .ico{width:17px;height:17px}
+.quick b{font-size:12.5px;font-weight:600}
+.quick span{font-size:11px;color:var(--faint);margin-top:2px;line-height:1.5}
+.recent-row{padding:10px 2px;border-radius:0}
+.recent-row:hover{background:transparent}
+.recent-row:hover b{color:var(--accent)}
+.recent-main b{font-size:12.5px;font-weight:500}
+.recent-main span{font-size:10.5px;color:var(--faint)}
+
+/* 复习与设置 */
+.review-summary{grid-template-columns:repeat(4,1fr);gap:10px}
+.review-stat{border-radius:8px;padding:13px 15px;box-shadow:none}
+.review-stat b{font-size:26px;font-weight:600}
+.review-stat small,.review-stat span{font-size:10.5px;color:var(--faint)}
+.review-stat.accent{background:transparent;border-color:var(--line);border-left:2px solid var(--accent)}
+.review-stat.accent b{color:var(--ink);font-size:26px}
+.review-tabs{display:flex;gap:24px;width:100%;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:0;margin-bottom:14px}
+.review-tabs button{position:relative;border-radius:0;background:transparent;min-height:40px;padding:8px 0;font-size:12.5px;font-weight:500;color:var(--muted)}
+.review-tabs button.active{background:transparent;box-shadow:none;color:var(--ink);font-weight:600}
+.review-tabs button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+.review-item{border-radius:8px;box-shadow:none;padding:14px 15px}
+.review-item:hover{border-color:var(--line-strong)}
+.review-item-head b{font-size:13px;font-weight:600}
+.practice-card,.score-panel{border-radius:12px;box-shadow:none;padding:20px}
+.prompt-box{border-radius:6px;background:var(--surface-2);font-size:13px}
+.mode-switch{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:0;gap:22px;display:flex;width:100%}
+.mode-switch button{position:relative;border-radius:0;background:transparent;min-height:38px;padding:7px 0;font-weight:500;font-size:12px}
+.mode-switch button.active{background:transparent;box-shadow:none;color:var(--ink);font-weight:600}
+.mode-switch button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+.settings-grid{gap:14px}
+.settings-card{border-radius:10px}
+.setting-row{padding:14px 0}
+.setting-row b,.data-action b{font-size:13px;font-weight:600}
+.setting-row small,.data-action p{font-size:11px;color:var(--faint)}
+.segmented{border-radius:6px;background:var(--surface-2);border-color:var(--line)}
+.segmented button{border-radius:4px;font-size:11.5px}
+.about-line{font-size:11.5px;border-color:var(--line)}
+.about-line span{color:var(--faint)}
+.settings-note{font-size:10.5px;color:var(--faint)}
+
+/* 练习室 / 批改报告：与主站统一 */
+.lb-stat b{font-family:"Source Han Serif SC","Noto Serif CJK SC","Songti SC",serif;font-weight:600}
+.lb-card,.lb-scorehero,.lb-stat{box-shadow:none;border-radius:10px}
+.lb-seg{display:flex;gap:24px;width:100%;padding:0;margin-bottom:16px;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.lb-seg::-webkit-scrollbar{display:none}
+.lb-seg button{position:relative;flex:none;min-height:40px;padding:8px 0;border-radius:0;font-size:12.5px;font-weight:500;color:var(--muted)}
+.lb-seg button.active{background:transparent;color:var(--ink);font-weight:600;box-shadow:none}
+.lb-seg button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+.lb-seg button i{font-size:10px;color:var(--faint)}
+.lb-kicker{font-size:9.5px;letter-spacing:.16em;color:var(--faint);font-weight:600}
+.lb-chip{font-size:10.5px;font-weight:500;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:3px;padding:3px 7px}
+.lb-chip.tag,.lb-chip.gold,.lb-chip.ok,.lb-chip.lo{background:transparent;border-color:var(--line);color:var(--muted)}
+.lb-hero,.lb-modecard,.lb-pane,.lb-row,.lb-duerow{box-shadow:none;border-radius:10px}
+.lb-modecard:hover,.lb-row:hover,.lb-duerow:hover{transform:none;box-shadow:none;border-color:var(--line-strong)}
+.lb-hero h2{font-family:"Source Han Serif SC","Noto Serif CJK SC","Songti SC",serif;font-size:20px;font-weight:600}
+.lb-modecard b{font-size:14px;font-weight:600}
+.lb-modecard .n{color:var(--faint);font-size:10px;font-weight:600}
+.lb-row .ttl{font-size:13px;font-weight:500}
+.lb-row .score,.lb-row .score.mid,.lb-row .score.lo{background:transparent;border:1px solid var(--line);border-radius:3px;font-weight:500;font-size:10.5px}
+.gr-card,.gr-skill,.gr-top,.grm-box,.ref-box,.pm-box{border-radius:12px}
+.gr-card{box-shadow:none}
+.gr-skill{background:transparent}
+.gr-sp,.gr-ico{border-radius:4px}
+.gr-top{border-radius:0 6px 6px 0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+/* 浮层 */
+#ws-grade .grm-box,#ws-ref .ref-box,#ws-picker .pm-box,#app-confirm .ac-box{box-shadow:0 28px 70px -28px rgba(25,28,22,.45)}
+.ws-mobile-switch,.sheet-scrim,.sheet-close{display:none}
+.global-results{border-radius:8px;box-shadow:0 20px 50px -24px rgba(25,28,22,.35);border-color:var(--line)}
+.global-result{border-radius:5px}
+.result-type{background:transparent;border:1px solid var(--line);border-radius:3px;color:var(--muted);font-size:9.5px;padding:2px 5px}
+.drawer{width:min(520px,100vw);padding:28px 28px 40px;box-shadow:-20px 0 60px -30px rgba(0,0,0,.35)}
+.drawer h2{font-size:22px}
+.drawer-section h3{font-size:9.5px;letter-spacing:.16em;color:var(--faint)}
+.drawer-section p{font-size:13px;line-height:1.9}
+.drawer-close{border-radius:5px;border-color:var(--line);font-size:16px}
+.toast{background:var(--side);border-radius:7px;font-size:12px;padding:9px 16px;box-shadow:0 16px 40px -20px rgba(0,0,0,.5)}
 /* ========== 响应式 ========== */
 @media (max-width:1100px){
   .library-layout{grid-template-columns:1fr}
@@ -590,7 +896,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .search.open input{display:block}
   .search.open .global-results{top:calc(100% + 6px)}
   .crumb strong{font-size:15px}
-  .top-actions .icon-btn{width:40px;height:40px}
+  .top-actions .icon-btn{width:44px;height:44px}
   .toast{bottom:74px}
   /* 手机也保持「左题目 / 右作答」左右结构，不做上下堆叠 */
   .ws-grid{grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:8px}
@@ -611,6 +917,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .stat-card{padding:11px 12px}
   .stat-card .num{font-size:20px}
   .quick-grid{grid-template-columns:1fr}
+  .chip-row,.topic-tabs{margin-left:-12px;margin-right:-12px;padding-left:12px;padding-right:12px}
   .crumb strong{font-size:14px}
   .tabbar button{font-size:15px}
   .ws-material{font-size:13.5px;line-height:1.9;column-gap:16px}
@@ -766,95 +1073,352 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
   .kk-float,.lb-seg,.lb-dock,.lb-mat-hd .kk-brushes,.ws-brush,.tabbar,.sidebar,.topbar,.toast{display:none!important}
   .kk-grid-host{max-height:none;overflow:visible}
 }
+/* ==================== 移动端优先修订 ==================== */
+@media (max-width:760px){
+  :root{--topbar-h:56px}
+  html{scrollbar-gutter:auto}
+  body{font-size:15.5px;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  .content{padding:16px 16px calc(38px + env(safe-area-inset-bottom))}
+
+  /* 顶栏 */
+  .topbar{padding:0 8px 0 6px;gap:4px}
+  .crumb{flex:1;min-width:0}
+  .crumb strong{font-size:16.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top-actions{gap:0}
+  .top-actions .icon-btn{width:40px;height:40px}
+  #random-btn{display:none}
+  .search{width:44px;height:44px;border-radius:7px;border-color:transparent;background:transparent}
+  .search.open{left:8px;right:8px;top:calc(var(--topbar-h) + 6px);height:44px;padding:0 12px;border:1px solid var(--line-strong);background:var(--surface);box-shadow:0 18px 44px -22px rgba(20,22,18,.4);z-index:60}
+  .search.open input{font-size:16px}
+  .search .search-ico .ico{width:18px;height:18px}
+
+  /* 页头 */
+  .page-head{flex-direction:column;align-items:stretch;gap:10px;margin-bottom:16px}
+  .page-head h1{font-size:26px;line-height:1.32}
+  .page-head p{font-size:12.5px;line-height:1.7}
+  .eyebrow{font-size:10px;margin-bottom:6px}
+  .head-actions{gap:8px}
+  .head-actions .secondary{flex:1;background:var(--surface);border-color:var(--line)}
+
+  /* 面板与卡片 */
+  .panel{padding:16px;border-radius:10px}
+  .panel-head{margin-bottom:10px}
+  .panel-head h2{font-size:16px}
+  .panel-head small{display:none}
+  .card-grid,.case-grid,.review-list{grid-template-columns:1fr;gap:10px}
+  .data-card{padding:14px 15px;gap:7px}
+  .data-card p{font-size:12.5px}
+  .card-title{font-size:14.5px}
+  .result-count{margin-bottom:8px}
+  .empty,.review-empty{padding:34px 16px}
+
+  /* 筛选 */
+  .toolbar{gap:8px;margin-bottom:10px}
+  .mini-search{flex:1 1 100%;max-width:none;min-width:0;height:42px}
+  .select{flex:1 1 0;min-width:0;max-width:none;height:42px}
+  .chip-row{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 10px;padding:0 16px 2px;scrollbar-width:none}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip{flex:none;white-space:nowrap;min-height:38px;padding:8px 14px}
+  .topic-tabs{flex-wrap:nowrap;overflow-x:auto;margin:0 -16px 12px;padding:0 16px;scrollbar-width:none}
+  .topic-tabs::-webkit-scrollbar{display:none}
+  .topic-tab{flex:none;min-height:48px;padding:9px 13px}
+
+  /* 总览 */
+  .dash-head{align-items:stretch;gap:14px;margin-bottom:18px}
+  .dash-head h1{font-size:27px;line-height:1.35}
+  .dash-head p{font-size:12.5px}
+  .resume-card{width:100%;padding:12px 14px;min-height:64px}
+  .resume-ico{width:34px;height:34px}
+  .resume-txt b{font-size:13.5px}
+  .stat-grid{grid-template-columns:1fr 1fr;margin-bottom:18px}
+  .stat-card{padding:14px 15px 12px}
+  .stat-card:nth-child(2n){border-right:0}
+  .stat-card:nth-child(n+3){border-top:1px solid var(--line)}
+  .stat-card .num{font-size:27px}
+  .stat-card .trend{font-size:10.5px}
+  .dash-grid{gap:14px}
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .quick{min-height:60px;padding:10px 2px}
+  .quick b{font-size:12px}
+  .quick span{font-size:10.5px}
+
+  /* 资料库底部抽屉 */
+  body.sheet-open{overflow:hidden}
+  .sheet-scrim{display:block;position:fixed;inset:0;z-index:94;background:rgba(20,22,18,.42);opacity:0;visibility:hidden;transition:opacity .22s,visibility .22s}
+  body.sheet-open .sheet-scrim{opacity:1;visibility:visible}
+  .library-layout .detail-panel{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:auto;max-height:80dvh;z-index:95;border-radius:16px 16px 0 0;border-left:0;border-right:0;border-bottom:0;padding:24px 18px calc(20px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .26s cubic-bezier(.22,.8,.3,1);box-shadow:0 -18px 50px -22px rgba(20,22,18,.4);overflow:auto;overscroll-behavior:contain;order:0}
+  body.sheet-open .library-layout .detail-panel{transform:none}
+  .library-layout .detail-panel::before{content:"";position:absolute;top:9px;left:50%;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:var(--line-strong)}
+  .detail-panel h2{font-size:21px}
+  .detail-panel .eyebrow{font-size:9px}
+  .quote-text{font-size:13.5px;line-height:1.95;padding:12px}
+  .detail-actions button{min-height:44px;flex:1}
+  .link-list button{min-height:42px}
+  .sheet-close{display:none}
+  body.sheet-open .sheet-close{display:grid;place-items:center;position:sticky;top:8px;z-index:2;width:fit-content;min-width:44px;min-height:30px;margin:0 0 6px auto;padding:3px 10px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font-size:10.5px;color:var(--muted)}
+
+  .lb-seg{background:var(--bg);padding-top:2px}
+
+  /* tab 切换（问题/对策） */
+  .lib-modes{position:sticky;top:var(--topbar-h);z-index:18;gap:24px;background:var(--bg);margin:0 0 12px;padding-top:2px}
+
+  /* 公文：文种横向条 */
+  .format-layout{display:block;grid-template-columns:1fr;gap:0}
+  .format-nav{position:sticky;top:var(--topbar-h);display:flex;gap:6px;overflow-x:auto;max-height:none;margin:0 0 12px;padding:8px 0;background:var(--bg);border-bottom:1px solid var(--line);z-index:22;scrollbar-width:none}
+  .format-nav::-webkit-scrollbar{display:none}
+  .format-nav-group{display:contents}
+  .format-nav-title{display:none}
+  .format-nav button{flex:none;min-height:40px;padding:7px 12px;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:5px;background:var(--surface)}
+  .format-nav button b{font-size:12px;font-weight:500}
+  .format-nav button small{display:none}
+  .format-nav button.active{background:var(--ink);border-color:var(--ink)}
+  .format-nav button.active b{color:var(--bg)}
+  .format-body{scroll-margin-top:calc(var(--topbar-h) + 56px);padding:16px;border-radius:10px}
+  .format-body h2{font-size:22px}
+  .format-title{gap:8px;margin-bottom:14px}
+  .format-title .mini-btn{min-height:34px}
+  .format-cols{grid-template-columns:1fr;gap:16px}
+  .format-paper{padding:18px 16px;font-size:13.5px;line-height:2;min-height:0}
+  .fp-title{font-size:15.5px;margin-bottom:10px}
+  .fp-sign span{padding-right:1em}
+  .format-steps{gap:7px}
+  .format-step{padding:10px 11px;font-size:12.5px;gap:9px}
+  .checklist{padding:12px 0}
+
+  /* 复习 */
+  .review-summary{grid-template-columns:1fr 1fr;gap:8px}
+  .review-stat{padding:12px 13px}
+  .review-stat b{font-size:24px}
+  .review-tabs{overflow-x:auto;flex-wrap:nowrap;gap:18px;scrollbar-width:none}
+  .review-tabs::-webkit-scrollbar{display:none}
+  .review-tabs button{flex:none}
+  .mode-switch{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .mode-switch button{flex:none}
+  .review-toolbar{font-size:11px}
+
+  /* 设置 */
+  .settings-grid{grid-template-columns:1fr;gap:12px}
+  .setting-row{flex-direction:column;align-items:flex-start;gap:9px}
+  .setting-row small{max-width:none}
+  .segmented{width:100%}
+  .segmented button{flex:1}
+  .data-action{flex-direction:column;align-items:stretch;gap:9px}
+  .data-action .primary,.data-action .secondary,.file-button{width:100%;justify-content:center;text-align:center}
+  .about-line{font-size:11px}
+
+  /* 移动端「全部页面」底部面板 */
+  body.side-open{overflow:hidden}
+  .sidebar{top:auto;bottom:0;left:0;right:0;width:100%;height:auto;max-height:82dvh;padding:24px 16px calc(18px + env(safe-area-inset-bottom));border-radius:16px 16px 0 0;border-right:0;border-top:1px solid rgba(255,255,255,.08);transform:translateY(105%);box-shadow:0 -20px 50px -22px rgba(0,0,0,.45);overflow:auto}
+  .sidebar.open{transform:none}
+  .sidebar::before{content:"";position:absolute;top:9px;left:50%;width:34px;height:3px;margin-left:-17px;border-radius:2px;background:rgba(236,233,223,.3)}
+  .sidebar .brand{padding:0 4px 14px;gap:9px}
+  .sidebar .brand-mark{width:30px;height:30px;font-size:16px}
+  .sidebar .brand strong{font-size:15px}
+  .sidebar .brand small{font-size:9.5px}
+  .sidebar .nav{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:visible}
+  .sidebar .nav-title{display:none}
+  .sidebar .nav button{flex-direction:column;justify-content:center;gap:5px;min-height:66px;padding:8px 4px;font-size:11.5px;text-align:center;border-radius:7px;background:rgba(255,255,255,.035);color:var(--side-ink)}
+  .sidebar .nav button.active{background:rgba(255,255,255,.1);font-weight:600}
+  .sidebar .nav button.active::before{left:8px;right:8px;top:auto;bottom:0;width:auto;height:2px}
+  .sidebar .nav-ico{width:auto}
+  .sidebar .nav-ico .ico{width:20px;height:20px}
+  .sidebar.collapsed{width:100%;padding:24px 16px calc(18px + env(safe-area-inset-bottom))}
+  .sidebar .side-bottom{display:none}
+
+  /* 真题作答：材料 / 作答分屏切换 */
+  .ws-mobile-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;position:sticky;top:calc(var(--topbar-h) + 6px);z-index:26}
+  .ws-mobile-switch[hidden]{display:none!important}
+  .ws-mobile-switch button{min-height:40px;border-radius:5px;font-size:12.5px;font-weight:500;color:var(--muted)}
+  .ws-mobile-switch button.active{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(20,22,18,.06)}
+  #view-workspace .page-head{display:none}
+  .ws-bar{padding:10px 12px;gap:8px;border-radius:10px}
+  .ws-exampick{width:100%;height:44px;justify-content:space-between;background:var(--surface-2)}
+  .ws-meta{width:100%;justify-content:flex-start;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .ws-meta::-webkit-scrollbar{display:none}
+  .ws-meta .pill{flex:none;white-space:nowrap}
+  .ws-timer{position:static;width:100%;margin:0;justify-content:space-between;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:14px}
+  .ws-timer button{background:var(--surface);color:var(--muted);border:1px solid var(--line);border-radius:4px;min-height:32px;font-size:10.5px}
+  .ws-grid{display:block;grid-template-columns:none;gap:0}
+  .ws-left,.ws-pane-r{scroll-margin-top:calc(var(--topbar-h) + 62px)}
+  .ws-grid[hidden]{display:none!important}
+  .ws-grid[data-pane="material"] .ws-pane-r{display:none}
+  .ws-grid[data-pane="answer"] .ws-left{display:none}
+  .ws-panel{min-height:0;border-radius:10px}
+  .ws-left{height:clamp(330px,calc(100dvh - var(--topbar-h) - 310px),560px);min-height:0}
+  .ws-head{padding:8px}
+  .mat-tabs,.q-tabs{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}
+  .mat-tabs::-webkit-scrollbar,.q-tabs::-webkit-scrollbar{display:none}
+  .mat-tabs button,.q-tabs button{flex:none}
+  .ws-material{font-size:15px;line-height:1.95;padding:15px 14px 18px;column-gap:18px}
+  .ws-pagebar b{font-size:10px}
+  .ws-mat-foot{padding:8px 10px;gap:7px;flex-wrap:wrap;font-size:10px}
+  .ws-qwrap{padding:12px 13px 2px}
+  .ws-question h3{font-size:14px;line-height:1.75}
+  .ws-req{font-size:11.5px}
+  .ws-answer{padding:0 12px 10px}
+  .ws-grid[data-pane="answer"] .ws-answer .kk-grid-host{height:46dvh;min-height:280px;max-height:none}
+  .kk-sub{display:none}
+  .ws-ansfoot{position:sticky;bottom:calc(62px + env(safe-area-inset-bottom));z-index:12;background:var(--surface);border-top:1px solid var(--line);padding:8px 0 6px;margin-top:8px;gap:6px}
+  .ws-ansfoot .mini-btn{flex:1 1 auto;min-height:38px;font-size:11px;justify-content:center;padding:6px 8px}
+  .ws-ansfoot #ws-save-status{display:none}
+  .ws-ansfoot #ws-copy-ans,.ws-ansfoot #ws-clear-ans{color:var(--faint);font-size:10px}
+  .ws-count{font-size:12px}
+
+  /* 浮层 */
+  #ws-grade .grm-box,#ws-ref .ref-box,#ws-picker .pm-box{border-radius:16px 16px 0 0}
+  .drawer{width:100%;max-width:100%;padding:24px 18px calc(40px + env(safe-area-inset-bottom))}
+  .global-results{max-height:68dvh}
+  .toast{bottom:calc(72px + env(safe-area-inset-bottom));font-size:11.5px}
+
+  input,select,textarea{font-size:16px!important}
+
+  /* 触屏尺寸 */
+  .primary,.secondary,.next{min-height:42px}
+  .mini-btn{min-height:36px}
+  .star{width:36px;height:36px}
+}
+
+@media (min-width:761px) and (max-width:1100px){
+  .format-layout{display:block}
+  .format-nav{position:sticky;top:var(--topbar-h);z-index:20;display:flex;gap:6px;overflow-x:auto;max-height:none;padding:8px 0;margin-bottom:10px;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:none}
+  .format-nav::-webkit-scrollbar{display:none}
+  .format-nav-group{display:contents}
+  .format-nav-title{display:none}
+  .format-nav button{flex:none;min-height:40px;border:1px solid var(--line);border-left:1px solid var(--line);border-radius:5px;padding:6px 11px}
+  .format-nav button small{display:none}
+  .format-nav button.active{border-color:var(--line-strong);border-left-color:var(--accent);background:var(--surface-2)}
+}
+@media (max-width:380px){
+  .content{padding:13px 12px calc(34px + env(safe-area-inset-bottom))}
+  .page-head h1{font-size:23px}
+  .dash-head h1{font-size:24px}
+  .stat-card{padding:12px}
+  .stat-card .num{font-size:24px}
+  .quick-grid{grid-template-columns:1fr}
+  .quick:nth-child(2n){padding-left:2px;border-left:0}
+  .quick{border-top:1px solid var(--line)}
+}
+@media (max-height:520px) and (orientation:landscape){
+  body{padding-bottom:0}
+  .ws-left{height:calc(100dvh - var(--topbar-h) - 96px)}
+  .ws-mobile-switch{position:static}
+}
+@media print{
+  body{background:#fff;color:#000}
+  .tabbar,.topbar,.sidebar,.sheet-scrim,.sheet-close,.ws-mobile-switch{display:none!important}
+  .content{padding:0;max-width:none}
+  .panel,.data-card,.detail-panel,.format-body,.ws-panel{box-shadow:none}
+}
 </style>
 <script>/*__sh_theme_boot__*/(function(){try{var p=localStorage.getItem("sh_theme")||"auto";var d=p==="dark"||(p==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.setAttribute("data-theme",d?"dark":"light")}catch(e){}})();</script>
 </head>
 <body>
+<svg class="sh-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 6a2 2 0 0 1 2-2h5v16H6a2 2 0 0 1-2-2z"/><path d="M20 6a2 2 0 0 0-2-2h-5v16h5a2 2 0 0 0 2-2z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M6 18 18 6"/><path d="M9 6h9v9"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4"/><path d="M9 13h6M9 17h6"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20h4L20 8l-4-4L4 16z"/><path d="m14 6 4 4"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+<symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M4 7h3l10 10h3"/><path d="m17 4 3 3-3 3"/><path d="M4 17h3l3-3"/><path d="m17 14 3 3-3 3"/></symbol>
+<symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/><path d="M12 7a5 5 0 0 1 0 10" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></symbol>
+</svg>
 <div class="app">
 <aside class="sidebar" id="sidebar" aria-label="主导航">
-  <div class="brand"><div class="brand-mark">申</div><div><strong>申论词库</strong><small>学习工作台 · V2</small></div></div>
+  <div class="brand"><div class="brand-mark">申</div><div><strong>申论工作台</strong><small>规范表达 · 真题训练</small></div></div>
   <div class="nav-title">开始</div>
   <nav class="nav" aria-label="视图">
-    <button class="active" data-view="dashboard" aria-current="page"><span class="nav-ico">⌂</span><span>学习总览</span></button>
+    <button class="active" data-view="dashboard" aria-current="page"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-home"/></svg></span><span>学习总览</span></button>
     <div class="nav-title">资料库</div>
-    <button data-view="vocab"><span class="nav-ico">✦</span><span>规范词库</span></button>
-    <button data-view="strategy"><span class="nav-ico">↗</span><span>对策库</span></button>
-    <button data-view="cases"><span class="nav-ico">▤</span><span>案例图谱</span></button>
-    <button data-view="format"><span class="nav-ico">▥</span><span>公文速查</span></button>
+    <button data-view="vocab"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-book"/></svg></span><span>规范词库</span></button>
+    <button data-view="strategy"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-arrow"/></svg></span><span>对策库</span></button>
+    <button data-view="cases"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></span><span>案例图谱</span></button>
+    <button data-view="format"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-file"/></svg></span><span>公文速查</span></button>
     <div class="nav-title">实战</div>
-    <button data-view="workspace"><span class="nav-ico">✍</span><span>真题作答</span></button>
-    <button data-view="lab"><span class="nav-ico">◈</span><span>申论练习室</span></button>
+    <button data-view="workspace"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-pen"/></svg></span><span>真题作答</span></button>
+    <button data-view="lab"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-grid"/></svg></span><span>申论练习室</span></button>
     <div class="nav-title">巩固</div>
-    <button data-view="review"><span class="nav-ico">◷</span><span>复习中心</span></button>
-    <button data-view="settings"><span class="nav-ico">⚙</span><span>设置</span></button>
+    <button data-view="review"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-clock"/></svg></span><span>复习中心</span></button>
+    <button data-view="settings"><span class="nav-ico" aria-hidden="true"><svg class="ico"><use href="#i-settings"/></svg></span><span>设置</span></button>
   </nav>
   <div class="side-bottom"><b>本地离线可用</b><br/>规范词 420 · 对策 70 · 问题 72 · 案例 560<br/>真题 253 套 · 练习室 454 题<br/>记录仅存本机</div>
 </aside>
 <div class="scrim" id="scrim"></div>
+<div class="sheet-scrim" id="sheet-scrim"></div>
 <div class="kk-float" id="kk-float" hidden aria-label="标注笔悬浮条"></div>
 <main class="main">
 <header class="topbar">
-  <button class="icon-btn menu-btn" id="menu-btn" aria-label="打开菜单">☰</button>
-  <div class="crumb"><strong id="page-title">学习总览</strong><span id="page-subtitle">把材料变成可调用的表达</span></div>
-  <div class="search"><span aria-hidden="true">⌕</span><input id="global-search" placeholder="跨库搜索：规范词、对策、案例…" autocomplete="off" aria-label="全局搜索"/><span class="shortcut">Ctrl K</span><div class="global-results" id="global-results"></div></div>
+  <button class="icon-btn menu-btn" id="menu-btn" aria-label="打开菜单"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
+  <div class="crumb"><strong id="page-title">学习总览</strong><span id="page-subtitle">规范表达 · 真题训练</span></div>
+  <div class="search"><span class="search-ico" aria-hidden="true"><svg class="ico"><use href="#i-search"/></svg></span><input id="global-search" placeholder="搜索规范词、对策、案例" autocomplete="off" aria-label="全局搜索"/><span class="shortcut">Ctrl K</span><div class="global-results" id="global-results"></div></div>
   <div class="top-actions">
-    <button class="icon-btn" id="random-btn" title="随机看一条" aria-label="随机看一条">⤨</button>
-    <button class="icon-btn" id="theme-btn" title="切换深浅色" aria-label="切换深浅色">☀</button>
-    <button class="icon-btn collapse-btn" id="collapse-btn" title="收起侧栏" aria-label="收起侧栏">☰</button>
+    <button class="icon-btn" id="random-btn" title="随机看一条" aria-label="随机看一条"><svg class="ico" aria-hidden="true"><use href="#i-shuffle"/></svg></button>
+    <button class="icon-btn" id="theme-btn" title="切换深浅色" aria-label="切换深浅色"><svg class="ico" aria-hidden="true"><use href="#i-theme"/></svg></button>
+    <button class="icon-btn collapse-btn" id="collapse-btn" title="收起侧栏" aria-label="收起侧栏"><svg class="ico" aria-hidden="true"><use href="#i-menu"/></svg></button>
   </div>
 </header>
 <div class="content">
 <!-- dashboard -->
 <section class="view active" id="view-dashboard">
   <div class="dash-head">
-    <div><div class="eyebrow" id="dash-greet">学习总览</div><h1>把材料变成可调用的表达</h1><p>先判断材料在解决什么问题，再选规范词，最后补上主体、动作和闭环。</p></div>
-    <button class="resume-card" data-go="workspace"><span class="resume-ico" aria-hidden="true">✍</span><span class="resume-txt"><small>真题作答 · 继续练习</small><b id="resume-name">从一套真题开始</b><span id="resume-meta">内置 253 套国考 · 省考真题</span></span><span class="resume-arrow" aria-hidden="true">→</span></button>
+    <div><div class="eyebrow" id="dash-greet">学习总览</div><h1>今天，把一道题写扎实</h1><p>先读材料，再找表达；写完对照参考答案，留下自己的笔记。</p></div>
+    <button class="resume-card" data-go="workspace"><span class="resume-ico" aria-hidden="true"><svg class="ico"><use href="#i-pen"/></svg></span><span class="resume-txt"><small>继续练习</small><b id="resume-name">从一套真题开始</b><span id="resume-meta">内置 253 套国考 · 省考真题</span></span><span class="resume-arrow" aria-hidden="true">→</span></button>
   </div>
   <div class="stat-grid">
-    <div class="stat-card" style="--accent:var(--info)"><div class="label">✦ 规范词条</div><div class="num" id="stat-vocab">420</div><div class="trend">来自 21 期积累</div></div>
-    <div class="stat-card" style="--accent:var(--accent)"><div class="label">↗ 对策 / 问题</div><div class="num" id="stat-strategy">70 / 72</div><div class="trend">覆盖 9 类治理动作 · 可互相对照</div></div>
-    <div class="stat-card" style="--accent:var(--ok)"><div class="label">▤ 案例素材</div><div class="num" id="stat-cases">560</div><div class="trend">7 章 · 56 个主题小节</div></div>
-    <div class="stat-card" style="--accent:var(--gold)"><div class="label">✍ 真题卷</div><div class="num" id="stat-exams">253</div><div class="trend">国考 + 33 省区市 · 可标注作答</div></div>
+    <div class="stat-card"><div class="label">规范词</div><div class="num" id="stat-vocab">420</div><div class="trend">21 期积累</div></div>
+    <div class="stat-card"><div class="label">对策与问题</div><div class="num" id="stat-strategy">70 / 72</div><div class="trend">9 类场景 · 可互相对照</div></div>
+    <div class="stat-card"><div class="label">案例素材</div><div class="num" id="stat-cases">560</div><div class="trend">7 章 · 56 个主题</div></div>
+    <div class="stat-card"><div class="label">真题卷</div><div class="num" id="stat-exams">253</div><div class="trend">国考 + 33 省区市</div></div>
   </div>
   <div class="dash-grid">
-    <div class="panel"><div class="panel-head"><h2>快捷入口</h2><small>少一步，快一点</small></div><div class="quick-grid"><button class="quick" data-go="vocab"><i>✦</i><div><b>按场景找词</b><span>从事实反推表达</span></div></button><button class="quick" data-go="strategy"><i>↗</i><div><b>问题 → 对策</b><span>先规范表述，再找治理动作</span></div></button><button class="quick" data-go="cases"><i>▤</i><div><b>案例图谱</b><span>按主题快速调用</span></div></button><button class="quick" data-go="format"><i>▥</i><div><b>公文速查</b><span>考场前看一遍</span></div></button><button class="quick" data-go="review"><i>◷</i><div><b>复习与收藏</b><span>快闪训练 + 笔记</span></div></button><button class="quick" data-go="lab"><i>◈</i><div><b>申论练习室</b><span>小题要点覆盖 · 大作文骨架</span></div></button><button class="quick" data-go="settings"><i>☾</i><div><b>外观与备份</b><span>深色模式 · 导出</span></div></button></div></div>
+    <div class="panel"><div class="panel-head"><h2>常用功能</h2><small>按使用场景</small></div><div class="quick-grid"><button class="quick" data-go="vocab"><i aria-hidden="true"><svg class="ico"><use href="#i-book"/></svg></i><div><b>从材料找词</b><span>用场景反查表达</span></div></button><button class="quick" data-go="strategy"><i aria-hidden="true"><svg class="ico"><use href="#i-arrow"/></svg></i><div><b>问题与对策</b><span>先概括，再找动作</span></div></button><button class="quick" data-go="cases"><i aria-hidden="true"><svg class="ico"><use href="#i-layers"/></svg></i><div><b>案例图谱</b><span>按主题查素材</span></div></button><button class="quick" data-go="format"><i aria-hidden="true"><svg class="ico"><use href="#i-file"/></svg></i><div><b>公文速查</b><span>24 种文种与例文</span></div></button><button class="quick" data-go="review"><i aria-hidden="true"><svg class="ico"><use href="#i-clock"/></svg></i><div><b>复习与收藏</b><span>快闪训练与笔记</span></div></button><button class="quick" data-go="lab"><i aria-hidden="true"><svg class="ico"><use href="#i-grid"/></svg></i><div><b>申论练习室</b><span>小题与大作文</span></div></button><button class="quick" data-go="settings"><i aria-hidden="true"><svg class="ico"><use href="#i-settings"/></svg></i><div><b>外观与备份</b><span>主题、导出与导入</span></div></button></div></div>
     <div class="panel recent"><div class="panel-head"><h2>最近查看</h2><a href="#" class="text-btn" data-go="review">去复习 →</a></div><div id="recent-list"></div></div>
   </div>
 </section>
 <!-- vocab -->
-<section class="view" id="view-vocab"><div class="page-head"><div><div class="eyebrow">资料库 / 词</div><h1>规范词库</h1><p>把"材料里的话"压缩成"答题里的话"。点击卡片查看完整语境与规范表达。</p></div><div class="head-actions"><button class="secondary" id="vocab-random">⤨ 随机一条</button><button class="secondary" id="vocab-fav-only">☆ 只看收藏</button></div></div><div class="toolbar"><div class="mini-search">⌕ <input id="vocab-search" placeholder="搜索场景或规范词…" autocomplete="off"/></div><select class="select" id="vocab-period" aria-label="期数筛选"><option value="all">全部期数</option></select><select class="select" id="vocab-sort" aria-label="排序"><option value="default">默认排序</option><option value="term">按词语</option><option value="scene">按场景</option></select></div><div class="chip-row" id="vocab-chips"></div><div class="result-count" id="vocab-count"></div><div class="library-layout"><div id="vocab-list" class="card-grid"></div><aside id="vocab-detail" class="detail-panel"><div class="detail-empty">从列表选一条规范词<br/>这里会显示材料原句、规范表达与学习操作</div></aside></div></section>
+<section class="view" id="view-vocab"><div class="page-head"><div><div class="eyebrow">资料库 · 规范词</div><h1>规范词库</h1><p>按场景查规范表达。点开卡片，看材料原句和用法。</p></div><div class="head-actions"><button class="secondary" id="vocab-random">随机一条</button><button class="secondary" id="vocab-fav-only">☆ 只看收藏</button></div></div><div class="toolbar"><div class="mini-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="vocab-search" placeholder="搜索场景或规范词…" autocomplete="off"/></div><select class="select" id="vocab-period" aria-label="期数筛选"><option value="all">全部期数</option></select><select class="select" id="vocab-sort" aria-label="排序"><option value="default">默认排序</option><option value="term">按词语</option><option value="scene">按场景</option></select></div><div class="chip-row" id="vocab-chips"></div><div class="result-count" id="vocab-count"></div><div class="library-layout"><div id="vocab-list" class="card-grid"></div><aside id="vocab-detail" class="detail-panel"><div class="detail-empty">从列表选一条规范词<br/>这里会显示材料原句、规范表达与学习操作</div></aside></div></section>
 <!-- strategy -->
 <section class="view" id="view-strategy">
-<div class="page-head"><div><div class="eyebrow">资料库 / 问题与对策</div><h1>对策库</h1><p id="strategy-intro">按“治理动作”组织 70 条对策模板，替换省略号时优先填入对象、动作和结果。</p></div><div class="head-actions"><button class="secondary" id="strategy-random">⤨ 随机一条</button><button class="secondary" id="strategy-fav-only">☆ 只看收藏</button></div></div>
+<div class="page-head"><div><div class="eyebrow">资料库 · 问题与对策</div><h1>对策库</h1><p id="strategy-intro">70 条对策模板，按治理场景归类；使用时替换省略号。</p></div><div class="head-actions"><button class="secondary" id="strategy-random">随机一条</button><button class="secondary" id="strategy-fav-only">☆ 只看收藏</button></div></div>
 <div class="lib-modes" id="strategy-modes" role="tablist" aria-label="切换问题表述与对策模板">
   <button class="active" data-smode="strategy" role="tab" aria-selected="true">对策模板 <b>70</b></button>
   <button data-smode="problem" role="tab" aria-selected="false">问题表述 <b>72</b></button>
 </div>
-<div class="toolbar"><div class="mini-search">⌕ <input id="strategy-search" placeholder="搜索对策名称或正文…" autocomplete="off"/></div><select class="select" id="strategy-sort" aria-label="排序"><option value="default">按编号</option><option value="title">按名称</option></select></div>
+<div class="toolbar"><div class="mini-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="strategy-search" placeholder="搜索对策名称或正文…" autocomplete="off"/></div><select class="select" id="strategy-sort" aria-label="排序"><option value="default">按编号</option><option value="title">按名称</option></select></div>
 <div class="chip-row" id="strategy-chips"></div><div class="result-count" id="strategy-count"></div>
 <div class="plan-bar empty-plan" id="plan-bar"></div>
 <div class="library-layout"><div id="strategy-list" class="card-grid"></div><aside id="strategy-detail" class="detail-panel"><div class="detail-empty">选择一条对策模板<br/>试试把“…”替换成你的题目对象</div></aside></div>
 </section>
 <!-- cases -->
-<section class="view" id="view-cases"><div class="page-head"><div><div class="eyebrow">资料库 / 案例</div><h1>案例图谱</h1><p>用"主题—关键词—案例—启示"的路径记忆，避免只背故事、不知如何落点。</p></div><div class="head-actions"><button class="secondary" id="case-random">⤨ 随机案例</button><button class="secondary" id="case-fav-only">☆ 只看收藏</button></div></div><div class="topic-tabs" id="case-topics"></div><div class="toolbar"><div class="mini-search">⌕ <input id="case-search" placeholder="搜索案例标题、关键词、适用主题…" autocomplete="off"/></div><select class="select" id="case-section" aria-label="小节筛选"><option value="all">全部小节</option></select></div><div class="result-count" id="case-count"></div><div id="case-list" class="card-grid case-grid"></div></section>
+<section class="view" id="view-cases"><div class="page-head"><div><div class="eyebrow">资料库 · 案例</div><h1>案例图谱</h1><p>按主题、关键词、案例和启示整理，方便考场调用。</p></div><div class="head-actions"><button class="secondary" id="case-random">随机案例</button><button class="secondary" id="case-fav-only">☆ 只看收藏</button></div></div><div class="topic-tabs" id="case-topics"></div><div class="toolbar"><div class="mini-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="case-search" placeholder="搜索案例标题、关键词、适用主题…" autocomplete="off"/></div><select class="select" id="case-section" aria-label="小节筛选"><option value="all">全部小节</option></select></div><div class="result-count" id="case-count"></div><div id="case-list" class="card-grid case-grid"></div></section>
 <!-- format -->
-<section class="view" id="view-format"><div class="page-head"><div><div class="eyebrow">速查 / 公文</div><h1>公文速查</h1><p>24 种文种：左边结构拆解，右边排版例文；先定文种，再照着版式落笔。</p></div><div class="head-actions"><button class="secondary" id="format-print">打印本页</button></div></div><div class="format-layout"><div class="format-nav" id="format-nav"></div><div class="format-body" id="format-body"></div></div></section>
+<section class="view" id="view-format"><div class="page-head"><div><div class="eyebrow">资料库 · 公文</div><h1>公文速查</h1><p>24 种文种：左边结构，右边例文。先定文种，再落笔。</p></div><div class="head-actions"><button class="secondary" id="format-print">打印本页</button></div></div><div class="format-layout"><div class="format-nav" id="format-nav"></div><div class="format-body" id="format-body"></div></div></section>
 <!-- workspace -->
-<section class="view" id="view-workspace"><div class="page-head"><div><div class="eyebrow">实战 / 真题</div><h1>真题作答台</h1><p>左边读材料、点选标注，右边看题目、直接作答。自动保存在本机。</p></div></div>
+<section class="view" id="view-workspace"><div class="page-head"><div><div class="eyebrow">实战 · 真题</div><h1>真题作答台</h1><p>读材料、标要点、写作答，自动保存在本机。</p></div></div>
 <div class="ws-bar">
   <button class="ws-exampick" id="ws-exam-pick" aria-label="选择真题套卷"><span class="xp-label">选择真题…</span><span class="xp-caret">▼</span></button>
   <select id="ws-exam" aria-label="选择真题" hidden></select>
   <div class="ws-meta" id="ws-meta"></div>
   <div class="ws-timer" id="ws-timer"><span id="ws-clock">180:00</span><button id="ws-timer-toggle">开始</button><button id="ws-timer-reset">重置</button></div>
 </div>
-<div class="ws-grid" id="ws-grid" hidden>
+<div class="ws-mobile-switch" id="ws-mobile-switch" hidden role="tablist" aria-label="切换材料与作答">
+  <button class="active" data-ws-pane="material" role="tab" aria-selected="true">读材料</button>
+  <button data-ws-pane="answer" role="tab" aria-selected="false">题目与作答</button>
+</div>
+<div class="ws-grid" id="ws-grid" data-pane="material" hidden>
   <div class="ws-panel ws-left">
     <div class="ws-head">
       <div class="mat-tabs" id="ws-mat-tabs"></div>
       <div class="ws-brush kk-brushes" id="ws-brushes" title="点击句子整句标注；也可划选文字精确标注"></div>
     </div>
     <div class="ws-material" id="ws-material"></div>
-    <div class="ws-mat-foot"><span id="ws-hl-count">标注 0 处</span><span class="kk-annbar" id="ws-ann-now"></span><div class="ws-pagebar"><button id="ws-page-prev" aria-label="上一页">←</button><b id="ws-page-ind">第 1 / 1 页</b><button id="ws-page-next" aria-label="下一页">→</button></div><button class="mini-btn" id="ws-undo-mat" hidden>↺ 撤销清除</button><button class="mini-btn" id="ws-clear-mat">清空本篇标注</button></div>
+    <div class="ws-mat-foot"><span id="ws-hl-count">标注 0 处</span><span class="kk-annbar" id="ws-ann-now"></span><div class="ws-pagebar"><button id="ws-page-prev" aria-label="上一页">←</button><b id="ws-page-ind">第 1 / 1 页</b><button id="ws-page-next" aria-label="下一页">→</button></div><button class="mini-btn" id="ws-undo-mat" hidden>撤销清除</button><button class="mini-btn" id="ws-clear-mat">清空本篇标注</button></div>
   </div>
   <div class="ws-panel ws-pane-r">
     <div class="ws-head"><div class="q-tabs" id="ws-q-tabs"></div></div>
@@ -867,31 +1431,31 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
         <span class="ws-count" id="ws-count">0 字</span>
         <span id="ws-save-status">自动保存已开启</span>
         <span class="grow"></span>
-        <button class="mini-btn" id="ws-ref-btn" title="作答后对照参考答案，逐条自检">📖 参考答案</button>
-        <button class="mini-btn accent" id="ws-grade-btn">✓ 提交批改</button>
+        <button class="mini-btn" id="ws-ref-btn" title="作答后对照参考答案，逐条自检">参考答案</button>
+        <button class="mini-btn accent" id="ws-grade-btn">提交批改</button>
         <button class="mini-btn" id="ws-copy-ans">复制作答</button>
         <button class="mini-btn" id="ws-clear-ans">清空本题</button>
       </div>
       <div id="ws-grade" hidden>
           <div class="grm-mask"></div>
           <div class="grm-box" role="dialog" aria-modal="true" aria-label="申论批改报告">
-            <div class="grm-head"><b>📝 申论批改报告</b><span class="pill orange" id="grm-type"></span><button class="grm-x" id="grm-close" aria-label="关闭报告">✕</button></div>
+            <div class="grm-head"><b>申论批改报告</b><span class="pill orange" id="grm-type"></span><button class="grm-x" id="grm-close" aria-label="关闭报告">✕</button></div>
             <div class="grm-body"></div>
           </div>
         </div>
         <div id="ws-ref" hidden>
           <div class="ref-mask"></div>
           <div class="ref-box" role="dialog" aria-modal="true" aria-label="参考答案与自检">
-            <div class="ref-head"><b>📖 参考答案</b><span class="pill" id="ref-src">—</span><span class="pill" id="ref-tier"></span><span class="grow"></span><button class="ref-x" id="ref-close" aria-label="关闭参考答案">✕</button></div>
+            <div class="ref-head"><b>参考答案</b><span class="pill" id="ref-src">—</span><span class="pill" id="ref-tier"></span><span class="grow"></span><button class="ref-x" id="ref-close" aria-label="关闭参考答案">✕</button></div>
             <div class="ref-body" id="ref-body"></div>
           </div>
         </div>
         <div id="ws-picker" hidden>
           <div class="pm-mask"></div>
           <div class="pm-box" role="dialog" aria-modal="true" aria-label="选择真题套卷">
-            <div class="pm-head"><b>📚 选择真题套卷</b><span class="pill teal" id="pm-total"></span><button class="pm-x" id="pm-close" aria-label="关闭">✕</button></div>
+            <div class="pm-head"><b>选择真题套卷</b><span class="pill teal" id="pm-total"></span><button class="pm-x" id="pm-close" aria-label="关闭">✕</button></div>
             <div class="pm-tools">
-              <div class="pm-search">⌕<input id="pm-q" placeholder="搜索省份 / 年份 / 卷别，如：江苏 2023" autocomplete="off"/></div>
+              <div class="pm-search"><svg class="ico" aria-hidden="true"><use href="#i-search"/></svg><input id="pm-q" placeholder="搜索省份 / 年份 / 卷别，如：江苏 2023" autocomplete="off"/></div>
               <div class="pm-chips" id="pm-chips"></div>
             </div>
             <div class="pm-count" id="pm-count"></div>
@@ -904,7 +1468,7 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 <div class="ws-empty" id="ws-empty" hidden>正在加载真题库……</div>
 </section>
 <!-- review -->
-<section class="view" id="view-review"><div class="page-head"><div><div class="eyebrow">巩固 / 复习</div><h1>复习中心</h1><p>快闪训练、收藏和笔记放在同一处。少量多次，每次 10 条更稳。</p></div><div class="head-actions"><button class="primary" id="review-start">开始 10 题训练</button></div></div>
+<section class="view" id="view-review"><div class="page-head"><div><div class="eyebrow">巩固 · 复习</div><h1>复习中心</h1><p>快闪训练、收藏和笔记放在同一处。少量多次，每次 10 条更稳。</p></div><div class="head-actions"><button class="primary" id="review-start">开始 10 题训练</button></div></div>
 <div class="review-summary">
   <div class="review-stat"><small>待复习词条</small><b id="review-due">0</b><span>训练时优先出现</span></div>
   <div class="review-stat"><small>已掌握词条</small><b id="review-mastered">0</b><span>保持手感即可</span></div>
@@ -939,16 +1503,16 @@ mark.hy.hly{--hlc:var(--mark-y)}mark.hy.hlg{--hlc:var(--mark-g)}mark.hy.hlb{--hl
 <div class="review-list" id="review-list"></div>
 </section>
 <!-- settings -->
-<section class="view" id="view-settings"><div class="page-head"><div><div class="eyebrow">系统 / 设置</div><h1>设置</h1><p>所有学习记录默认保存在当前浏览器。建议定期导出备份，换设备时再导入。</p></div></div><div class="settings-grid"><div class="panel settings-card"><div class="panel-head"><h2>阅读与外观</h2><small>只影响本机</small></div><label class="setting-row"><span><b>外观主题</b><small>夜间学习建议深色；「自动」跟随系统</small></span><span class="segmented" id="theme-choice"><button data-theme-choice="auto">自动</button><button data-theme-choice="light">浅色</button><button data-theme-choice="dark">深色</button></span></label><label class="setting-row"><span><b>阅读字号</b><small>长时间阅读建议选择大字</small></span><span class="segmented" id="font-size-choice"><button data-font="normal">标准</button><button data-font="large">大字</button></span></label><label class="setting-row"><span><b>减少动画</b><small>对动效敏感或想更专注时开启</small></span><button class="toggle" id="reduce-motion" aria-pressed="false" aria-label="减少动画"><i></i></button></label></div><div class="panel settings-card"><div class="panel-head"><h2>数据管理</h2><small>可迁移、可恢复</small></div><div class="data-action"><div><b>导出学习备份</b><p>包含收藏、掌握状态、方案组合、真题标注与作答、笔记。</p></div><button class="primary" id="export-data">导出 JSON</button></div><div class="data-action"><div><b>导入学习备份</b><p>从之前导出的 JSON 文件恢复记录。</p></div><label class="secondary file-button">选择文件<input type="file" id="import-data" accept="application/json,.json" hidden/></label></div><div class="data-action danger"><div><b>重置本机进度</b><p>只删除学习记录，不删除内置资料。</p></div><button class="secondary" id="reset-data">清空进度</button></div></div><div class="panel settings-card about-card"><div class="panel-head"><h2>资料与版本</h2><small>离线可用</small></div><div class="about-line"><span>内置资料</span><b>规范词 420 · 对策 70 · 问题 72 · 案例 560</b></div><div class="about-line"><span>真题库</span><b id="about-exams">253 套 · 国考 + 33 省区市</b></div><div class="about-line"><span>参考答案</span><b id="about-ref">按「试卷 + 题序」匹配中…</b></div><div class="about-line"><span>版本</span><b>V2 · 纯静态单文件</b></div><div class="about-line"><span>数据隐私</span><b>记录仅保存在本机浏览器</b></div><p class="settings-note">长期使用建议每周导出一次备份；清理浏览器站点数据会删除学习记录。</p></div></div></section>
+<section class="view" id="view-settings"><div class="page-head"><div><div class="eyebrow">系统 · 设置</div><h1>设置</h1><p>所有学习记录默认保存在当前浏览器。建议定期导出备份，换设备时再导入。</p></div></div><div class="settings-grid"><div class="panel settings-card"><div class="panel-head"><h2>阅读与外观</h2><small>只影响本机</small></div><label class="setting-row"><span><b>外观主题</b><small>夜间学习建议深色；「自动」跟随系统</small></span><span class="segmented" id="theme-choice"><button data-theme-choice="auto">自动</button><button data-theme-choice="light">浅色</button><button data-theme-choice="dark">深色</button></span></label><label class="setting-row"><span><b>阅读字号</b><small>长时间阅读建议选择大字</small></span><span class="segmented" id="font-size-choice"><button data-font="normal">标准</button><button data-font="large">大字</button></span></label><label class="setting-row"><span><b>减少动画</b><small>对动效敏感或想更专注时开启</small></span><button class="toggle" id="reduce-motion" aria-pressed="false" aria-label="减少动画"><i></i></button></label></div><div class="panel settings-card"><div class="panel-head"><h2>数据管理</h2><small>可迁移、可恢复</small></div><div class="data-action"><div><b>导出学习备份</b><p>包含收藏、掌握状态、方案组合、真题标注与作答、笔记。</p></div><button class="primary" id="export-data">导出 JSON</button></div><div class="data-action"><div><b>导入学习备份</b><p>从之前导出的 JSON 文件恢复记录。</p></div><label class="secondary file-button">选择文件<input type="file" id="import-data" accept="application/json,.json" hidden/></label></div><div class="data-action danger"><div><b>重置本机进度</b><p>只删除学习记录，不删除内置资料。</p></div><button class="secondary" id="reset-data">清空进度</button></div></div><div class="panel settings-card about-card"><div class="panel-head"><h2>资料与版本</h2><small>离线可用</small></div><div class="about-line"><span>内置资料</span><b>规范词 420 · 对策 70 · 问题 72 · 案例 560</b></div><div class="about-line"><span>真题库</span><b id="about-exams">253 套 · 国考 + 33 省区市</b></div><div class="about-line"><span>参考答案</span><b id="about-ref">按「试卷 + 题序」匹配中…</b></div><div class="about-line"><span>版本</span><b>V2 · 纯静态单文件</b></div><div class="about-line"><span>数据隐私</span><b>记录仅保存在本机浏览器</b></div><p class="settings-note">长期使用建议每周导出一次备份；清理浏览器站点数据会删除学习记录。</p></div></div></section>
 <!-- lab (申论练习室) -->
-<section class="view" id="view-lab"><div class="page-head"><div><div class="eyebrow">实战 / 练习室</div><h1>申论练习室</h1><p>短材料练要点覆盖，大作文练标题与分论点骨架；本地规则引擎批改，记录只存本机。</p></div><div class="head-actions"><button class="secondary" data-go="workspace">去真题作答台</button></div></div><div class="lb-seg" id="lab-seg" role="tablist" aria-label="练习室板块"></div><div id="lb-main"><div class="lb-empty">练习室加载中……</div></div></section>
+<section class="view" id="view-lab"><div class="page-head"><div><div class="eyebrow">实战 · 练习室</div><h1>申论练习室</h1><p>短材料练要点覆盖，大作文练标题与分论点骨架；本地规则引擎批改，记录只存本机。</p></div><div class="head-actions"><button class="secondary" data-go="workspace">去真题作答台</button></div></div><div class="lb-seg" id="lab-seg" role="tablist" aria-label="练习室板块"></div><div id="lb-main"><div class="lb-empty">练习室加载中……</div></div></section>
 </div></main></div>
 <nav class="tabbar" aria-label="底部导航">
-  <button data-view="dashboard" aria-label="总览">⌂<span>总览</span></button>
-  <button data-view="vocab" aria-label="词库">✦<span>词库</span></button>
-  <button data-view="workspace" aria-label="真题">✍<span>真题</span></button>
-  <button data-view="review" aria-label="复习">◷<span>复习</span></button>
-  <button id="tab-more" aria-label="更多页面">☰<span>更多</span></button>
+  <button data-view="dashboard" aria-label="总览"><svg class="tab-ico" aria-hidden="true"><use href="#i-home"/></svg><span>总览</span></button>
+  <button data-view="vocab" aria-label="词库"><svg class="tab-ico" aria-hidden="true"><use href="#i-book"/></svg><span>词库</span></button>
+  <button data-view="workspace" aria-label="真题"><svg class="tab-ico" aria-hidden="true"><use href="#i-pen"/></svg><span>真题</span></button>
+  <button data-view="review" aria-label="复习"><svg class="tab-ico" aria-hidden="true"><use href="#i-clock"/></svg><span>复习</span></button>
+  <button id="tab-more" aria-label="更多页面"><svg class="tab-ico" aria-hidden="true"><use href="#i-more"/></svg><span>更多</span></button>
 </nav>
 <div class="case-drawer" id="case-drawer" role="dialog" aria-modal="true" aria-label="案例详情"><div class="drawer-back" id="drawer-back"></div><article class="drawer"><button class="drawer-close" id="drawer-close" aria-label="关闭">×</button><div id="drawer-content"></div></article></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -966,7 +1530,7 @@ const PROBLEMS=window.SH_PROBLEMS||[];
  const LS=(()=>{try{const t="__sh_t";localStorage.setItem(t,"1");localStorage.removeItem(t);return localStorage}catch(e){const m={};return{getItem:k=>k in m?m[k]:null,setItem:(k,v)=>{m[k]=String(v)},removeItem:k=>{delete m[k]},key:i=>Object.keys(m)[i]||null,get length(){return Object.keys(m).length}}}})();
  window.__LS=LS;
  const state={view:'dashboard',vocabFilter:'all',vocabQuery:'',vocabPeriod:'all',vocabFav:false,strategyFilter:'全部',strategyQuery:'',strategyFav:false,strategyMode:'strategy',selectedProblem:null,caseChapter:'all',caseSection:'all',caseQuery:'',caseFav:false,selectedVocab:null,selectedStrategy:null,formatIndex:0,practiceMode:'vocab',practiceIndex:0,practiceScore:0,practiceAnswered:false,recent:JSON.parse(LS.getItem('sh_recent')||'[]'),favorites:JSON.parse(LS.getItem('sh_favorites')||'{}'),mastery:JSON.parse(LS.getItem('sh_mastery')||'{}'),plan:JSON.parse(LS.getItem('sh_plan')||'[]'),vocabLimit:60,caseLimit:60,reviewTab:'due',writerPrompt:0};
- const viewNames={dashboard:['学习总览','把材料变成可调用的表达'],vocab:['规范词库','材料事实 → 规范表达'],strategy:['对策库','动作模板 → 可执行方案'],cases:['案例图谱','主题 → 关键词 → 案例'],format:['公文速查','先定文种，再排结构'],workspace:['真题作答','左读材料 · 右侧作答'],review:['复习中心','训练 · 收藏 · 笔记'],settings:['设置','外观偏好与数据备份'],lab:['申论练习室','短材料练要点 · 大作文练骨架']};
+ const viewNames={dashboard:['学习总览','规范表达 · 真题训练'],vocab:['规范词库','材料事实与规范表达'],strategy:['对策库','问题表述与治理动作'],cases:['案例图谱','主题与案例素材'],format:['公文速查','文种结构与排版例文'],workspace:['真题作答','读材料 · 标要点 · 写作答'],review:['复习中心','训练、收藏与笔记'],settings:['设置','外观与本地数据'],lab:['申论练习室','短材料与大作文']};
  const colors=['blue','orange','teal','purple'];
  function save(){LS.setItem('sh_favorites',JSON.stringify(state.favorites));LS.setItem('sh_recent',JSON.stringify(state.recent.slice(0,8)));LS.setItem('sh_mastery',JSON.stringify(state.mastery));LS.setItem('sh_plan',JSON.stringify(state.plan))}
  function key(type,id){return type+':'+id}
@@ -991,17 +1555,26 @@ const PROBLEMS=window.SH_PROBLEMS||[];
     ov.querySelector('.ac-btn.yes').onclick=()=>done(true);
   }
  function addRecent(type,id,title,sub){state.recent=[{type,id,title,sub},...state.recent.filter(x=>!(x.type===type&&String(x.id)===String(id)))].slice(0,6);save()}
- function openView(view){state.view=view;closeDrawer();const sb=$('#sidebar');if(sb)sb.classList.remove('open');const sc=$('#scrim');if(sc)sc.classList.remove('show');$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view)); $$('.nav button').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')}); $$('.tabbar button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view)); $('#page-title').textContent=viewNames[view][0];$('#page-subtitle').textContent=viewNames[view][1]; if(view==='dashboard')renderDashboard(); if(view==='vocab')renderVocab(); if(view==='strategy')renderStrategy(); if(view==='cases')renderCases(); if(view==='format')renderFormat(); if(view==='review')renderReview(); if(view==='settings')renderSettings(); if(view==='workspace')renderWorkspace(); if(view==='lab'&&window.SH_LABHOOK)SH_LABHOOK.render()}
+ function openView(view){state.view=view;closeSheet();closeDrawer();const sb=$('#sidebar');if(sb)sb.classList.remove('open');const sc=$('#scrim');if(sc)sc.classList.remove('show');document.body.classList.remove('side-open');$$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view)); $$('.nav button').forEach(b=>{const on=b.dataset.view===view;b.classList.toggle('active',on);b.setAttribute('aria-current',on?'page':'false')}); $$('.tabbar button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));const moreTab=$('#tab-more');if(moreTab){const isMore=!['dashboard','vocab','workspace','review'].includes(view);moreTab.classList.toggle('active',isMore);moreTab.setAttribute('aria-current',isMore?'page':'false')} $('#page-title').textContent=viewNames[view][0];$('#page-subtitle').textContent=viewNames[view][1]; if(view==='dashboard')renderDashboard(); if(view==='vocab')renderVocab(); if(view==='strategy')renderStrategy(); if(view==='cases')renderCases(); if(view==='format')renderFormat(); if(view==='review')renderReview(); if(view==='settings')renderSettings(); if(view==='workspace')renderWorkspace(); if(view==='lab'&&window.SH_LABHOOK)SH_LABHOOK.render();if(window.scrollTo)window.scrollTo(0,0)}
  $$('.nav button').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
  $$('.tabbar button[data-view]').forEach(b=>b.addEventListener('click',()=>openView(b.dataset.view)));
- const openSide=()=>{$('#sidebar').classList.add('open');$('#scrim').classList.add('show')};
- const closeSide=()=>{$('#sidebar').classList.remove('open');$('#scrim').classList.remove('show')};
+ const openSide=()=>{$('#sidebar').classList.add('open');$('#scrim').classList.add('show');document.body.classList.add('side-open')};
+ const closeSide=()=>{$('#sidebar').classList.remove('open');$('#scrim').classList.remove('show');document.body.classList.remove('side-open')};
  $('#menu-btn').addEventListener('click',openSide);
  $('#tab-more').addEventListener('click',openSide);
  $('#scrim').addEventListener('click',closeSide);
+ const sheetMQ=window.matchMedia?matchMedia('(max-width:760px)'):null;
+ const sheetIsMobile=()=>sheetMQ?sheetMQ.matches:(window.innerWidth<=760);
+ function openSheet(){if(!sheetIsMobile())return;const panel=document.querySelector('#view-vocab.active #vocab-detail,#view-strategy.active #strategy-detail');if(panel&&!panel.querySelector('.sheet-close')){const b=document.createElement('button');b.type='button';b.className='sheet-close';b.id='sheet-close';b.textContent='收起';b.setAttribute('aria-label','收起详情');b.addEventListener('click',closeSheet);panel.prepend(b)}document.body.classList.add('sheet-open')}
+ function closeSheet(){document.body.classList.remove('sheet-open')}
+ $('#sheet-scrim').addEventListener('click',closeSheet);
+ if(sheetMQ){const onSheetMQ=e=>{if(!e.matches)closeSheet()};sheetMQ.addEventListener?sheetMQ.addEventListener('change',onSheetMQ):sheetMQ.addListener&&sheetMQ.addListener(onSheetMQ)}
+ const wsGridEl=$('#ws-grid');
+ $$('[data-ws-pane]').forEach(b=>b.addEventListener('click',()=>{if(!wsGridEl)return;wsGridEl.dataset.pane=b.dataset.wsPane;$$('[data-ws-pane]').forEach(x=>{const on=x===b;x.classList.toggle('active',on);x.setAttribute('aria-selected',on?'true':'false')});setTimeout(()=>{window.dispatchEvent(new Event('resize'));const t=b.dataset.wsPane==='answer'?document.querySelector('.ws-pane-r'):document.querySelector('.ws-left');if(t&&t.scrollIntoView)t.scrollIntoView({block:'start'})},120)}));
+
  $('#theme-btn').addEventListener('click',()=>{const cur=document.documentElement.getAttribute('data-theme');LS.setItem('sh_theme',cur==='dark'?'light':'dark');applyTheme();toast(cur==='dark'?'已切换为浅色模式':'已切换为深色模式')}); $$('[data-go]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openView(b.dataset.go)}));
  $('#collapse-btn').addEventListener('click',()=>$('#sidebar').classList.toggle('collapsed'));
- document.addEventListener('keydown',e=>{const tag=document.activeElement&&document.activeElement.tagName;if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#global-search').focus()}if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();$('#global-search').focus()}if(e.key==='Escape'){closeDrawer();$('#global-results').classList.remove('open')}if(!['INPUT','TEXTAREA','SELECT'].includes(tag)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&/^[1-9]$/.test(e.key)){const nav=['dashboard','vocab','strategy','cases','format','workspace','review','settings','lab'];openView(nav[+e.key-1])}});
+ document.addEventListener('keydown',e=>{const tag=document.activeElement&&document.activeElement.tagName;if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('#global-search').focus()}if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(tag)){e.preventDefault();$('#global-search').focus()}if(e.key==='Escape'){closeDrawer();closeSheet();closeSide();$('#global-results').classList.remove('open');const so=document.querySelector('.search.open');if(so)so.classList.remove('open')}if(!['INPUT','TEXTAREA','SELECT'].includes(tag)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&/^[1-9]$/.test(e.key)){const nav=['dashboard','vocab','strategy','cases','format','workspace','review','settings','lab'];openView(nav[+e.key-1])}});
  function renderDashboard(){
         const hr=new Date().getHours(),greet=hr<6?'夜深了':hr<12?'早上好':hr<18?'下午好':'晚上好';
         const d=new Date(),week='日一二三四五六'[d.getDay()];
@@ -1027,7 +1600,7 @@ const PROBLEMS=window.SH_PROBLEMS||[];
  function fillVocabFilters(){const periods=[...new Set(DATA.vocab.map(x=>x.period))];$('#vocab-period').innerHTML='<option value="all">全部期数</option>'+periods.map(p=>{const t=esc(p.replace('（答案版）',''));return `<option value="${t}" ${state.vocabPeriod===t?'selected':''}>${t}</option>`}).join('');const terms=['全部','治理与执法','产业与发展','文化与文旅','乡村与生态','民生与服务','科技与创新'];$('#vocab-chips').innerHTML=terms.map(x=>`<button class="chip ${state.vocabFilter===x?'active':''}" data-vchip="${x}">${x}</button>`).join('');$$('[data-vchip]').forEach(b=>b.addEventListener('click',()=>{state.vocabFilter=b.dataset.vchip;renderVocab()}));}
  function vocabCat(x){const s=x.term+x.scene;if(/执法|治理|监管|诉求|共治|问责|矛盾|法治|依法|信用|投诉/.test(s))return'治理与执法';if(/产业|企业|产品|品牌|消费|就业|经营|经济|市场|制造/.test(s))return'产业与发展';if(/文化|文旅|非遗|传统|阅读|旅游|艺术/.test(s))return'文化与文旅';if(/乡村|农业|农民|生态|绿色|环境|能源|水/.test(s))return'乡村与生态';if(/科技|数字|智能|技术|创新|自动化|平台|数据/.test(s))return'科技与创新';return'民生与服务'}
  function renderVocab(){fillVocabFilters();let arr=DATA.vocab.map((x,i)=>Object.assign({},x,{id:i}));const q=state.vocabQuery.trim().toLowerCase();arr=arr.filter(x=>(state.vocabFilter==='all'||state.vocabFilter==='全部'||vocabCat(x)===state.vocabFilter)&&(state.vocabPeriod==='all'||x.period.replace('（答案版）','')===state.vocabPeriod)&&(state.vocabFav?isFav('vocab',x.id):true)&&(!q||(x.scene+x.term).toLowerCase().includes(q)));if($('#vocab-sort').value==='term')arr.sort((a,b)=>a.term.localeCompare(b.term,'zh'));if($('#vocab-sort').value==='scene')arr.sort((a,b)=>a.scene.localeCompare(b.scene,'zh'));$('#vocab-count').textContent=`显示 ${arr.length} 条 · 共 ${DATA.vocab.length} 条`;$('#vocab-list').innerHTML=arr.length?arr.slice(0,state.vocabLimit).map(x=>`<article class="data-card" data-vocab="${x.id}"><div class="card-top"><div><div class="card-id">${String(x.id+1).padStart(3,'0')}</div><div class="card-title">${hi(x.term,state.vocabQuery)}</div></div><button class="star ${isFav('vocab',x.id)?'on':''}" data-fav="vocab:${x.id}">${isFav('vocab',x.id)?'★':'☆'}</button></div><p>${hi(x.scene,state.vocabQuery)}</p><div class="footer"><span class="pill">${vocabCat(x)}</span><span class="pill ${state.mastery[x.id]===2?'teal':'orange'}">${state.mastery[x.id]===2?'已掌握':'待复习'}</span><span class="source-line">${esc(x.period.replace('规范词积累','').replace('（答案版）',''))}</span></div></article>`).join('')+(arr.length>state.vocabLimit?`<button class="load-more" id="vocab-more">继续加载 ${Math.min(state.vocabLimit,arr.length-state.vocabLimit)} 条（已显示 ${state.vocabLimit}/${arr.length}）</button>`:''):'<div class="empty">没有找到匹配内容。试试换一个更短的关键词。</div>';$('#vocab-more')?.addEventListener('click',()=>{state.vocabLimit+=60;renderVocab()});$$('[data-vocab]').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('[data-fav]'))return;selectVocab(+c.dataset.vocab)}));$$('[data-fav]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const [t,id]=b.dataset.fav.split(':');toggleFav(t,+id)}));}
- function selectVocab(id){const x=DATA.vocab[id];if(!x)return;state.selectedVocab=id;addRecent('vocab',id,x.term,x.period.replace('规范词积累','').replace('（答案版）',''));$('#vocab-detail').innerHTML=`<div class="eyebrow">规范词 · ${String(id+1).padStart(3,'0')}</div><h2>${esc(x.term)}</h2><div class="detail-copy">这条表达来自 ${esc(x.period)}。先看材料事实，再问自己：它是在描述问题、做法，还是效果？</div><div class="quote-text">${esc(x.scene)}</div><div class="detail-copy">建议迁移：<span class="highlight">${vocabCat(x)}</span> 主题中，优先用于概括段落要点或提炼小标题。</div><div class="detail-actions"><button id="detail-copy">复制规范词</button><button id="detail-fav">${isFav('vocab',id)?'★ 已收藏':'☆ 收藏'}</button><button id="detail-master">${state.mastery[id]===2?'✓ 已掌握':'标记掌握'}</button><button id="detail-review">待复习</button></div>`;$('#detail-copy').onclick=()=>copy(x.term);$('#detail-fav').onclick=()=>toggleFav('vocab',id);$('#detail-master').onclick=()=>setMastery(id,2);$('#detail-review').onclick=()=>setMastery(id,1)}
+ function selectVocab(id){const x=DATA.vocab[id];if(!x)return;state.selectedVocab=id;addRecent('vocab',id,x.term,x.period.replace('规范词积累','').replace('（答案版）',''));$('#vocab-detail').innerHTML=`<div class="eyebrow">规范词 · ${String(id+1).padStart(3,'0')}</div><h2>${esc(x.term)}</h2><div class="detail-copy">这条表达来自 ${esc(x.period)}。先看材料事实，再问自己：它是在描述问题、做法，还是效果？</div><div class="quote-text">${esc(x.scene)}</div><div class="detail-copy">建议迁移：<span class="highlight">${vocabCat(x)}</span> 主题中，优先用于概括段落要点或提炼小标题。</div><div class="detail-actions"><button id="detail-copy">复制规范词</button><button id="detail-fav">${isFav('vocab',id)?'★ 已收藏':'☆ 收藏'}</button><button id="detail-master">${state.mastery[id]===2?'✓ 已掌握':'标记掌握'}</button><button id="detail-review">待复习</button></div>`;$('#detail-copy').onclick=()=>copy(x.term);$('#detail-fav').onclick=()=>toggleFav('vocab',id);$('#detail-master').onclick=()=>setMastery(id,2);$('#detail-review').onclick=()=>setMastery(id,1);openSheet()}
  $('#vocab-search').addEventListener('input',e=>{state.vocabQuery=e.target.value;renderVocab()});$('#vocab-period').addEventListener('change',e=>{state.vocabPeriod=e.target.value;renderVocab()});$('#vocab-sort').addEventListener('change',renderVocab);$('#vocab-fav-only').addEventListener('click',()=>{state.vocabFav=!state.vocabFav;$('#vocab-fav-only').textContent=state.vocabFav?'★ 已筛选收藏':'☆ 只看收藏';renderVocab()});$('#vocab-random').addEventListener('click',()=>selectVocab(Math.floor(Math.random()*DATA.vocab.length)));
 function renderPlan(){const bar=$('#plan-bar');if(!bar)return;const items=state.plan.map(id=>DATA.strategies.find(x=>x.id===id)).filter(Boolean);if(!items.length){bar.className='plan-bar empty-plan';bar.innerHTML='<span>方案组合器：在对策详情中点击“加入组合”，最多选择 4 条模板。</span>';return}bar.className='plan-bar';bar.innerHTML='<span class="plan-label">我的方案</span>'+items.map(x=>`<span class="plan-chip">${esc(x.title)}<button data-remove-plan="${x.id}" title="移除">×</button></span>`).join('')+(items.length>=2?'<button class="plan-action" id="generate-plan">生成组合段落</button>':'<span style="font-size:10px;color:#9b8a6f">再选 1 条即可组合</span>');$$('[data-remove-plan]').forEach(b=>b.addEventListener('click',()=>{state.plan=state.plan.filter(id=>id!==+b.dataset.removePlan);save();renderPlan()}));$('#generate-plan')?.addEventListener('click',()=>{const text=items.map(x=>x.text.replace(/\.\.\.|……/g,'该领域')).join('；');copy(text);toast('已生成并复制组合段落')})}
  function addToPlan(id){if(state.plan.includes(id)){toast('这条对策已在组合中');return}if(state.plan.length>=4){toast('最多组合 4 条对策');return}state.plan.push(id);save();renderPlan();selectStrategy(id);toast('已加入方案组合')}
@@ -1039,7 +1612,7 @@ function renderPlan(){const bar=$('#plan-bar');if(!bar)return;const items=state.
    const isP=state.strategyMode==='problem',items=isP?PROBLEMS:DATA.strategies,type=isP?'problem':'strategy';
    const c1=document.querySelector('[data-smode="strategy"] b'),c2=document.querySelector('[data-smode="problem"] b');if(c1)c1.textContent=DATA.strategies.length;if(c2)c2.textContent=PROBLEMS.length;
    $$('[data-smode]').forEach(b=>{const on=b.dataset.smode===state.strategyMode;b.classList.toggle('active',on);b.setAttribute('aria-selected',on?'true':'false')});
-   const intro=$('#strategy-intro');if(intro)intro.textContent=isP?`把材料里的现象翻译成规范的问题表述：共 ${PROBLEMS.length} 条，按 9 类治理动作组织，并直接对照可用的对策模板。`:`按“治理动作”组织 ${DATA.strategies.length} 条对策模板，替换省略号时优先填入对象、动作和结果。`;
+   const intro=$('#strategy-intro');if(intro)intro.textContent=isP?`材料里在说哪类问题？共 ${PROBLEMS.length} 条，按 9 类场景整理，可直接跳到对策。`:`${DATA.strategies.length} 条对策模板，按治理场景归类；用时替换省略号。`;
    const search=$('#strategy-search');if(search)search.placeholder=isP?'搜索问题名称、表述或材料信号…':'搜索对策名称或正文…';
    const plan=$('#plan-bar');if(plan)plan.hidden=isP;if(!isP)renderPlan();
    const groups=['全部',...new Set(items.map(x=>x.group))];
@@ -1056,11 +1629,11 @@ function renderPlan(){const bar=$('#plan-bar');if(!bar)return;const items=state.
    $$('[data-fav]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const [t,id]=b.dataset.fav.split(':');toggleFav(t,+id)}))
  }
  function strategyTemplate(text){return esc(text).replace(/(\.\.\.|……)/g,'<span class="highlight">...</span>')}
- function selectStrategy(id){const x=strategyById(id);if(!x)return;state.selectedStrategy=id;state.strategyMode='strategy';addRecent('strategy',id,x.title,x.group);const rel=PROBLEMS.filter(p=>p.strategies.includes(id)).slice(0,6);const relHTML=rel.length?`<div class="detail-sub"><h3>常见问题表述</h3><div class="link-list">${rel.map(p=>`<button data-jump-problem="${p.id}"><b>${esc(p.title)}</b><span>${esc(p.group)}</span></button>`).join('')}</div></div>`:'';$('#strategy-detail').innerHTML=`<div class="eyebrow">对策模板 · ${String(id).padStart(2,'0')}</div><h2>${esc(x.title)}</h2><div class="detail-copy">归类：<span class="highlight">${esc(x.group)}</span>。把省略号替换成题干对象即可，不要机械照搬。</div><div class="quote-text">${strategyTemplate(x.text)}</div><div style="margin-top:15px"><label style="font-size:11px;color:#9eb2bf">快速替换所有“...”</label><input id="replace-input" placeholder="例如：老年人服务 / 乡村旅游" class="replace-input"/></div><div class="detail-actions"><button id="apply-replace">生成可用版</button><button id="strategy-copy">复制模板</button><button id="strategy-plan">${state.plan.includes(id)?'✓ 已加入组合':'＋ 加入组合'}</button><button id="strategy-fav">${isFav('strategy',id)?'★ 已收藏':'☆ 收藏'}</button></div>`+relHTML;$('#apply-replace').onclick=()=>{const val=$('#replace-input').value.trim()||'该领域';$('#strategy-detail .quote-text').innerHTML=esc(x.text.replace(/\.\.\.|……/g,val));toast('已生成可用版，可继续微调')};$('#strategy-copy').onclick=()=>copy(x.text);$('#strategy-plan').onclick=()=>addToPlan(id);$('#strategy-fav').onclick=()=>toggleFav('strategy',id);$$('[data-jump-problem]').forEach(b=>b.onclick=()=>jumpProblem(+b.dataset.jumpProblem))}
- function selectProblem(id){const p=problemById(id);if(!p)return;state.selectedProblem=id;state.strategyMode='problem';addRecent('problem',id,p.title,p.group);const rel=p.strategies.map(strategyById).filter(Boolean);$('#strategy-detail').innerHTML=`<div class="eyebrow">问题表述 · ${String(id).padStart(2,'0')}</div><h2>${esc(p.title)}</h2><div class="detail-copy">归类：<span class="highlight">${esc(p.group)}</span>。先判断材料是否在描述这一层问题，再决定写“问题”还是“问题＋原因”。</div><div class="quote-text">${esc(p.text)}</div><div class="detail-sub"><h3>材料常见信号</h3><div class="signal-list">${p.signals.map(s=>`<span>${esc(s)}</span>`).join('')}</div></div><div class="detail-sub"><h3>可对应对策</h3><div class="link-list">${rel.length?rel.map(s=>`<button data-jump-strategy="${s.id}"><b>${esc(s.title)}</b><span>${esc(s.group)}</span></button>`).join(''):'<div class="detail-copy">暂无对应模板</div>'}</div></div><div class="src-note">语料来源：GitHub · zzcc-nb/gongkao-tiku「问题类规范词」${p.origin?`（原始词条：${esc(p.origin)}）`:''}，已按申论作答习惯改写。</div><div class="detail-actions"><button id="problem-copy">复制问题表述</button><button id="problem-fav">${isFav('problem',id)?'★ 已收藏':'☆ 收藏'}</button></div>`;$('#problem-copy').onclick=()=>copy(p.text);$('#problem-fav').onclick=()=>toggleFav('problem',id);$$('[data-jump-strategy]').forEach(b=>b.onclick=()=>jumpStrategy(+b.dataset.jumpStrategy))}
+ function selectStrategy(id){const x=strategyById(id);if(!x)return;state.selectedStrategy=id;state.strategyMode='strategy';addRecent('strategy',id,x.title,x.group);const rel=PROBLEMS.filter(p=>p.strategies.includes(id)).slice(0,6);const relHTML=rel.length?`<div class="detail-sub"><h3>常见问题表述</h3><div class="link-list">${rel.map(p=>`<button data-jump-problem="${p.id}"><b>${esc(p.title)}</b><span>${esc(p.group)}</span></button>`).join('')}</div></div>`:'';$('#strategy-detail').innerHTML=`<div class="eyebrow">对策模板 · ${String(id).padStart(2,'0')}</div><h2>${esc(x.title)}</h2><div class="detail-copy">归类：<span class="highlight">${esc(x.group)}</span>。把省略号替换成题干对象即可，不要机械照搬。</div><div class="quote-text">${strategyTemplate(x.text)}</div><div style="margin-top:15px"><label style="font-size:11px;color:var(--muted)">快速替换所有“...”</label><input id="replace-input" placeholder="例如：老年人服务 / 乡村旅游" class="replace-input"/></div><div class="detail-actions"><button id="apply-replace">生成可用版</button><button id="strategy-copy">复制模板</button><button id="strategy-plan">${state.plan.includes(id)?'✓ 已加入组合':'＋ 加入组合'}</button><button id="strategy-fav">${isFav('strategy',id)?'★ 已收藏':'☆ 收藏'}</button></div>`+relHTML;$('#apply-replace').onclick=()=>{const val=$('#replace-input').value.trim()||'该领域';$('#strategy-detail .quote-text').innerHTML=esc(x.text.replace(/\.\.\.|……/g,val));toast('已生成可用版，可继续微调')};$('#strategy-copy').onclick=()=>copy(x.text);$('#strategy-plan').onclick=()=>addToPlan(id);$('#strategy-fav').onclick=()=>toggleFav('strategy',id);$$('[data-jump-problem]').forEach(b=>b.onclick=()=>jumpProblem(+b.dataset.jumpProblem));openSheet()}
+ function selectProblem(id){const p=problemById(id);if(!p)return;state.selectedProblem=id;state.strategyMode='problem';addRecent('problem',id,p.title,p.group);const rel=p.strategies.map(strategyById).filter(Boolean);$('#strategy-detail').innerHTML=`<div class="eyebrow">问题表述 · ${String(id).padStart(2,'0')}</div><h2>${esc(p.title)}</h2><div class="detail-copy">归类：<span class="highlight">${esc(p.group)}</span>。先判断材料是否在描述这一层问题，再决定写“问题”还是“问题＋原因”。</div><div class="quote-text">${esc(p.text)}</div><div class="detail-sub"><h3>材料常见信号</h3><div class="signal-list">${p.signals.map(s=>`<span>${esc(s)}</span>`).join('')}</div></div><div class="detail-sub"><h3>可对应对策</h3><div class="link-list">${rel.length?rel.map(s=>`<button data-jump-strategy="${s.id}"><b>${esc(s.title)}</b><span>${esc(s.group)}</span></button>`).join(''):'<div class="detail-copy">暂无对应模板</div>'}</div></div><div class="src-note">语料来源：GitHub · zzcc-nb/gongkao-tiku「问题类规范词」${p.origin?`（原始词条：${esc(p.origin)}）`:''}，已按申论作答习惯改写。</div><div class="detail-actions"><button id="problem-copy">复制问题表述</button><button id="problem-fav">${isFav('problem',id)?'★ 已收藏':'☆ 收藏'}</button></div>`;$('#problem-copy').onclick=()=>copy(p.text);$('#problem-fav').onclick=()=>toggleFav('problem',id);$$('[data-jump-strategy]').forEach(b=>b.onclick=()=>jumpStrategy(+b.dataset.jumpStrategy));openSheet()}
  function jumpStrategy(id){state.strategyMode='strategy';state.strategyFilter='全部';state.strategyQuery='';$('#strategy-search').value='';renderStrategy();selectStrategy(id);const d=$('#strategy-detail');if(d&&d.scrollIntoView)d.scrollIntoView({block:'nearest',behavior:'smooth'})}
  function jumpProblem(id){state.strategyMode='problem';state.strategyFilter='全部';state.strategyQuery='';$('#strategy-search').value='';renderStrategy();selectProblem(id);const d=$('#strategy-detail');if(d&&d.scrollIntoView)d.scrollIntoView({block:'nearest',behavior:'smooth'})}
- $('#strategy-search').addEventListener('input',e=>{state.strategyQuery=e.target.value;renderStrategy()});$('#strategy-sort').addEventListener('change',renderStrategy);$('#strategy-fav-only').addEventListener('click',()=>{state.strategyFav=!state.strategyFav;$('#strategy-fav-only').textContent=state.strategyFav?'★ 已筛选收藏':'☆ 只看收藏';renderStrategy()});$('#strategy-random').addEventListener('click',()=>{const items=libItems();if(!items.length)return;const x=items[Math.floor(Math.random()*items.length)];if(state.strategyMode==='problem')selectProblem(x.id);else selectStrategy(x.id)});$$('[data-smode]').forEach(b=>b.addEventListener('click',()=>{if(state.strategyMode===b.dataset.smode)return;state.strategyMode=b.dataset.smode;state.strategyFilter='全部';state.strategyQuery='';$('#strategy-search').value='';renderStrategy();libEmptyDetail()}));
+ $('#strategy-search').addEventListener('input',e=>{state.strategyQuery=e.target.value;renderStrategy()});$('#strategy-sort').addEventListener('change',renderStrategy);$('#strategy-fav-only').addEventListener('click',()=>{state.strategyFav=!state.strategyFav;$('#strategy-fav-only').textContent=state.strategyFav?'★ 已筛选收藏':'☆ 只看收藏';renderStrategy()});$('#strategy-random').addEventListener('click',()=>{const items=libItems();if(!items.length)return;const x=items[Math.floor(Math.random()*items.length)];if(state.strategyMode==='problem')selectProblem(x.id);else selectStrategy(x.id)});$$('[data-smode]').forEach(b=>b.addEventListener('click',()=>{if(state.strategyMode===b.dataset.smode)return;state.strategyMode=b.dataset.smode;state.strategyFilter='全部';state.strategyQuery='';$('#strategy-search').value='';renderStrategy();libEmptyDetail();closeSheet()}));
  function renderCases(){const chapters=[...new Set(DATA.cases.map(x=>x.chapter))];$('#case-topics').innerHTML=`<button class="topic-tab ${state.caseChapter==='all'?'active':''}" data-chapter="all"><b>全部章节</b><small>${DATA.cases.length} 条素材</small></button>`+chapters.map((x,i)=>`<button class="topic-tab ${state.caseChapter===x?'active':''}" data-chapter="${esc(x)}"><b>${x.replace(/^第/,'').replace(/章.*$/,'章')}</b><small>${DATA.cases.filter(c=>c.chapter===x).length} 条</small></button>`).join('');$$('[data-chapter]').forEach(b=>b.addEventListener('click',()=>{state.caseChapter=b.dataset.chapter;state.caseSection='all';renderCases()}));const sections=[...new Set(DATA.cases.filter(x=>state.caseChapter==='all'||x.chapter===state.caseChapter).map(x=>x.section))];$('#case-section').innerHTML='<option value="all">全部小节</option>'+sections.map(x=>`<option ${state.caseSection===x?'selected':''}>${esc(x)}</option>`).join('');let arr=DATA.cases.map((x,i)=>(Object.assign({},x,{id:i}))).filter(x=>(state.caseChapter==='all'||x.chapter===state.caseChapter)&&(state.caseSection==='all'||x.section===state.caseSection)&&(state.caseFav?isFav('case',x.id):true));const q=state.caseQuery.trim().toLowerCase();arr=arr.filter(x=>!q||(x.title+x.keywords+x.case+x.topics).toLowerCase().includes(q));$('#case-count').textContent=`显示 ${arr.length} 条 · 选一个案例打开“可迁移启示”`;$('#case-list').innerHTML=arr.slice(0,state.caseLimit).map(x=>`<article class="data-card" data-case="${x.id}"><div class="card-top"><div><div class="card-id">${esc(x.section.replace(/^第/,'').replace(/：/g,' · '))}</div><div class="card-title">${hi(x.title,state.caseQuery)}</div></div><button class="star ${isFav('case',x.id)?'on':''}" data-fav="case:${x.id}">${isFav('case',x.id)?'★':'☆'}</button></div><div class="case-desc">${hi(x.case,state.caseQuery)}</div><div class="keyword-list">${x.keywords.split('丨').slice(0,3).map(k=>`<span class="keyword">${hi(k,state.caseQuery)}</span>`).join('')}</div></article>`).join('')+(arr.length>state.caseLimit?`<button class="load-more" id="case-more">继续加载 ${Math.min(state.caseLimit,arr.length-state.caseLimit)} 条（已显示 ${state.caseLimit}/${arr.length}）</button>`:'')||'<div class="empty">没有找到匹配案例。</div>';$('#case-more')?.addEventListener('click',()=>{state.caseLimit+=60;renderCases()});$$('[data-case]').forEach(c=>c.addEventListener('click',e=>{if(e.target.closest('[data-fav]'))return;openCase(+c.dataset.case)}));$$('[data-fav]').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const [t,id]=b.dataset.fav.split(':');toggleFav(t,+id)}))}
  function openCase(id){const x=DATA.cases[id];if(!x)return;addRecent('case',x.title,x.title,x.chapter+' · '+x.section);$('#drawer-content').innerHTML=`<div class="eyebrow">${esc(x.chapter)} · ${esc(x.section)}</div><h2>${esc(x.title)}</h2><div class="keyword-list">${x.keywords.split('丨').map(k=>`<span class="keyword">${esc(k)}</span>`).join('')}</div><div class="drawer-section"><h3>案例原文</h3><p>${esc(x.case)}</p></div><div class="drawer-section"><h3>适用主题</h3><p>${esc(x.topics).replace(/丨/g,'　·　')}</p></div><div class="drawer-section"><h3>迁移提示</h3><p>写文化、产业、治理等综合题时，可把本案例落到“${esc(x.keywords.split('丨')[0]||'主题价值')}”这一层，再补充主体、机制或效果。</p></div><div class="drawer-action"><button class="primary" id="case-copy">复制案例</button><button id="case-fav">${isFav('case',id)?'★ 已收藏':'☆ 收藏'}</button></div>`;$('#case-copy').onclick=()=>copy(x.case);$('#case-fav').onclick=()=>{toggleFav('case',id);openCase(id)};$('#case-drawer').classList.add('open')}
  function closeDrawer(){$('#case-drawer').classList.remove('open')}$('#drawer-close').onclick=closeDrawer;$('#drawer-back').onclick=closeDrawer;$('#case-section').addEventListener('change',e=>{state.caseSection=e.target.value;renderCases()});$('#case-search').addEventListener('input',e=>{state.caseQuery=e.target.value;renderCases()});$('#case-fav-only').addEventListener('click',()=>{state.caseFav=!state.caseFav;$('#case-fav-only').textContent=state.caseFav?'★ 已筛选收藏':'☆ 只看收藏';renderCases()});$('#case-random').addEventListener('click',()=>openCase(Math.floor(Math.random()*DATA.cases.length)));
@@ -1072,7 +1645,8 @@ function renderPlan(){const bar=$('#plan-bar');if(!bar)return;const items=state.
    const f=FORMATS[state.formatIndex],cats=[...new Set(FORMATS.map(x=>x.cat))],navEl=$('#format-nav'),navScroll=navEl?navEl.scrollTop:0;
    navEl.innerHTML=cats.map(cat=>`<div class="format-nav-group"><div class="format-nav-title">${esc(cat)}</div>`+FORMATS.map((x,i)=>({x,i})).filter(o=>o.x.cat===cat).map(o=>`<button class="${o.i===state.formatIndex?'active':''}" data-format="${o.i}"><b>${esc(o.x.name)}</b><small>${esc(o.x.tag)}</small></button>`).join('')+`</div>`).join('');
    if(navScroll)navEl.scrollTop=navScroll;
-   $$('[data-format]').forEach(b=>b.addEventListener('click',()=>{state.formatIndex=+b.dataset.format;renderFormat()}));
+   const activeFmt=navEl.querySelector('button.active');if(activeFmt&&navEl.scrollWidth>navEl.clientWidth)navEl.scrollLeft=Math.max(0,activeFmt.offsetLeft-navEl.clientWidth/2+activeFmt.offsetWidth/2);
+   $$('[data-format]').forEach(b=>b.addEventListener('click',()=>{state.formatIndex=+b.dataset.format;renderFormat();const fb=$('#format-body');if(fb&&fb.scrollIntoView)fb.scrollIntoView({block:'start'})}));
    const checks=(f.checks&&f.checks.length)?f.checks:['标题是否与文种匹配，是否出现题干要求的主题','称呼、主送机关、落款是否完整且对象准确','每条措施是否有动作，是否避免空泛口号','是否有结尾要求/号召，字数是否在范围内'];
    $('#format-body').innerHTML=`<div class="format-title"><div><div class="eyebrow">${esc(f.cat)} · ${esc(f.tag)}</div><h2>${esc(f.name)}</h2><p>${esc(f.tag)} · 申论应用型文种速查</p></div><button class="mini-btn" id="format-copy">复制例文</button></div><div class="format-cols"><div class="format-left"><div class="sec-title">结构拆解</div><div class="format-steps">${f.structure.map((x,i)=>`<div class="format-step"><div class="step-no">${i+1}</div><span>${esc(x)}</span></div>`).join('')}</div><div class="format-tip"><b>落笔提醒：</b>${esc(f.tip)}</div></div><div class="format-right"><div class="paper-head"><b>排版示例</b><span>答题纸版式 · 标题居中、正文缩进</span></div><div class="format-paper">${formatPaper(f.demo)}</div><div class="paper-note">${esc(f.layout||'')}</div></div></div><div class="checklist"><h3>交卷前 30 秒检查</h3>${checks.map(x=>`<div class="check-row">${esc(x)}</div>`).join('')}</div>`;
    const cp=$('#format-copy');if(cp)cp.onclick=()=>{copy(formatDemoText(f));toast('例文已复制，可粘贴后改成题目对象')}
@@ -1094,7 +1668,7 @@ function renderSettings(){
   const ar=document.getElementById('about-ref');
   if(ar&&am&&am.total) ar.textContent=am.covered+' / '+am.total+' 题（'+Math.round(am.covered/am.total*100)+'%）· 4 个开源题库';
 const font=LS.getItem('sh_font')||'normal';$$('[data-font]').forEach(b=>b.classList.toggle('active',b.dataset.font===font));const reduce=LS.getItem('sh_reduce_motion')==='1';$('#reduce-motion').classList.toggle('on',reduce);$('#reduce-motion').setAttribute('aria-pressed',reduce);document.body.classList.toggle('large-type',font==='large');document.body.classList.toggle('reduce-motion',reduce)}
-function exportData(){const drafts={};const ws={};for(let i=0;i<LS.length;i++){const k=LS.key(i);if(k&&k.indexOf('sh_ws_')===0)ws[k]=LS.getItem(k)}const payload={app:'申论词库·写作训练台',version:4,exportedAt:new Date().toISOString(),favorites:state.favorites,mastery:state.mastery,tasks:state.tasks,plan:state.plan,note:LS.getItem('sh_note')||'',font:LS.getItem('sh_font')||'normal',drafts,ws};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='申论词库学习备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);toast('备份已导出')}
+function exportData(){const drafts={};const ws={};for(let i=0;i<LS.length;i++){const k=LS.key(i);if(k&&k.indexOf('sh_ws_')===0)ws[k]=LS.getItem(k)}const payload={app:'申论工作台',version:4,exportedAt:new Date().toISOString(),favorites:state.favorites,mastery:state.mastery,tasks:state.tasks,plan:state.plan,note:LS.getItem('sh_note')||'',font:LS.getItem('sh_font')||'normal',drafts,ws};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='申论工作台学习备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);toast('备份已导出')}
 function renderNotesPane(){const t=$('#note-text');if(t)t.value=LS.getItem('sh_note')||''}
     $('#save-note').addEventListener('click',()=>{LS.setItem('sh_note',$('#note-text').value);$('#note-status').textContent='已保存 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});toast('笔记已保存到本机')});$('#clear-favs').addEventListener('click',()=>{appConfirm('确定清空全部收藏吗？清空后不可恢复。',()=>{state.favorites={};save();renderReview();toast('已清空收藏')},'清空')});$('#review-start').addEventListener('click',()=>{const t=$('#review-train');t.hidden=false;makePractice();renderPractice();t.scrollIntoView&&t.scrollIntoView({behavior:'smooth',block:'start'});toast('已生成 10 题快闪训练，答题后用按钮自评')});$('#export-data').addEventListener('click',exportData);$$('[data-font]').forEach(b=>b.addEventListener('click',()=>{LS.setItem('sh_font',b.dataset.font);renderSettings();toast(b.dataset.font==='large'?'已切换为大字号':'已切换为标准字号')}));$('#reduce-motion').addEventListener('click',()=>{const next=LS.getItem('sh_reduce_motion')==='1'?'0':'1';LS.setItem('sh_reduce_motion',next);renderSettings()});$('#import-data').addEventListener('change',e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{try{const d=JSON.parse(reader.result);if(d.favorites)state.favorites=d.favorites;if(d.mastery)state.mastery=d.mastery;if(d.tasks)state.tasks=d.tasks;if(d.plan)state.plan=d.plan;if(typeof d.note==='string')LS.setItem('sh_note',d.note);if(d.goal)LS.setItem('sh_goal',d.goal);if(d.font)LS.setItem('sh_font',d.font);if(d.drafts)Object.keys(d.drafts).forEach(k=>LS.setItem('sh_draft_'+k,d.drafts[k]||''));if(d.ws&&typeof d.ws==='object')Object.keys(d.ws).forEach(k=>{if(k.indexOf('sh_ws_')===0)LS.setItem(k,d.ws[k])});save();renderAll();renderSettings();toast('备份已恢复')}catch(err){toast('文件格式不正确，无法导入')}};reader.readAsText(file);e.target.value='' });$('#reset-data').addEventListener('click',()=>{appConfirm('确定删除所有学习记录吗？内置资料不会删除。',()=>{['sh_favorites','sh_mastery','sh_tasks','sh_plan','sh_recent','sh_note','sh_goal','sh_font','sh_reduce_motion','sh_draft_0','sh_draft_1','sh_draft_2'].forEach(k=>LS.removeItem(k));Object.keys(localStorage).filter(k=>k.indexOf('sh_ws_')===0).forEach(k=>LS.removeItem(k));location.reload()},'删除')});
      function applyTheme(){
@@ -1102,7 +1676,7 @@ function renderNotesPane(){const t=$('#note-text');if(t)t.value=LS.getItem('sh_n
         const sysDark=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches;
         const dark=pref==='dark'||(pref==='auto'&&sysDark);
         document.documentElement.setAttribute('data-theme',dark?'dark':'light');
-        const tb=$('#theme-btn');if(tb)tb.textContent=dark?'☾':'☀';
+        const tb=$('#theme-btn');if(tb)tb.setAttribute('aria-pressed',dark?'true':'false');
         $$('#theme-choice button').forEach(b=>{const on=b.dataset.themeChoice===pref;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});
     }
     $$('#theme-choice button').forEach(b=>b.addEventListener('click',()=>{LS.setItem('sh_theme',b.dataset.themeChoice);applyTheme();toast('主题偏好已保存')}));
@@ -1727,7 +2301,7 @@ window.GRADE=GRADE;
       +'<polygon class="data" points="'+data+'"/>'+dots+labels+'</svg><div class="gr-cap">五维能力雷达 · 质量分</div></div></div>'
       +'<div class="gr-skills">'+sk+'</div>'
       +(r.top.length?'<div class="gr-top"><b>优先改进（按影响从大到小）</b><ol>'+r.top.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol></div>':'')
-      +'<div class="gr-actions"><button class="mini-btn accent" id="gr-copy">复制完整报告</button><button class="mini-btn" id="gr-ref">📖 参考答案</button><button class="mini-btn" id="gr-again">重新批改</button></div>'
+      +'<div class="gr-actions"><button class="mini-btn accent" id="gr-copy">复制完整报告</button><button class="mini-btn" id="gr-ref">参考答案</button><button class="mini-btn" id="gr-again">重新批改</button></div>'
       +'<p class="gr-note">批改引擎为本地规则评分（评分知识取自开源考公项目 SLB 批改标准 / kaogong-skill 题型标准 / kaogong-formalizer 规范词映射），与真实阅卷存在差距，仅供参考。同题重新批改会覆盖本次结果。</p>'
       +'</div>';
     requestAnimationFrame(()=>{
@@ -1795,13 +2369,13 @@ function wsUpdateRefBtn(){
   const seen=loaded?wsRefGet(WS.exam,WS.qIdx):null;
   const st=$('#ws-ref-state');
   if(!loaded){
-    b.textContent=failed?'📖 答案加载失败':'📖 参考答案';
+    b.textContent=failed?'答案加载失败':'参考答案';
     b.classList.remove('accent');
     b.title=failed?'参考答案文件加载失败，点击重试':'正在按「试卷 + 题序」匹配参考答案…';
     if(st) st.innerHTML=failed?'<span class="pill orange">答案加载失败，点击重试</span>':'<span class="pill">参考答案检测中…</span>';
     return;
   }
-  b.textContent=a?('📖 参考答案'+(seen&&seen.seen?' · 已核对':'')):'📖 暂无参考答案';
+  b.textContent=a?('参考答案'+(seen&&seen.seen?' · 已核对':'')):'暂无参考答案';
   b.classList.toggle('accent',!!a);
   b.title=a?('来源：'+(a.ref||a.src)+'；可逐条勾选采分点做自检'):'这道题暂未在各开源题库中匹配到可靠答案';
   if(st) st.innerHTML=a?'<span class="pill teal" title="已按「试卷 + 题序」匹配参考答案">参考答案已匹配</span>':'<span class="pill" title="可先提交批改，阅卷官会给出采分点">暂无参考答案</span>';
@@ -1864,7 +2438,7 @@ function refSourceHTML(a){
   if(a.path&&a.src!=='pdf'){
     url=s.repo+'/blob/'+s.branch+'/'+a.path.split('/').map(encodeURIComponent).join('/');
   }
-  return '<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(s.name)+' ↗</a>';
+  return '<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(s.name)+'</a>';
 }
 function refScoreText(q,hits,total){
   const max=GRADE.inferMax(q,GRADE.qType(q))||0;
@@ -2129,6 +2703,7 @@ $('#ws-ref .ref-mask').addEventListener('click',wsRefClose);
       wsSetExam(ex);
     }
     empty.hidden=true;grid.hidden=false;
+    const wsSwitch=$('#ws-mobile-switch');if(wsSwitch)wsSwitch.hidden=false;
     wsLayoutColumns();wsUpdatePage();
   }
   function wsSetExam(ex){

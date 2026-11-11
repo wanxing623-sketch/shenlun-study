@@ -1708,6 +1708,8 @@ function wsUpdateRefBtn(){
   if(st) st.innerHTML=a?'<span class="pill teal" title="已按「试卷 + 题序」匹配参考答案">参考答案已匹配</span>':'<span class="pill" title="可先提交批改，阅卷官会给出采分点">暂无参考答案</span>';
 }
 function refAnswerHTML(t){
+  /* Markdown 反斜杠转义（如 30\~10 分钟）在纯文本面板里还原 */
+  t=String(t||'').replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/g,'$1');
   const blocks=String(t||'').split(/\n{2,}/);
   return blocks.map(b=>{
     b=b.trim();if(!b)return '';

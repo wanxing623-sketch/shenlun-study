@@ -6,9 +6,9 @@
 
 **资料库**
 - 规范词库：420 条（21 期积累，按场景分类筛选）
-- 对策库：70 条模板 + 对策组合器
+- 对策库：70 条对策模板 + 72 条常见问题表述（双视图互相对照）+ 对策组合器
 - 案例图谱：560 条（7 章 56 个主题小节）
-- 公文速查：9 种文种结构 + 交卷检查清单
+- 公文速查：24 种文种结构 + 排版例文（与结构说明并排）+ 交卷检查清单
 
 **实战**
 - 真题作答台：内置 253 套国考/省考申论真题（约 166 万字）
@@ -55,9 +55,11 @@
 - 触屏设备自动放大点击目标；支持「大字号」「减少动画」
 - 数字键 1–9 快速切换页面，Ctrl/⌘ K 全局搜索
 
-## 真题数据
+## 资料数据
 
-见 [exams/DATA-SOURCE.md](exams/DATA-SOURCE.md)。按分组懒加载，不影响首屏速度。
+真题与参考答案见 [exams/DATA-SOURCE.md](exams/DATA-SOURCE.md)。按分组懒加载，不影响首屏速度。
+
+规范词、对策、问题表述与公文文种由 `tools/library/` 构建，说明见 [tools/library/README.md](tools/library/README.md)。
 
 ## 本地运行
 
@@ -72,7 +74,7 @@ python3 -m http.server 4173
 ## 部署到 GitHub Pages
 
 1. GitHub 新建仓库（例如 `shenlun-study`）。
-2. 上传 `index.html`、`exams/`、`.nojekyll`、`README.md` 到仓库根目录。
+2. 上传 `index.html`、`data/`、`exams/`、`.nojekyll`、`README.md` 到仓库根目录。
 3. Settings → Pages → Deploy from a branch → main / (root) → Save。
 4. 访问 `https://你的用户名.github.io/shenlun-study/`
 

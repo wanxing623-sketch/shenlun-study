@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#f4f2ed" />
+<meta name="theme-color" content="#ffffff" />
 <meta name="format-detection" content="telephone=no" />
 <meta name="color-scheme" content="light dark" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="assets/app.css" />
 <link rel="stylesheet" href="exams/kk.css" />
 <link rel="stylesheet" href="exams/lab/lab.css" />
-<script>/* 首屏前定好主题 / 字号 / 阅读字体，避免闪烁 */(function(){try{var L=localStorage,r=document.documentElement,p=L.getItem("sh_theme")||"auto";var d=p==="dark"||(p==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);r.setAttribute("data-theme",d?"dark":"light");var win=/Win/i.test(navigator.platform||"")||/Windows/i.test(navigator.userAgent||"");if(win)r.setAttribute("data-os","win");r.setAttribute("data-read",L.getItem("sh_read")||(win?"sans":"serif"));r.setAttribute("data-font",L.getItem("sh_font")||"normal");var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#171614":"#f4f2ed")}catch(e){}})();</script>
+<script>/* 首屏前定好主题 / 字号 / 阅读字体，避免闪烁 */(function(){try{var L=localStorage,r=document.documentElement,p=L.getItem("sh_theme")||"auto";var d=p==="dark"||(p==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);r.setAttribute("data-theme",d?"dark":"light");var win=/Win/i.test(navigator.platform||"")||/Windows/i.test(navigator.userAgent||"");if(win)r.setAttribute("data-os","win");r.setAttribute("data-read",L.getItem("sh_read")||(win?"sans":"serif"));r.setAttribute("data-font",L.getItem("sh_font")||"normal");var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#171614":"#ffffff")}catch(e){}})();</script>
 </head>
 <body>
 <script src="assets/icons.js"></script>
@@ -95,10 +95,11 @@
   <div class="page-head"><h1>规范词</h1><p>把材料里的原话，换成答题时的规范说法。</p></div>
   <div class="filterbar">
     <label class="mini-search"><i data-ico="search"></i><input id="vocab-search" type="search" enterkeyhint="search" placeholder="搜索规范词或材料原句" autocomplete="off"/></label>
+    <button class="filter-btn" data-fopen="vocab-filter" aria-expanded="false" aria-controls="vocab-filter"><i data-ico="filter"></i><span>筛选</span><b class="filter-n" hidden></b></button>
     <button class="icon-btn" id="vocab-random" title="随机看一条" aria-label="随机看一条"><i data-ico="shuffle"></i></button>
   </div>
-  <div class="chip-scroll"><button class="chip chip-fav" id="vocab-fav-only" aria-pressed="false"><i data-ico="star"></i>收藏</button><span class="chip-sep" aria-hidden="true"></span><div class="chip-row" id="vocab-chips"></div></div>
-  <div class="list-meta"><span class="result-count" id="vocab-count"></span><span class="grow"></span><select class="select-inline" id="vocab-period" aria-label="期数筛选"><option value="all">全部期数</option></select><select class="select-inline" id="vocab-sort" aria-label="排序"><option value="default">默认排序</option><option value="term">按词语</option><option value="scene">按原句</option></select></div>
+  <div class="fpanel" id="vocab-filter" role="group" aria-label="筛选规范词" hidden><div class="fpanel-head"><b>筛选</b><button class="sheet-close" data-fclose aria-label="关闭筛选"><i data-ico="x"></i></button></div><div class="fpanel-body"><div class="fgroup"><div class="fgroup-h">分类</div><div class="chip-row" id="vocab-chips"></div></div><div class="fgroup fgroup-2"><label class="ffield"><span>期数</span><select class="fselect" id="vocab-period" aria-label="期数筛选"><option value="all">全部期数</option></select></label><label class="ffield"><span>排序</span><select class="fselect" id="vocab-sort" aria-label="排序"><option value="default">默认排序</option><option value="term">按词语</option><option value="scene">按原句</option></select></label></div><div class="fgroup"><div class="fgroup-h">范围</div><div class="chip-row"><button class="chip chip-fav" id="vocab-fav-only" aria-pressed="false"><i data-ico="star"></i>只看收藏</button></div></div></div><div class="fpanel-foot"><button class="secondary" data-freset="vocab-filter">重置</button><button class="primary" data-fclose>查看 <span data-fcount></span> 条</button></div></div>
+  <div class="list-meta"><span class="result-count" id="vocab-count"></span><div class="active-filters" id="vocab-active"></div></div>
   <div class="library-layout"><div id="vocab-list" class="card-grid"></div><aside id="vocab-detail" class="detail-panel" aria-label="规范词详情"><div class="detail-empty">点左边任意一条，这里显示材料原句和规范说法。</div></aside></div>
 </section>
 
@@ -111,10 +112,11 @@
   </div>
   <div class="filterbar">
     <label class="mini-search"><i data-ico="search"></i><input id="strategy-search" type="search" enterkeyhint="search" placeholder="搜索对策名称或正文" autocomplete="off"/></label>
+    <button class="filter-btn" data-fopen="strategy-filter" aria-expanded="false" aria-controls="strategy-filter"><i data-ico="filter"></i><span>筛选</span><b class="filter-n" hidden></b></button>
     <button class="icon-btn" id="strategy-random" title="随机看一条" aria-label="随机看一条"><i data-ico="shuffle"></i></button>
   </div>
-  <div class="chip-scroll"><button class="chip chip-fav" id="strategy-fav-only" aria-pressed="false"><i data-ico="star"></i>收藏</button><span class="chip-sep" aria-hidden="true"></span><div class="chip-row" id="strategy-chips"></div></div>
-  <div class="list-meta"><span class="result-count" id="strategy-count"></span><span class="grow"></span><select class="select-inline" id="strategy-sort" aria-label="排序"><option value="default">按编号</option><option value="title">按名称</option></select></div>
+  <div class="fpanel" id="strategy-filter" role="group" aria-label="筛选对策" hidden><div class="fpanel-head"><b>筛选</b><button class="sheet-close" data-fclose aria-label="关闭筛选"><i data-ico="x"></i></button></div><div class="fpanel-body"><div class="fgroup"><div class="fgroup-h">分类</div><div class="chip-row" id="strategy-chips"></div></div><div class="fgroup fgroup-2"><label class="ffield"><span>排序</span><select class="fselect" id="strategy-sort" aria-label="排序"><option value="default">按编号</option><option value="title">按名称</option></select></label></div><div class="fgroup"><div class="fgroup-h">范围</div><div class="chip-row"><button class="chip chip-fav" id="strategy-fav-only" aria-pressed="false"><i data-ico="star"></i>只看收藏</button></div></div></div><div class="fpanel-foot"><button class="secondary" data-freset="strategy-filter">重置</button><button class="primary" data-fclose>查看 <span data-fcount></span> 条</button></div></div>
+  <div class="list-meta"><span class="result-count" id="strategy-count"></span><div class="active-filters" id="strategy-active"></div></div>
   <div class="plan-bar" id="plan-bar" hidden></div>
   <div class="library-layout"><div id="strategy-list" class="card-grid"></div><aside id="strategy-detail" class="detail-panel" aria-label="对策详情"><div class="detail-empty">点左边任意一条查看模板。</div></aside></div>
 </section>
@@ -124,10 +126,11 @@
   <div class="page-head"><h1>案例</h1><p>按主题找案例，点开看原文和适用的话题。</p></div>
   <div class="filterbar">
     <label class="mini-search"><i data-ico="search"></i><input id="case-search" type="search" enterkeyhint="search" placeholder="搜索案例、关键词或主题" autocomplete="off"/></label>
+    <button class="filter-btn" data-fopen="case-filter" aria-expanded="false" aria-controls="case-filter"><i data-ico="filter"></i><span>筛选</span><b class="filter-n" hidden></b></button>
     <button class="icon-btn" id="case-random" title="随机看一条" aria-label="随机看一条"><i data-ico="shuffle"></i></button>
   </div>
-  <div class="chip-scroll"><button class="chip chip-fav" id="case-fav-only" aria-pressed="false"><i data-ico="star"></i>收藏</button><span class="chip-sep" aria-hidden="true"></span><div class="chip-row" id="case-topics"></div></div>
-  <div class="list-meta"><span class="result-count" id="case-count"></span><span class="grow"></span><select class="select-inline" id="case-section" aria-label="小节筛选"><option value="all">全部小节</option></select></div>
+  <div class="fpanel" id="case-filter" role="group" aria-label="筛选案例" hidden><div class="fpanel-head"><b>筛选</b><button class="sheet-close" data-fclose aria-label="关闭筛选"><i data-ico="x"></i></button></div><div class="fpanel-body"><div class="fgroup"><div class="fgroup-h">主题</div><div class="chip-row" id="case-topics"></div></div><div class="fgroup fgroup-2"><label class="ffield"><span>小节</span><select class="fselect" id="case-section" aria-label="小节筛选"><option value="all">全部小节</option></select></label></div><div class="fgroup"><div class="fgroup-h">范围</div><div class="chip-row"><button class="chip chip-fav" id="case-fav-only" aria-pressed="false"><i data-ico="star"></i>只看收藏</button></div></div></div><div class="fpanel-foot"><button class="secondary" data-freset="case-filter">重置</button><button class="primary" data-fclose>查看 <span data-fcount></span> 条</button></div></div>
+  <div class="list-meta"><span class="result-count" id="case-count"></span><div class="active-filters" id="case-active"></div></div>
   <div id="case-list" class="card-grid case-grid"></div>
 </section>
 
@@ -200,8 +203,9 @@
     <div class="pm-box modal-box" role="dialog" aria-modal="true" aria-label="选择真题套卷">
       <div class="pm-head modal-head"><b>选择真题</b><span class="pill" id="pm-total"></span><button class="pm-x modal-x" id="pm-close" aria-label="关闭"><i data-ico="x"></i></button></div>
       <div class="pm-tools">
-        <label class="pm-search mini-search"><i data-ico="search"></i><input id="pm-q" type="search" enterkeyhint="search" placeholder="搜索省份、年份或卷别，如：江苏 2023" autocomplete="off"/></label>
-        <div class="pm-chips" id="pm-chips"></div>
+        <div class="pm-row"><label class="pm-search mini-search"><i data-ico="search"></i><input id="pm-q" type="search" enterkeyhint="search" placeholder="搜索年份或卷别，如：2023 副省级" autocomplete="off"/></label>
+        <button class="filter-btn" id="pm-region-btn" aria-expanded="false" aria-controls="pm-chips"><i data-ico="filter"></i><span id="pm-region-label">地区</span><i data-ico="down" class="fb-caret"></i></button></div>
+        <div class="pm-chips" id="pm-chips" hidden></div>
       </div>
       <div class="pm-count" id="pm-count"></div>
       <div class="pm-list" id="pm-list"></div>

@@ -3,71 +3,103 @@
 """
 真题参考答案构建脚本
 ====================
-把 GitHub 开源题库里的申论参考答案，按「试卷 ID + 题序」匹配到本项目的真题数据，
-生成 exams/answers.js（供真题作答台在作答后自检使用）。
+把开源题库里的申论参考答案，按「试卷 ID + 题序」对上本项目的真题数据，生成
+exams/answers-gk.js、exams/answers-prov1.js、exams/answers-prov2.js、exams/answers-meta.js。
 
-数据来源（均为公开 GitHub 仓库）：
-  1. ProfessorZhi/gwy-zhenti           粉笔题库整理的历年国考/省考申论真题 + 参考答案（主来源）
-  2. zzcc-nb/gongkao-tiku              申论题库（粉笔参考答案 + 答题演示），按题干检索补缺
-  3. h1neolzr7f/guokao-real-exams-2022-2026  2022–2026 国考三卷机构解析（含参考答案/评分标准/范文）
-  4. 36hxqw/gongkao-zhenti-knowledge    国考 / 广东 / 湖北真题结构化数据（含逐题答案）
+与旧版的区别
+------------
+旧版把整段「答案 + 参考答案说明 + 解析」一起塞进 a 字段，页面上看起来像答案正文，
+而「参考答案说明」其实是对答案结构的解释，属于解析，不属于答案。新版把它们拆成三个字段：
 
-匹配不是按文件名硬编码，而是：
-  · 题干相似度（字符二元组 Dice 系数）
-  · 材料重合度（来源材料逐节在本项目整卷材料中的覆盖率）
-双重校验后再落库，避免「题号相同但卷子不同」的串答案。
+  a      真实参考答案（只保留作答内容）
+  note   参考答案说明 / 参考答案一、二…（对答案思路、结构的说明）
+  x      解析与考点
+
+数据来源（均为公开 GitHub 仓库，机器整理版，不是官方答案）：
+
+  1. ProfessorZhi/gwy-zhenti   粉笔题库整理（主来源，逐题带参考答案 / 参考答案说明 / 考点 / 解析）
+  2. h1neolzr7f/guokao-real-exams-2022-2026   2022–2026 国考机构解析（答案 / 评分标准 / 范文）
+  3. zzcc-nb/gongkao-tiku      申论题库（按题干检索补缺）
+
+匹配逻辑：题干相似度（二元组 Dice）+ 材料重合度双重校验，先按「卷」定来源，再按题序落库；
+题号只作兜底，题干完全对不上时宁可不给答案，也不串题。
 
 用法：
-    python3 tools/answers/build_answers.py            # 缺缓存时自动下载
-    python3 tools/answers/build_answers.py --offline  # 只用 .cache 里已有数据
-    python3 tools/answers/build_answers.py --report   # 额外打印逐卷覆盖报告
+    python3 tools/answers/build_answers.py --src /path/to/gwy-zhenti --report
+产物：
+    exams/answers-*.js、exams/answers-meta.js、tools/answers/report.json
 """
-import argparse, collections, concurrent.futures, json, os, re, shutil, subprocess, sys, tarfile, time, urllib.request
+import argparse, collections, json, os, re, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-CACHE = os.path.join(os.path.dirname(__file__), '.cache')
-OUT = os.path.join(ROOT, 'exams', 'answers.js')
-UA = {'User-Agent': 'shenlun-study-answers-builder', 'Accept': 'application/vnd.github+json'}
-API = 'https://api.github.com'
 
-SOURCES = {
-    'gwy': dict(
-        id='gwy-zhenti', repo='ProfessorZhi/gwy-zhenti', branch='main',
-        url='https://github.com/ProfessorZhi/gwy-zhenti',
-        name='粉笔题库整理（gwy-zhenti）',
-        note='粉笔题库参考答案及解析，机器抓取版，非官方答案',
-    ),
-    'fenbi': dict(
-        id='fenbi-tiku', repo='zzcc-nb/gongkao-tiku', branch='master',
-        url='https://github.com/zzcc-nb/gongkao-tiku',
-        name='申论题库（gongkao-tiku）',
-        note='粉笔官方参考答案 + 答题演示，按题干检索补缺',
-    ),
-    'jigou': dict(
-        id='guokao-2022-2026', repo='h1neolzr7f/guokao-real-exams-2022-2026', branch='main',
-        url='https://github.com/h1neolzr7f/guokao-real-exams-2022-2026',
-        name='国考机构解析（2022–2026）',
-        note='机构整理答案/评分标准/范文，非官方答案',
-    ),
-    'pdf': dict(
-        id='zhenti-knowledge', repo='36hxqw/gongkao-zhenti-knowledge', branch='main',
-        url='https://github.com/36hxqw/gongkao-zhenti-knowledge',
-        name='真题卷答案解析（gongkao-zhenti-knowledge）',
-        note='国考 / 广东 / 湖北原卷答案解析',
-    ),
+VARIANTS = {'⻘': '青', '⺠': '民', '⻓': '长', '⻔': '门', '⻛': '风', '⻥': '鱼', '⻢': '马',
+            '⻜': '飞', '⻅': '见', '⻩': '黄', '⻰': '龙', '⻐': '金', '⺟': '母',
+            '⻋': '车', '⻄': '西', '⻚': '页', '⻉': '贝', '⻝': '食', '⻬': '齐',
+            '⻙': '韦', '⻊': '足', '⺩': '王', '⻖': '阝', '⻆': '角', '⺮': '竹', '⺡': '氵'}
+
+SRC_META = {
+    'gwy': dict(id='gwy-zhenti', repo='ProfessorZhi/gwy-zhenti', branch='main',
+                url='https://github.com/ProfessorZhi/gwy-zhenti',
+                name='粉笔题库整理（gwy-zhenti）',
+                note='粉笔题库参考答案及解析，机器抓取版，非官方答案'),
+    'jigou': dict(id='guokao-2022-2026', repo='h1neolzr7f/guokao-real-exams-2022-2026', branch='main',
+                  url='https://github.com/h1neolzr7f/guokao-real-exams-2022-2026',
+                  name='国考机构解析（2022–2026）',
+                  note='机构整理答案 / 评分标准 / 范文，非官方答案'),
+    'fenbi': dict(id='fenbi-tiku', repo='zzcc-nb/gongkao-tiku', branch='master',
+                  url='https://github.com/zzcc-nb/gongkao-tiku',
+                  name='申论题库（gongkao-tiku）',
+                  note='粉笔参考答案 + 答题演示，按题干补缺'),
 }
 
-# ---------- 文本工具 ----------
-VARIANTS = {'⻘':'青','⺠':'民','⻓':'长','⻔':'门','⻛':'风','⻥':'鱼','⻋':'车','⻢':'马','⻜':'飞','⻅':'见','⻄':'西','⻚':'页','⻉':'贝','⻝':'食','⻩':'黄','⻬':'齐','⻰':'龙','⻐':'金','⻙':'韦','⺟':'母','⻊':'足','⺩':'王','⻖':'阝','⻆':'角','⺮':'竹','⺡':'氵'}
 
-def norm(t):
-    t = t or ''
+# ---------- 文本工具 ----------
+def clean(t):
+    t = (t or '')
     for k, v in VARIANTS.items():
         t = t.replace(k, v)
-    return re.sub(r'[\s，。；：、！？“”‘’（）《》【】〈〉·—…,.:;!?()\[\]"\'\-—－_/\\|*#`]', '', t)
+    t = t.replace('\r\n', '\n').replace('\r', '\n').replace('\u00a0', ' ').replace('\u3000', ' ')
+    t = t.replace('&#8226;', '·').replace('&#183;', '·').replace('&nbsp;', ' ')
+    t = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', t)          # 图片
+    t = re.sub(r'<[^>]+>', '', t)                        # html
+    t = re.sub(r'(?m)^\s*>\s?', '', t)                   # 引用块
+    t = t.replace('**', '').replace('__', '')        # \ue000 保留给解析器判断加粗位置
+    t = re.sub(r'(?m)^\s*解析\s*$', '', t)
+    t = re.sub(r'(?m)^\s*(?:第\s*\d{1,2}\s*题\s*[·・]\s*)?答案与解析\s*$', '', t)
+    t = re.sub(r'[ \t]+\n', '\n', t)
+    t = re.sub(r'\n{3,}', '\n\n', t)
+    return t.strip()
+
+
+def norm(t):
+    t = (t or '').replace('\ue000', '')
+    for k, v in VARIANTS.items():
+        t = t.replace(k, v)
+    return re.sub(r'[\s，。；：、！？“”‘’（）《》〈〉【】·—…,.:;!?()\[\]"\'\-—－_/\\|*#`]', '', t)
+
 
 def bigrams(s):
     return set(s[i:i + 2] for i in range(len(s) - 1)) or {s}
+
+
+def contain(a, b):
+    """短题干被长题干覆盖的比例（一边截断了子问题/要求时，Dice 会偏低）"""
+    if not a or not b:
+        return 0.0
+    short, long_ = (a, b) if len(a) <= len(b) else (b, a)
+    if len(short) < 12:
+        return 0.0
+    G, H = bigrams(short), bigrams(long_)
+    if not G:
+        return 0.0
+    return len(G & H) / float(len(G))
+
+
+def sim(a, b):
+    """题干相似度：Dice 与「短题干被覆盖率」取高者"""
+    return max(dice(a, b), contain(a, b) * 0.92)
+
 
 def dice(a, b):
     A, B = bigrams(a), bigrams(b)
@@ -75,599 +107,419 @@ def dice(a, b):
         return 0.0
     return 2.0 * len(A & B) / (len(A) + len(B))
 
-def cover(a, b):
-    """较短一侧的二元组被另一侧覆盖的比例（用于处理题干被截断/多加要求的情况）"""
-    A, B = bigrams(a), bigrams(b)
-    if not A or not B:
-        return 0.0
-    return len(A & B) / min(len(A), len(B))
 
-def containment(whole, part):
-    """part 的二元组有多少比例出现在 whole 里"""
-    A, B = bigrams(whole), bigrams(part)
-    if not A or not B:
-        return 0.0
-    return len(A & B) / float(len(B))
+ARTIFACT_RE = re.compile(r'微信公众号|扫码关注|扫码添加|（责任编辑|来源：粉笔|本文来源|点击查看更多|'
+                         r'以上内容由|客服|APP内|下载粉笔')
 
-ARTIFACT = re.compile(r'^(?:——.*|—{2,}.*|.*一手最全公考资源.*|.*加微信.*|.*扫码关注.*|.{0,40}关注.{0,8}公众号.{0,40}|.{0,40}微信公众号.{0,40})$')
-QUESTIONISH = re.compile(r'请(?:根据|结合|以|围绕|就|你)|作答|写一篇|概括|分析|提出|拟写|撰写|提纲|宣传稿|倡议书|短评|汇报|讲话稿|公开信')
 
-def is_artifact(line):
-    """过滤「扫码关注公众号」等推广行，但不能误伤含「微信公众号」的题干"""
-    line = (line or '').strip()
-    if not line or len(line) > 90:
-        return False
-    if QUESTIONISH.search(line):
-        return False
-    return bool(ARTIFACT.match(line))
-NUMSTART = re.compile(r'^(?:\d{1,2}[.．、]|[（(]\d{1,2}[)）]|[一二三四五六七八九十]{1,2}[、.]|第[一二三四五六七八九十]{1,2}[条点]|标题[：:]|称谓[：:]|落款[：:]|开头[：:]|主体[：:]|结尾[：:]|【)')
-
-def reflow(t):
-    """把 OCR / 网页抓取造成的句中硬换行接回去，保留真正的分段与分条"""
-    out, buf = [], ''
-    def flush():
-        nonlocal buf
-        if buf.strip():
-            out.append(buf.strip())
-        buf = ''
-    for line in t.split('\n'):
-        s = line.strip()
+def tidy(t):
+    """去掉抓取残留、接回 OCR 硬换行；保留分条与分段"""
+    t = (t or '').replace('\ue000', '')
+    lines = []
+    for ln in (t or '').split('\n'):
+        s = ln.strip()
         if not s:
-            flush(); out.append(''); continue
-        if NUMSTART.match(s):
-            flush(); buf = s; continue
-        if buf and len(buf) >= 24 and not re.search(r'[。！？；：”』】)】]$', buf):
-            buf += s
-        else:
-            flush(); buf = s
-    flush()
-    return '\n'.join(out)
-
-def clean_md(t):
-    t = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', t or '')
-    t = re.sub(r'<[^>]+>', '', t)
-    t = t.replace('**', '')
-    lines = [l.strip() for l in t.split('\n')]
-    lines = [l for l in lines if not is_artifact(l)]
-    t = '\n'.join(lines)
-    t = re.sub(r'^\s*[-*_]{3,}\s*$', '', t, flags=re.M)
-    t = re.sub(r'[ \t]+', ' ', t)
-    t = re.sub(r'\n{3,}', '\n\n', t)
-    return reflow(t).strip()
-
-def strip_lead(t):
-    t = re.sub(r'</?details[^>]*>', '', t or '')
-    return re.sub(r'\s+$', '', t).strip()
-
-# ---------- 下载 ----------
-def fetch_json(url):
-    req = urllib.request.Request(url, headers=UA)
-    return json.load(urllib.request.urlopen(req, timeout=90))
-
-def fetch_raw(url, timeout=120):
-    req = urllib.request.Request(url, headers=dict(UA, Accept='application/vnd.github.raw'))
-    return urllib.request.urlopen(req, timeout=timeout).read()
-
-def download_tarball(repo, branch, dest):
-    if os.path.isdir(dest) and os.listdir(dest):
-        return dest
-    os.makedirs(os.path.dirname(dest), exist_ok=True)
-    tgz = dest + '.tar.gz'
-    if not os.path.exists(tgz):
-        print('  · 下载 %s@%s …' % (repo, branch))
-        url = 'https://codeload.github.com/%s/tar.gz/refs/heads/%s' % (repo, branch)
-        data = urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': UA['User-Agent']}), timeout=300).read()
-        open(tgz, 'wb').write(data)
-    tmp = dest + '.tmp'
-    with tarfile.open(tgz) as tf:
-        tf.extractall(tmp)
-    inner = [x for x in os.listdir(tmp) if os.path.isdir(os.path.join(tmp, x))]
-    shutil.move(os.path.join(tmp, inner[0]), dest)
-    shutil.rmtree(tmp, ignore_errors=True)
-    return dest
-
-def ensure_sources(offline=False):
-    os.makedirs(CACHE, exist_ok=True)
-    # 1) gwy-zhenti：按目录抓取申论 md（仓库 1GB，全量 tarball 不划算）
-    prof_dir = os.path.join(CACHE, 'gwy-zhenti')
-    prof_index = os.path.join(CACHE, 'gwy-index.json')
-    if not os.path.exists(prof_index):
-        if offline:
-            raise SystemExit('缺少 %s，请先联网运行一次' % prof_index)
-        print('· 枚举 ProfessorZhi/gwy-zhenti 申论文件 …')
-        repo = SOURCES['gwy']['repo']; branch = SOURCES['gwy']['branch']
-        root = fetch_json('%s/repos/%s/contents/' % (API, repo))
-        files = []
-        for d in root:
-            if d['name'] not in ('国考', '省考'):
-                continue
-            if d['name'] == '国考':
-                tree = fetch_json('%s/repos/%s/git/trees/%s?recursive=1' % (API, repo, d['sha']))
-                for x in tree['tree']:
-                    if x['type'] == 'blob' and x['path'].endswith('.md') and '申论' in x['path']:
-                        files.append({'path': '国考/' + x['path'], 'sha': x['sha'], 'size': x.get('size', 0)})
+            lines.append('')
+            continue
+        if ARTIFACT_RE.search(s) and len(s) < 60:
+            continue
+        lines.append(s)
+    out, buf, prev_short = [], [], True
+    for s in lines:
+        if s == '':
+            if buf:
+                out.append(buf)
+            out.append([''])
+            buf = []
+            continue
+        buf.append(s)
+    if buf:
+        out.append(buf)
+    blocks = []
+    for b in out:
+        if b == ['']:
+            continue
+        text = ''
+        for s in b:
+            if not text:
+                text = s
+            elif re.match(r'^\d{1,2}[.、．]|^[（(]\d{1,2}[）)]|^[一二三四五六七八九十]+[、.]|'
+                          r'^(要点|解析|考点|答案|措施|对策|原因|问题|成效|结论|总之|因此|首先|其次|再次|最后|'
+                          r'一、|二、|三、|四、|五、|标题|开头|结尾|分论点)', s):
+                text += '\n' + s
+            elif text.rstrip().endswith(('。', '！', '？', '；', '：', '”', '）', '…')):
+                text += '\n' + s
             else:
-                provs = fetch_json(d['url'])
-                for pv in provs:
-                    if pv.get('type') != 'dir':
-                        continue
-                    tree = fetch_json('%s/repos/%s/git/trees/%s?recursive=1' % (API, repo, pv['sha']))
-                    for x in tree['tree']:
-                        if x['type'] == 'blob' and x['path'].endswith('.md') and '申论' in x['path']:
-                            files.append({'path': '省考/%s/%s' % (pv['name'], x['path']), 'sha': x['sha'],
-                                          'size': x.get('size', 0)})
-        json.dump(files, open(prof_index, 'w'), ensure_ascii=False)
-        print('  共 %d 个申论文件' % len(files))
-    files = json.load(open(prof_index))
-    os.makedirs(prof_dir, exist_ok=True)
+                text += s
+        blocks.append(text.strip())
+    return '\n\n'.join(x for x in blocks if x)
 
-    def one(x):
-        out = os.path.join(prof_dir, x['path'].replace('/', '__'))
-        if os.path.exists(out) and os.path.getsize(out) > 0:
-            return 0
-        if offline:
-            return 0
-        for attempt in range(4):
-            try:
-                data = fetch_raw('%s/repos/%s/git/blobs/%s' % (API, SOURCES['gwy']['repo'], x['sha']))
-                open(out, 'wb').write(data)
-                return 1
-            except Exception:
-                time.sleep(1 + attempt * 2)
-        return 0
 
-    todo = [x for x in files if not os.path.exists(os.path.join(prof_dir, x['path'].replace('/', '__')))]
-    if todo and not offline:
-        print('· 下载 %d 个申论文件 …' % len(todo))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
-            done = sum(ex.map(one, todo))
-        print('  完成 %d 个' % done)
+# ---------- 解析 gwy-zhenti ----------
+Q_HEAD = re.compile(r'(?m)^###\s*第\s*(\d{1,2})\s*题\s*$')
+ANS_MAIN = re.compile(r'\ue000?\s*参考答案(?:（[^）]*）|\([^)]*\))?\s*[：:]?\s*\ue000?\s*\n?')
+ANS_NOTE = re.compile(r'\ue000(参考答案说明|答案说明|答题说明|参考答案一|参考答案二|参考答案三|'
+                      r'答案一|答案二|答案三|参考范文一|参考范文二|参考范文1|参考范文2)'
+                      r'\s*[：:]?\s*(?:\ue000)?')
 
-    # 2) 其他仓库
-    download_tarball(SOURCES['fenbi']['repo'], SOURCES['fenbi']['branch'], os.path.join(CACHE, 'gongkao-tiku'))
-    download_tarball(SOURCES['jigou']['repo'], SOURCES['jigou']['branch'], os.path.join(CACHE, 'guokao-2022-2026'))
-    pdf_jsonl = os.path.join(CACHE, 'zhenti-knowledge-shenlun.jsonl')
-    if not os.path.exists(pdf_jsonl):
-        if offline:
-            raise SystemExit('缺少 %s' % pdf_jsonl)
-        tree = fetch_json('%s/repos/%s/git/trees/%s?recursive=1' % (API, SOURCES['pdf']['repo'], SOURCES['pdf']['branch']))
-        blob = [x for x in tree['tree'] if x['path'] == 'data/shenlun.jsonl'][0]
-        print('· 下载 shenlun.jsonl …')
-        open(pdf_jsonl, 'wb').write(fetch_raw('%s/repos/%s/git/blobs/%s' % (API, SOURCES['pdf']['repo'], blob['sha']), 300))
 
-# ---------- 解析各来源 ----------
-def parse_gwy():
-    """gwy-zhenti：每份 md 内 ## 给定材料 / ## 题目，题块 ### 第 N 题"""
-    d = os.path.join(CACHE, 'gwy-zhenti')
-    papers = []
-    for fn in sorted(os.listdir(d)):
+def parse_gwy_file(path):
+    raw = open(path, encoding='utf-8').read()
+    raw = raw.replace('**', '\ue000')       # 先把加粗标记换成私用区字符，避免被 clean 抹掉
+    txt = clean(raw)
+    head, _, rest = txt.partition('## 题目')
+    if not rest:
+        return []
+    mats = []
+    for m in re.finditer(r'(?m)^###\s*材料\s*(\d{1,2})\s*$', head):
+        mats.append(m.start())
+    mat_text = []
+    for i, st in enumerate(mats):
+        end = mats[i + 1] if i + 1 < len(mats) else len(head)
+        seg = head[head.index('\n', st) + 1:end]
+        mat_text.append(seg.strip())
+    parts = Q_HEAD.split(rest)
+    out = []
+    for i in range(1, len(parts), 2):
+        no = int(parts[i])
+        chunk = parts[i + 1]
+        # 去掉折叠块结束标签
+        body = chunk.split('<details>')[0]
+        body = body.replace('\ue000', '') if body.count('\ue000') <= 2 else body
+        body = re.sub(r'关联材料[：:].*', '', body)
+        body = re.sub(r'作答要求[：:][\s\S]*?(?=\ue000?\s*参考答案|$)', '', body)
+        stem = re.split(r'关联材料|作答要求|参考答案（|参考答案\(', body)[0]
+        stem = re.sub(r'\s+', ' ', stem.replace('\ue000', '')).strip().strip('*').strip()
+        stem = re.sub(r'[（(]\s*\d+\s*分\s*[）)]\s*$', '', stem).strip()
+        ans_part = chunk
+        main = ''
+        m = ANS_MAIN.search(ans_part)
+        if m:
+            seg = ans_part[m.end():]
+            # 「解析」段整体拿掉后再切答案 / 说明，避免说明被当成正文
+            msep = re.search(r'(?m)^\s*(?:第\s*\d{1,2}\s*题\s*[·・]\s*)?解析\s*$', seg)
+            tail = ''
+            if msep:
+                tail = seg[msep.end():]
+                seg = seg[:msep.start()]
+            # 「参考答案（…）」标题后面常紧跟「参考答案一」，那是正文的标签，不是说明
+            lead = re.match(r'\s*\ue000?\s*(?:参考答案一|答案一|参考范文一)\s*[：:]?\s*\ue000?\s*', seg)
+            first_label = ''
+            if lead:
+                first_label = '参考答案一'
+                seg = seg[lead.end():]
+            stop = re.search(r'(?m)^\s*\ue000?\s*(?:参考答案说明|答案说明|答题说明|参考答案[一二三]|'
+                             r'参考范文[一二三1-3])', seg)
+            main = seg[:stop.start()] if stop else seg
+            ans_part = (seg[stop.start():] if stop else '') + '\n' + tail
+            if first_label:
+                note_bits_lead = [(first_label, '')]
+        note_bits = []
+        for m in ANS_NOTE.finditer(ans_part):
+            seg = ans_part[m.end():]
+            stop = re.search(r'(?m)^\s*(?:参考答案说明|答案说明|答题说明|参考答案[二三]|参考范文[二三2-3]|'
+                             r'考点[：:]|来源[：:])', seg)
+            note_bits.append((m.group(1), seg[:stop.start()] if stop else seg))
+        analysis = ''
+        mj = re.search(r'\ue000\s*解析\s*\ue000?', ans_part)
+        if mj:
+            analysis = ans_part[mj.end():]
+        kaodian = ''
+        mk = re.search(r'\ue000\s*考点\s*\ue000?\s*[：:]?\s*([^\n]*)', ans_part)
+        if mk:
+            kaodian = mk.group(1).strip()
+        main = re.sub(r'(?m)^\s*(?:第\s*\d{1,2}\s*题\s*[·・]\s*)?答案与解析.*$', '', main)
+        main = re.sub(r'(?m)^\s*<', '', main)
+        main_clean, inline_notes = split_inline_notes(main)
+        if not main_clean.strip() and len(inline_notes) >= 1:
+            # 「参考答案一 / 二」这种排版：第一份当主答案，其余作为对照
+            main_clean = inline_notes[0][1]
+            inline_notes = [('参考答案一', inline_notes[0][1])] + inline_notes[1:]
+        note_bits = inline_notes + note_bits
+        out.append(dict(no=no, t=stem, a=tidy(main_clean),
+                        note=[(k, tidy(v)) for k, v in note_bits if tidy(v)],
+                        x=tidy(analysis), k=kaodian, mats=mat_text, path=path))
+    return out
+
+
+INLINE_NOTE = re.compile(r'(?m)(?:^|(?<=[。；：\n]))\s*\**\s*(参考答案说明|答案说明|答题说明|参考范文说明'
+                         r'|参考答案[一二三]|参考范文[一二三1-3])\s*[：:]?\s*\**')
+
+
+def split_inline_notes(text):
+    """「参考答案说明：…」有时不带加粗标题、直接跟在答案正文后面，这里切出来"""
+    hits = list(INLINE_NOTE.finditer(text or ''))
+    if not hits:
+        return text, []
+    main = text[:hits[0].start()]
+    notes = []
+    for i, m in enumerate(hits):
+        end = hits[i + 1].start() if i + 1 < len(hits) else len(text)
+        notes.append((m.group(1), text[m.end():end]))
+    return main, notes
+
+
+def load_gwy(src):
+    items = []
+    for fn in sorted(os.listdir(src)):
         if not fn.endswith('.md'):
             continue
-        t = open(os.path.join(d, fn), encoding='utf-8').read()
-        path = fn.replace('__', '/')
-        meta = {}
-        m = re.match(r'---\n(.*?)\n---', t, re.S)
-        if m:
-            for line in m.group(1).split('\n'):
-                if ':' in line:
-                    k, v = line.split(':', 1)
-                    meta[k.strip()] = v.strip().strip('"')
-        mats = []
-        mm = re.search(r'## 给定材料\s*\n(.*?)\n## 题目', t, re.S)
-        if mm:
-            parts = re.split(r'(?m)^### 材料\s*(\d+)\s*$', mm.group(1))
-            for i in range(1, len(parts), 2):
-                mats.append((int(parts[i]), clean_md(parts[i + 1])))
-        qs = []
-        qh = re.search(r'(?m)^## 题目\s*$', t)
-        if qh:
-            blocks = re.split(r'(?m)^### 第\s*(\d+)\s*题\s*$', t[qh.end():])
-            for i in range(1, len(blocks), 2):
-                no = int(blocks[i]); chunk = blocks[i + 1]
-                head = re.split(r'(?m)^<details|\*\*参考答案|\*\*解析', chunk)[0]
-                head = re.split(r'(?m)^关联材料：|^作答要求：', head)[0]
-                am = re.search(r'\*\*参考答案（粉笔题库参考内容）\*\*\s*\n(.*?)(?=\n\*\*解析|\n</details>|\Z)', chunk, re.S)
-                xm = re.search(r'\*\*解析\*\*\s*\n(.*?)(?=\n</details>|\Z)', chunk, re.S)
-                km = re.search(r'\*\*考点\*\*[：:]\s*(.+)', chunk)
-                sm = re.search(r'\*\*来源\*\*[：:]\s*(.+)', chunk)
-                ans = clean_md(am.group(1)) if am else ''
-                if not ans:
-                    continue
-                xtxt = clean_md(xm.group(1)) if xm else ''
-                xtxt = re.split(r'\n?考点[：:]', xtxt)[0].strip()
-                qs.append(dict(no=no, t=clean_md(head), a=ans, x=xtxt,
-                               k=strip_lead(km.group(1)) if km else '',
-                               ref=strip_lead(sm.group(1)).replace('</details>', '').strip() if sm else ''))
-        if qs:
-            papers.append(dict(src='gwy', path=path, meta=meta, mats=mats, qs=qs))
-    return papers
+        for q in parse_gwy_file(os.path.join(src, fn)):
+            q['file'] = fn
+            if q['a']:
+                items.append(q)
+    return items
 
-def parse_fenbi():
-    """gongkao-tiku：每个 md 就是一道题"""
-    d = os.path.join(CACHE, 'gongkao-tiku', '申论题库')
+
+# ---------- 解析机构解析 / 题库 ----------
+def load_jigou(src):
     out = []
-    for dirpath, _, names in os.walk(d):
-        for fn in names:
-            if not fn.endswith('.md') or fn == 'README.md':
+    if not os.path.isdir(src):
+        return out
+    for root, _, files in os.walk(src):
+        for fn in files:
+            if not fn.endswith(('.md', '.txt')):
                 continue
-            p = os.path.join(dirpath, fn)
-            t = open(p, encoding='utf-8').read()
-            src = re.search(r'> \*\*来源\*\*：(.+)', t)
-            num = re.search(r'> \*\*编号\*\*：(\d+)', t)
-            q = re.search(r'## 📌 题目\s*\n(.*?)\n## 📖', t, re.S)
-            a = re.search(r'## ✅ 参考答案\s*\n(.*?)(?=\n## |\Z)', t, re.S)
-            mat = re.search(r'## 📖 给定材料\s*\n(.*?)\n## ✅', t, re.S)
-            if not (q and a and a.group(1).strip()):
-                continue
-            ans = clean_md(a.group(1))
-            ans = re.split(r'\n参考答案说明[：:]', ans)[0].strip()
-            rel = os.path.relpath(p, os.path.join(CACHE, 'gongkao-tiku')).replace(os.sep, '/')
-            out.append(dict(src='fenbi', path=rel,
-                            ref=strip_lead(src.group(1)) if src else '',
-                            num=num.group(1) if num else '',
-                            t=clean_md(q.group(1)), a=ans, x='',
-                            k='', mats=[(1, clean_md(mat.group(1)))] if mat else []))
+            t = clean(open(os.path.join(root, fn), encoding='utf-8').read())
+            for i, chunk in enumerate(re.split(r'(?m)^第[一二三四五六七八九十\d]+题[：:]', t)[1:]):
+                out.append(dict(no=i + 1, t='', a=tidy(chunk), note=[], x='', k='', mats=[],
+                                file=fn, ref=fn))
     return out
 
-def parse_jigou():
-    """2026 国考三卷机构解析"""
-    d = os.path.join(CACHE, 'guokao-2022-2026', '2026')
+
+def load_fenbi(src):
     out = []
-    for fn in sorted(os.listdir(d)):
-        if '机构解析' not in fn or not fn.endswith('.md'):
-            continue
-        t = open(os.path.join(d, fn), encoding='utf-8').read()
-        # 卷别
-        vol = re.search(r'《申论》·\s*([^·\s]+)\s*卷', t)
-        blocks = re.split(r'(?m)^第[一二三四五六七八九十\d]+题[：:]', t)
-        for chunk in blocks[1:]:
-            head = re.split(r'(?m)^###\s', chunk)[0]
-            am = re.search(r'(?m)^### 四、参考答案\s*\n(.*?)(?=\n### 五、)', chunk, re.S) or \
-                 re.search(r'(?m)^### 四、高分范文\s*\n(.*?)(?=\n### 五、)', chunk, re.S)
-            sm = re.search(r'(?m)^### 五、评分标准\s*\n(.*?)(?=\n第[一二三四五六七八九十\d]+题[：:]|\Z)', chunk, re.S)
-            if not am:
+    if not os.path.isdir(src):
+        return out
+    for root, _, files in os.walk(src):
+        for fn in files:
+            if not fn.endswith('.md'):
                 continue
-            out.append(dict(src='jigou', path='2026/' + fn, ref='2026 国考（%s）机构解析' % (vol.group(1) if vol else fn),
-                            t=clean_md(head), a=clean_md(am.group(1)), x=clean_md(sm.group(1)) if sm else '',
-                            k='机构解析', mats=[]))
+            t = clean(open(os.path.join(root, fn), encoding='utf-8').read())
+            m = re.search(r'(?m)^[#\s]*(?:题目|题干)[：:]?', t)
+            stem = ''
+            if fn.endswith('.md'):
+                stem = re.sub(r'[（(][^）)]*类[）)]$', '', os.path.splitext(fn)[0].split('_', 1)[-1])
+            if not stem:
+                continue
+            ans = t[m.end():] if m else t
+            out.append(dict(no=0, t=stem, a=tidy(ans), note=[], x='', k='', mats=[], file=fn, ref=fn))
     return out
 
-def parse_pdf():
-    """36hxqw 结构化 jsonl：一行一题"""
-    p = os.path.join(CACHE, 'zhenti-knowledge-shenlun.jsonl')
-    out = []
-    for line in open(p, encoding='utf-8'):
-        try:
-            r = json.loads(line)
-        except Exception:
-            continue
-        ans = (r.get('ans') or '').strip()
-        if not ans:
-            continue
-        out.append(dict(src='pdf', path=r.get('paper', ''), ref=r.get('paper', ''), no=r.get('no', ''),
-                        t=clean_md(r.get('stem', '')), a=clean_md(ans), x='',
-                        k=r.get('type', ''), mats=[]))
-    return out
 
 # ---------- 本项目真题 ----------
-def load_groups():
-    groups = {}
-    for grp in ('gk', 'prov1', 'prov2'):
-        js = r'''
-const fs=require("fs"),vm=require("vm");const ctx={window:{}};vm.createContext(ctx);
-vm.runInContext(fs.readFileSync("exams/%s.js","utf8"),ctx);
-console.log(JSON.stringify((ctx.window.SH_EXAMS||[]).map(e=>e.id)));''' % grp
-        try:
-            groups[grp] = set(json.loads(subprocess.check_output(['node', '-e', js], cwd=ROOT).decode()))
-        except Exception:
-            groups[grp] = set()
-    return groups
-
 def load_exams():
     js = r'''
 const fs=require("fs"),vm=require("vm");const ctx={window:{}};vm.createContext(ctx);
 for(const f of ["exams/gk.js","exams/prov1.js","exams/prov2.js"])vm.runInContext(fs.readFileSync(f,"utf8"),ctx);
-console.log(JSON.stringify(ctx.window.SH_EXAMS.map(e=>({id:e.id,r:e.r,y:e.y,l:e.l,t:e.t,m:e.m.map(x=>x.p.join("")),q:e.q.map(q=>({no:q.no,t:q.t,rq:q.rq,sc:q.sc}))}))));'''
+console.log(JSON.stringify(ctx.window.SH_EXAMS.map(e=>({id:e.id,r:e.r,y:e.y,l:e.l,t:e.t,
+  m:e.m.map(x=>x.p.join("")),q:e.q.map(q=>({no:q.no,t:q.t,rq:q.rq||"",sc:q.sc||0}))}))));'''
+    import subprocess
     out = subprocess.check_output(['node', '-e', js], cwd=ROOT)
-    exams = json.loads(out.decode('utf-8'))
-    # 与前端 wsNormalize 保持一致：题干完全相同的重复题只保留第一题，保证「题序」对齐
-    for e in exams:
-        seen, qs = set(), []
-        for q in e['q']:
-            k = re.sub(r'\s', '', q.get('t') or '')
-            if k and k in seen:
-                continue
-            if k:
-                seen.add(k)
-            qs.append(q)
-        e['q'] = qs
-    return exams
+    return json.loads(out.decode('utf-8'))
 
-# ---------- 匹配 ----------
-def mat_score(our_mat, mats):
-    """来源每节材料在本项目整卷材料中的覆盖率，按节长度加权"""
-    if not mats:
-        return None
-    total = 0.0; hit = 0.0
-    for n, text in mats:
-        nm = norm(text)
-        if len(nm) < 80:
+
+def mat_cover(our_mat, mats):
+    """来源材料有多少能在我方材料里找到（按节长度加权）"""
+    total = hit = 0.0
+    for m in mats:
+        nm = norm(m)
+        if len(nm) < 60:
             continue
         total += len(nm)
-        hit += containment(our_mat, nm) * len(nm)
+        grams = bigrams(nm)
+        ours = bigrams(our_mat)
+        hit += (len(grams & ours) / float(len(grams))) * len(nm)
     if total == 0:
         return None
     return hit / total
 
-def classify(stem, mat, cov=0.0):
-    if mat is None:  # 来源不含材料，只能靠题干（很少）
-        return 'loose' if stem >= 0.95 else None
-    if stem >= 0.86 and mat >= 0.70:
-        return 'high'
-    if (stem >= 0.86 and mat >= 0.55) or (stem >= 0.72 and mat >= 0.70):
-        return 'mid'
-    # 题干一侧被截断（来源只留前半句）或本项目多带了「要求：…」，Dice 会偏低；
-    # 此时若较短题干几乎完全被另一侧包含、且材料高度重合，仍可判定为同一题。
-    if (mat >= 0.85 and cov >= 0.90 and stem >= 0.42) or (mat >= 0.90 and cov >= 0.85 and stem >= 0.45):
-        return 'mid'
-    if stem >= 0.93 and mat >= 0.35:
-        return 'loose'
-    return None
 
-VAR_RE = re.compile(r'(?m)^\s*参考答案([一二三四五六七八九十\d]+)\s*$')
+def ref_name(fn):
+    """国考__2021__申论-副省级.md → 2021 年国考申论·副省级"""
+    parts=fn[:-3].split('__')
+    if parts[0]=='省考' and len(parts)>3:
+        return '%s %s 年省考申论·%s' % (parts[1], parts[2], '·'.join(parts[3:]))
+    if len(parts)>2:
+        tail='·'.join(parts[2:]).replace('申论-', '').replace('申论', '')
+        return '%s %s 年申论·%s' % (parts[0], parts[1], tail.strip('·'))
+    return fn[:-3].replace('__', ' ')
 
-def split_variants(t):
-    """把同一来源里的「参考答案一 / 参考答案二」拆开，主答案只留第一版，其余放到对照区"""
-    ms = list(VAR_RE.finditer(t or ''))
-    if not ms:
-        return [(None, (t or '').strip())]
-    out = []
-    pre = (t[:ms[0].start()] or '').strip()
-    for i, m in enumerate(ms):
-        end = ms[i + 1].start() if i + 1 < len(ms) else len(t)
-        body = (t[m.end():end] or '').strip()
-        if body:
-            out.append((m.group(1), body))
-    if pre and out:
-        out[0] = (out[0][0], (pre + '\n' + out[0][1]).strip())
-    return out or [(None, (t or '').strip())]
 
-def qtype(t):
-    t = t or ''
-    if re.search(r'写一篇(文章|文章。)|自拟题目|为题[，,]写一篇|写一篇议论文', t):
-        return 'zuowen'
-    if re.search(r'倡议书|公开信|讲话稿|发言稿|短评|时评|评论|编者按|简报|通知|通告|报告|汇报|工作方案|建议书|宣传稿|提纲|主持词|导学|解说词|新闻稿', t):
-        return 'zhixing'
-    if re.search(r'对策|建议|措施|如何解决|提出解决|整治方案', t):
-        return 'duice'
-    if re.search(r'谈谈|理解|看法|分析|评价|启示|原因', t):
-        return 'zonghe'
-    return 'guina'
+def stem_cover(src_stem, our_stems):
+    """来源题干在我方题目里的最大相似度（用于没有材料时的兜底对齐）"""
+    if not src_stem:
+        return 0.0
+    return max((dice(norm(src_stem), norm(x)) for x in our_stems), default=0.0)
 
-def split_points(ans, typ):
-    ans = ans.strip()
-    if not ans:
-        return []
-    lines = [l.strip() for l in ans.split('\n') if l.strip()]
-    items = []
-    cur = ''
-    starter = re.compile(r'^(?:参考(?:答案|范文|文章)[一二三四五六七八九十\d]*[：:]?|答案[一二三四五六七八九十\d]*[：:]?)$|^(?:\d{1,2}[.．、]|[（(]\d{1,2}[)）]|[一二三四五六七八九十]{1,2}[、.]|第[一二三四五六七八九十]{1,2}[条点])')
-    for line in lines:
-        if starter.match(line):
-            if cur:
-                items.append(cur)
-            cur = line
-        else:
-            cur = (cur + '\n' + line).strip() if cur else line
-    if cur:
-        items.append(cur)
-    # 去掉纯标题项
-    items = [x for x in items if len(re.sub(r'[\s\d.．、（）()一二三四五六七八九十第条点：:]', '', x)) >= 8]
-    if len(items) < 2:
-        raw = re.split(r'(?<=[。；;])', ans)
-        items = [x.strip() for x in raw if len(x.strip()) >= 12]
-    # 合并过短项
-    merged = []
-    for x in items:
-        if merged and len(x) < 12:
-            merged[-1] += x
-        else:
-            merged.append(x)
-    if typ == 'zuowen':
-        return merged[:10]
-    return merged[:10]
 
-# ---------- 主流程 ----------
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--offline', action='store_true')
+    ap.add_argument('--src', default=os.path.join(ROOT, 'tools', 'answers', '.cache', 'gwy-zhenti'))
+    ap.add_argument('--jigou', default=os.path.join(ROOT, 'tools', 'answers', '.cache', 'guokao-2022-2026'))
+    ap.add_argument('--fenbi', default=os.path.join(ROOT, 'tools', 'answers', '.cache', 'gongkao-tiku'))
     ap.add_argument('--report', action='store_true')
     args = ap.parse_args()
+    if not os.path.isdir(args.src):
+        sys.exit('找不到答案源目录：%s\n请先 git clone https://github.com/ProfessorZhi/gwy-zhenti，'
+                 '再用 --src 指到仓库根目录' % args.src)
 
-    ensure_sources(offline=args.offline)
-    print('· 解析来源 …')
-    papers_g = parse_gwy()
-    flat_f = parse_fenbi()
-    flat_j = parse_jigou()
-    flat_p = parse_pdf()
-    print('  gwy %d 卷 / %d 题；fenbi %d 题；jigou %d 题；pdf %d 题'
-          % (len(papers_g), sum(len(p['qs']) for p in papers_g), len(flat_f), len(flat_j), len(flat_p)))
-
+    items = load_gwy(args.src)
+    print('· 读取 gwy-zhenti：%d 卷 / %d 题' % (len(set(i['file'] for i in items)), len(items)))
     exams = load_exams()
-    print('  本项目 %d 卷 / %d 题' % (len(exams), sum(len(e['q']) for e in exams)))
+    print('· 本项目：%d 卷 / %d 题' % (len(exams), sum(len(e['q']) for e in exams)))
 
-    # 为 gwy 每题附卷材料，建立索引
-    g_items = []
-    for p in papers_g:
-        pm = ''.join(x[1] for x in p['mats'])
-        for q in p['qs']:
-            g_items.append(dict(src='gwy', path=p['path'], ref=q['ref'], no=q['no'], t=q['t'], a=q['a'], x=q['x'],
-                                k=q['k'], mats=p['mats'], n=norm(q['t']), b=bigrams(norm(q['t']))))
-    f_items = []
-    for r in flat_f:
-        f_items.append(dict(src='fenbi', path=r['path'], ref=r['ref'], no=0, t=r['t'], a=r['a'], x=r['x'], k=r['k'],
-                            mats=r['mats'], n=norm(r['t']), b=bigrams(norm(r['t']))))
-    j_items = [dict(src='jigou', path=r['path'], ref=r['ref'], no=0, t=r['t'], a=r['a'], x=r['x'], k=r['k'],
-                    mats=r['mats'], n=norm(r['t']), b=bigrams(norm(r['t']))) for r in flat_j]
-    p_items = [dict(src='pdf', path=r['path'], ref=r['ref'], no=r['no'], t=r['t'], a=r['a'], x=r['x'], k=r['k'],
-                    mats=r['mats'], n=norm(r['t']), b=bigrams(norm(r['t']))) for r in flat_p]
+    # 索引：省份 + 年份 → 文件
+    by_year = collections.defaultdict(list)
+    for it in items:
+        fn = it['file']
+        parts = fn[:-3].split('__')
+        if parts[0] == '省考' and len(parts) > 2:
+            prov, year = parts[1], parts[2]
+        else:
+            prov, year = parts[0], (parts[1] if len(parts) > 1 else '')
+        by_year[(prov, year)].append(it)
+    by_file = collections.defaultdict(list)
+    for it in items:
+        by_file[it['file']].append(it)
 
-    # 题干倒排索引（gwy + fenbi 主检索池）
-    def build_index(items):
-        inv = collections.defaultdict(list)
-        for i, r in enumerate(items):
-            for g in r['b']:
-                inv[g].append(i)
-        return inv
-    inv_g = build_index(g_items)
-    inv_f = build_index(f_items)
-
-    def candidates(nq, inv, items, top=40):
-        c = collections.Counter()
-        for g in bigrams(nq):
-            for i in inv.get(g, ()):
-                c[i] += 1
-        return [i for i, _ in c.most_common(top)]
-
-    out = {}
-    report = []
-    stats = collections.Counter()
+    out, report, stats = {}, [], collections.Counter()
     for e in exams:
+        year = str(e['y'])
+        prov = '国考' if e['r'] == '国考' else e['r']
+        if e['r'] == '深圳':
+            prov = '深圳'
+        cands = by_year.get((prov, year), [])
+        if not cands and '深圳' in e['id']:
+            cands = [it for it in items if '深圳' in it['file'] and year == it['file'].split('__')[2]]
         our_mat = norm(''.join(e['m']))
+        our_stems = [q['t'] for q in e['q']]
+        # 先定试卷：材料重合度 + 卷别吻合
+        files = collections.defaultdict(list)
+        for it in cands:
+            files[it['file']].append(it)
+        best_file, best_score = None, -1.0
+        for fn, its in files.items():
+            cov = mat_cover(our_mat, its[0]['mats'])
+            if cov is None:
+                # 源文件没有材料（只有题目），退化为按题干整体重合度估算
+                cov = max((stem_cover(x['t'], our_stems) for x in its), default=0.0)
+            bonus = 0.0
+            lvl = (e.get('l') or '')
+            if prov == '国考' and lvl:
+                if lvl.replace('级', '') in fn:
+                    bonus += 0.35
+            for tag in ('县乡', '乡镇', '县级', '省市', '市级', '区级', '执法', '公安', '选调', 'A卷', 'B卷', 'C卷'):
+                if tag in fn and tag.replace('卷', '') in lvl:
+                    bonus += 0.2
+                    break
+            score = cov + bonus
+            if score > best_score:
+                best_file, best_score = fn, score
+        if best_file is None:
+            report.append((e['id'], 0, len(e['q'])))
+            stats['miss'] += 1
+            continue
+        srcs = by_file[best_file]
         arr = []
-        for q in e['q']:
-            nq = norm(q['t'])
-            cand = []
-            # 主来源 gwy
-            for i in candidates(nq, inv_g, g_items):
-                r = g_items[i]
-                stem = dice(nq, r['n'])
-                cov = cover(nq, r['n'])
-                if stem < 0.70 and cov < 0.85:
+        used = set()
+        for i, q in enumerate(e['q']):
+            # 按题干相似度在整卷里找最合适的一题（题号仅作加分），避免题序错位串题
+            best, best_key = None, (0.0,)
+            for j, it in enumerate(srcs):
+                if j in used:
                     continue
-                tier = classify(stem, mat_score(our_mat, r['mats']), cov)
-                if tier:
-                    cand.append((tier, stem, r))
-            # 补缺：fenbi
-            for i in candidates(nq, inv_f, f_items):
-                r = f_items[i]
-                stem = dice(nq, r['n'])
-                cov = cover(nq, r['n'])
-                if stem < 0.70 and cov < 0.85:
-                    continue
-                tier = classify(stem, mat_score(our_mat, r['mats']), cov)
-                if tier:
-                    cand.append((tier, stem, r))
-            # 国考 2026 机构解析：按卷 + 题序对齐（题干仍校验）
-            for r in j_items:
-                vol = e['l'] or ''
-                if e['r'] != '国考' or e['y'] != 2026:
-                    continue
-                if vol and vol not in r['ref']:
-                    continue
-                stem = dice(nq, r['n'])
-                if stem >= 0.70:
-                    cand.append(('high' if stem >= 0.86 else 'mid', stem, r))
-            # 36hxqw：同省同年 + 题号/题干预校验
-            for r in p_items:
-                if r['path'].split('-')[0] != e['r']:
-                    continue
-                if str(e['y']) not in r['path']:
-                    continue
-                stem = dice(nq, r['n'])
-                if stem >= 0.75:
-                    cand.append(('high' if stem >= 0.80 else 'mid', stem, r))
-
-            if not cand:
+                st = sim(norm(q['t']), norm(it['t']))
+                key = (st + (0.06 if it['no'] == q['no'] else 0.0), -abs(it['no'] - q['no']))
+                if st >= 0.62 and key > best_key:
+                    best, best_key = j, key
+            tier = None
+            item = None
+            if best is not None:
+                item = srcs[best]
+                stem = sim(norm(q['t']), norm(item['t']))
+                tier = 'high' if stem >= 0.80 else 'mid'
+            if item is None:
+                # 兜底：同序号且题干不至于完全无关
+                if i < len(srcs) and sim(norm(q['t']), norm(srcs[i]['t'])) >= 0.45:
+                    item, tier = srcs[i], 'loose'
+                    best = i
+            if item is None:
                 arr.append(None)
                 stats['miss'] += 1
                 continue
-
-            rank = {'high': 0, 'mid': 1, 'loose': 2}
-            cand.sort(key=lambda x: (rank[x[0]], -x[1]))
-            # 去重（同一份答案不同来源）
-            picked = []
-            for tier, stem, r in cand:
-                na = norm(r['a'])
-                dup = False
-                for p in picked:
-                    if len(na) > 40 and dice(na, norm(p['a'])) >= 0.88:
-                        dup = True
-                        # 保留信息更全的一条
-                        if len(r['a']) > len(p['a']) and rank[tier] <= rank[p['tier']]:
-                            p.update(a=r['a'], src=r['src'], path=r['path'], ref=r['ref'], tier=tier,
-                                     stem=stem, x=r['x'] or p.get('x', ''), k=r['k'] or p.get('k', ''))
-                        break
-                if not dup:
-                    picked.append(dict(tier=tier, stem=stem, src=r['src'], path=r['path'], ref=r['ref'],
-                                       a=r['a'], x=r['x'], k=r['k'], no=r['no']))
-                if len(picked) >= 3:
-                    break
-            if not picked:
-                arr.append(None); stats['miss'] += 1; continue
-
-            best = picked[0]
-
-            def clip(t, n):
-                t = (t or '').strip()
-                return t if len(t) <= n else t[:n].rstrip() + '…'
-
-            variants = split_variants(best['a'])
-            main_a = variants[0][1]
-            item = dict(
-                no=q['no'], tier=best['tier'],
-                src=best['src'], path=best['path'], ref=best['ref'],
-                a=clip(main_a, 3000), x=clip(best['x'], 700) if best['x'] else '',
-                k=clip(best['k'], 100) if best['k'] else '',
-            )
+            used.add(best)
             alts = []
-            for lbl, body in variants[1:]:
-                alts.append(dict(src=best['src'], path=best['path'], ref=best['ref'], a=clip(body, 1500),
-                                 tier=best['tier'], label='参考答案' + lbl))
-            for p in picked[1:]:
-                alts.append(dict(src=p['src'], path=p['path'], ref=p['ref'], a=clip(p['a'], 1500), tier=p['tier']))
+            for k, v in item['note']:
+                if re.match(r'参考答案[一二三]|答案[一二三]|参考范文', k):
+                    alts.append(dict(kind='alt', label=k, a=v))
+            note = '\n\n'.join(v for k, v in item['note'] if not re.match(r'参考答案[一二三]|参考范文', k))
+            note = re.sub(r'(?m)^\s*(?:参考答案说明|答案说明|答题说明)\s*[：:]?\s*', '', note).strip()
+            note = re.sub(r'^[：:，,。、\s]+', '', note).strip()
+            body, stray = split_inline_notes(item['a'])
+            # 正文末尾若还挂着「解析 / 考点 / 来源」小标题，一并切到解析里
+            mtail = re.search(r'(?m)^\s*(?:(?:解析|考点|来源)(?:\s*[：:].*)?\s*$|解析(?=\S))', body)
+            if mtail:
+                if mtail.group(0).strip() == '解析' and mtail.start() > 20:
+                    extra_x = body[mtail.end():].strip()
+                    if extra_x and not item['x']:
+                        item = dict(item, x=extra_x)
+                body = body[:mtail.start()]
+            if stray:
+                extra = '\n\n'.join(v for k, v in stray
+                                    if not re.match(r'参考答案[一二三]|参考范文', k))
+                if extra.strip():
+                    note = (note + '\n\n' + extra).strip()
+            obj = dict(no=q['no'], tier=tier, src='gwy', path=item['file'],
+                       ref=ref_name(item['file']),
+                       a=body.strip()[:4000])
+            if note:
+                obj['note'] = note[:2000]
+            if item['x']:
+                xx = re.sub(r'(?m)^\s*(?:考点|来源)\s*[：:].*$', '', item['x']).strip()
+                if xx:
+                    obj['x'] = xx[:1500]
+            if item['k']:
+                obj['k'] = item['k'][:60]
             if alts:
-                item['alts'] = alts[:3]
-            arr.append(item)
-            stats[best['tier']] += 1
+                obj['alts'] = [dict(src='gwy', path=item['file'], ref=obj['ref'],
+                                    a=split_inline_notes(x['a'])[0].strip()[:2500],
+                                    tier=tier, label=x['label']) for x in alts[:3]]
+            arr.append(obj)
+            stats[tier] += 1
         out[e['id']] = arr
-        n = sum(1 for x in arr if x)
-        report.append((e['id'], n, len(arr)))
+        report.append((e['id'], sum(1 for x in arr if x), len(arr)))
 
     total = sum(len(v) for v in out.values())
     covered = sum(1 for v in out.values() for x in v if x)
-    meta = dict(
-        generated=time.strftime('%Y-%m-%d'),
-        total=total, covered=covered,
-        tiers={k: stats[k] for k in ('high', 'mid', 'loose', 'miss')},
-        sources=[{k: v for k, v in s.items() if k in ('id', 'repo', 'url', 'name', 'note')} for s in SOURCES.values()],
-    )
-    groups = load_groups()
+    meta = dict(generated=__import__('time').strftime('%Y-%m-%d'), total=total, covered=covered,
+                tiers={k: stats[k] for k in ('high', 'mid', 'loose', 'miss')},
+                sources=[SRC_META[k] for k in ('gwy', 'jigou', 'fenbi')])
     head = ('/* 由 tools/answers/build_answers.py 自动生成，请勿手改。\n'
             '   参考答案来自 GitHub 开源题库，仅供学习自检，非官方答案。 */\n')
     open(os.path.join(ROOT, 'exams', 'answers-meta.js'), 'w', encoding='utf-8').write(
-        head + 'window.SH_ANSWER_META=%s;\n' % json.dumps(meta, ensure_ascii=False, separators=(',', ':')))
-    for grp, ids in groups.items():
+        head + 'window.SH_ANSWER_META=' + json.dumps(meta, ensure_ascii=False, separators=(',', ':')) + ';\n')
+    idx = json.loads(re.search(r'SH_EXAM_INDEX=(\[.*\]);',
+                               open(os.path.join(ROOT, 'exams', 'index.js'), encoding='utf-8').read(), re.S).group(1))
+    for grp in ('gk', 'prov1', 'prov2'):
+        ids = set(x['id'] for x in idx if x['grp'] == grp)
         part = {k: v for k, v in out.items() if k in ids}
         if not part:
             continue
         open(os.path.join(ROOT, 'exams', 'answers-%s.js' % grp), 'w', encoding='utf-8').write(
-            head + 'window.SH_ANSWERS=Object.assign(window.SH_ANSWERS||{},%s);\n'
-            % json.dumps(part, ensure_ascii=False, separators=(',', ':')))
+            head + 'window.SH_ANSWERS=Object.assign(window.SH_ANSWERS||{},'
+            + json.dumps(part, ensure_ascii=False, separators=(',', ':')) + ');\n')
         print('  · exams/answers-%s.js  %d 卷 %.2f MB' % (
             grp, len(part), os.path.getsize(os.path.join(ROOT, 'exams', 'answers-%s.js' % grp)) / 1048576.0))
-    if os.path.exists(OUT):
-        os.remove(OUT)
-    json.dump({'meta': meta, 'report': report}, open(os.path.join(os.path.dirname(__file__), 'report.json'), 'w'),
+    json.dump(dict(meta=meta, report=report), open(os.path.join(os.path.dirname(__file__), 'report.json'), 'w'),
               ensure_ascii=False, indent=1)
-    print('· 完成：%d/%d 题有答案（高 %d / 中 %d / 宽松 %d）'
+    print('· 完成：%d / %d 题有答案（高 %d / 中 %d / 宽松 %d）'
           % (covered, total, stats['high'], stats['mid'], stats['loose']))
-    full = [x for x in report if x[1] == x[2]]
-    print('  整卷全覆盖 %d 卷；有答案的卷 %d 卷' % (len(full), sum(1 for x in report if x[1])))
     if args.report:
         for eid, n, t in report:
             if n < t:
                 print('  缺 %d/%d  %s' % (t - n, t, eid))
+
 
 if __name__ == '__main__':
     main()

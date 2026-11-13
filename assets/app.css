@@ -613,6 +613,10 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .ref-meter i{display:block;height:100%;background:var(--ok);border-radius:2px;transition:width .3s}
 
 .ref-tip{font-size:var(--t-xs);color:var(--faint);padding:0 12px 10px}
+.ref-sec{display:flex;flex-direction:column;gap:8px}
+.ref-sec-h{display:flex;align-items:baseline;gap:8px;font-size:var(--t-sm);font-weight:600;color:var(--ink);letter-spacing:.02em}
+.ref-sec-h span{font-weight:400;font-size:var(--t-xs);color:var(--faint)}
+.ref-howto summary{color:var(--faint)}
 .ref-extra{border-top:1px solid var(--line);padding-top:12px}
 .ref-extra summary{cursor:pointer;font-size:var(--t-base);color:var(--muted)}
 .ref-extra .ref-ans{margin-top:10px;font-size:var(--t-base)}

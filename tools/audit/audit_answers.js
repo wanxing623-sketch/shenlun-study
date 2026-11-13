@@ -25,6 +25,7 @@ for (const e of E) {
   const arr = A[e.id];
   if (!arr) { noAnswer.push(e.id); continue; }
   if (arr.length !== e.q.length) lenBad.push([e.id, arr.length, e.q.length]);
+  if (arr.filter(x => !x).length > e.q.length) lenBad.push([e.id + '(空位超题数)', arr.filter(x => !x).length, e.q.length]);
   arr.forEach((x, i) => {
     total++;
     const q = e.q[i] || {};

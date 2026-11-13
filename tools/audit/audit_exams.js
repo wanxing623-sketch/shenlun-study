@@ -48,7 +48,11 @@ E.forEach(e=>{
     const offTopic=(rr.length&&best>0.30&&citedMax<best*0.45);
     if(oor.length||qMiss.length||qElsewhere.length||offTopic)
       out.push({id:e.id,qi:i+1,t:t.slice(0,70),mats:e.m.length,refs:rr,oor,qMiss,qElsewhere,
-        citedMax:+citedMax.toFixed(2),best:+best.toFixed(2),offTopic});
+        citedMax:+citedMax.toFixed(2),best:+best.toFixed(2),offTopic,
+        /* 上游源卷本身残缺：题干引了资料8 但源文件只有 7 份材料。
+           这不是我们处理错了，数据层无法凭空补出第 8 份材料，单独标出来，别和真错位混在一起。 */
+        srcGap:oor.length>0&&rr.every(k=>k>e.m.length)});
   });
 });
-console.log(JSON.stringify({total:out.length,items:out},null,1));
+const hard=out.filter(x=>!x.srcGap);
+console.log(JSON.stringify({total:out.length,hard:hard.length,items:out},null,1));

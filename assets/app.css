@@ -642,6 +642,7 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .ref-note-body li::before{content:"";position:absolute;left:2px;top:.78em;width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
 .ref-note-body b{color:var(--ink);font-weight:600}
 .ref-note-inline{border-left-color:var(--gold)}
+.ref-alt-none{margin:10px 0 0;font-size:var(--t-sm);color:var(--faint)}
 .ref-note-mini{margin-top:10px;font-size:var(--t-xs);line-height:1.7;color:var(--faint);padding-left:10px;border-left:2px solid var(--line-strong)}
 
 /* 要点自检 */

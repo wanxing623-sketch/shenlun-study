@@ -1367,6 +1367,12 @@ function refClean(t){return String(t||'').replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/
 function refInline(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');}
 function refCueCount(t){const m=String(t||'').match(new RegExp(REF_NOTE_CUES.source,'g'));return m?m.length:0;}
 /* 一整段都是说明吗（不是答案的分条内容） */
+/* 题库解析里偶尔夹带「答题演示」全文（含审题—读料—要点提取），几万字且会被截断，
+   对答案没有帮助，直接不展示 */
+const REF_DEMO_RE=/(^|\n)[^\n]{0,30}答题演示[（(]粉笔页面原文[\s\S]*$/;
+function refStripDemo(t){
+  return String(t||'').replace(REF_DEMO_RE,'').replace(/\n{3,}/g,'\n\n').trim();
+}
 function refIsNoteBlock(t){
   const x=String(t||'').trim();
   if(!x) return false;
@@ -1386,7 +1392,7 @@ function refLooksLikeThinking(t){
   return brackets>=2 && x.length<1400 && /(归纳|概括|对策|启示|解释|公文|文种|字数|要求[:：])/.test(x);
 }
 function refSplitBody(t){
-  let raw=refClean(t);
+  let raw=refStripDemo(refClean(t));
   let kind='',note=[];
   /* 0) 只有「参考答案说明」没有答案：别把说明当成答案显示 */
   if(REF_NOTE_START.test(raw)&&raw.length<900){
@@ -1471,17 +1477,102 @@ function refAnswerHTML(t,opts){
   }
   return items.map(x=>refBlockHTML(x.raw!==undefined?x.raw:(x.k+x.v))).join('');
 }
-/* 大作文范文：首段若像标题就单独排 */
+/* 大作文范文：标题单独排。
+ * 题库里的标题有三种写法：干净的一行、标题后面紧接正文（同一段）、标题前带「参考范文1」。 */
 function refEssayHTML(paras){
   let out='',list=paras.slice();
-  if(list.length&&list[0].length<=32&&!/[。！？；]/.test(list[0])) out+='<p class="ref-title">'+esc(list.shift())+'</p>';
-  out+=list.map(x=>'<p class="ref-para">'+refInline(x).replace(/\n/g,'<br>')+'</p>').join('');
+  if(!list.length) return '';
+  /* 「参考范文1」这类版本标记行先摘出来 */
+  while(list.length&&/^(参考)?(范文|文章|答案)\s*[一二三四五六七八九十\d]*\s*[:：]?$/.test(list[0])&&list[0].length<12){
+    out+='<span class="rv">'+esc(list.shift())+'</span>';
+  }
+  if(list.length){
+    let first=list[0];
+    const lines=first.split('\n').map(x=>x.trim()).filter(Boolean);
+    if(lines.length>1&&lines[0].length<=30&&!/[。！？；]/.test(lines[0])){
+      /* 标题后直接换行接正文 */
+      out+='<p class="ref-title">'+esc(lines[0])+'</p>';
+      list[0]=lines.slice(1).join('\n');list=list.map(x=>x).filter(Boolean);
+    }else if(lines.length===1&&first.length<=32&&!/[。！？；]/.test(first)){
+      out+='<p class="ref-title">'+esc(first)+'</p>';
+      list.shift();
+    }else{
+      /* 「标题 + 正文紧贴」：在第一个句号前截断 */
+      const m=first.match(/^([^。！？；]{6,30})[。！？；]/);
+      const head=m?m[1]:'';
+      if(head&&head.length<=28&&!/^.{0,4}(?:这句话|材料|要求)/.test(head)&&list.length>1){
+        out+='<p class="ref-title">'+esc(head)+'</p>';
+        list[0]=first.slice(head.length);
+      }
+    }
+  }
+  out+=list.filter(x=>x&&x.trim()).map(x=>'<p class="ref-para">'+refInline(x).replace(/\n/g,'<br>')+'</p>').join('');
   return out;
 }
 /* 复制时只给真实答案正文，不带说明 */
 function refPlain(t){
   const sp=refSplitBody(t);
   return sp.body.join('\n\n').replace(/^(参考答案|参考范文|范文)[一二三四五六七八九十\d]*[:：]?$/gm,'').trim();
+}
+function refSplit(t){
+  const out=[];
+  String(t||'').split(/\n{2,}/).forEach(p=>{
+    p=p.trim();if(!p)return;
+    /* 只在句末标点之后切分条序号，避免把 1.5 倍、7.24 这类数字切开；不用后行断言，兼容旧版 WebView */
+    p=p.replace(/([。；!?])\s*(?=(?:\d{1,2}[.、]|[一二三四五六七八九十]{1,2}、))/g,'$1\n');
+    p.split('\n').forEach(x=>{
+      x=x.trim();if(!x)return;
+      if(/^参考答案[一二三四五六七八九十\d]*$/.test(x))return;
+      if(/^(解析|考点|来源|参考答案说明)/.test(x))return;
+      out.push(x);
+    });
+  });
+  let items=out.filter(x=>x.replace(/[\s\d.．、（）()一二三四五六七八九十条点]/g,'').length>=12);
+  if(items.length<2){
+    items=String(t||'').split(/[。；]/).map(x=>x.trim()).filter(x=>x.replace(/\s/g,'').length>=14);
+  }
+  return items.slice(0,10);
+}
+function refTerms(s){
+  const t=GRADE.norm(s).replace(/\d+/g,'');
+  const out=[];const seen={};
+  for(let n=4;n>=2;n--){
+    for(let i=0;i+n<=t.length;i++){
+      const g=t.slice(i,i+n);
+      if(/^(.)\1+$/.test(g))continue;
+      if(!seen[g]){seen[g]=1;out.push(g)}
+    }
+  }
+  return out;
+}
+function refCovered(point,ans){
+  const a=GRADE.norm(ans);
+  if(!a) return false;
+  const terms=refTerms(point);
+  if(!terms.length) return false;
+  const hit=terms.filter(x=>a.indexOf(x)>=0);
+  const long=hit.filter(x=>x.length>=4).length;
+  return long>=1 || (hit.length>=2 && hit.length/terms.length>=0.15);
+}
+function refEsc(t){return esc(t)}
+function refSourceHTML(a){
+  const s=REF_SRC[a.src]||{name:a.src,repo:'',branch:'main'};
+  if(!s.repo) return '<span>'+esc(s.name)+'</span>';
+  let url=s.repo;
+  if(a.path&&a.src!=='pdf'){
+    url=s.repo+'/blob/'+s.branch+'/'+a.path.split('/').map(encodeURIComponent).join('/');
+  }
+  return '<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(s.name)+'</a>';
+}
+function refScoreText(q,hits,total){
+  const max=GRADE.inferMax(q,GRADE.qType(q))||0;
+  const est=max?Math.round(max*hits/total*10)/10:0;
+  return {max,est};
+}
+/* 说明区的纯文本摘要（用于其他来源答案的脚注，过长要截断） */
+function refNoteBrief(note){
+  const txt=refNoteItems(note.join('\n\n')).join('；').replace(/\s+/g,' ');
+  return txt.length>90?txt.slice(0,90).replace(/[，、；]$/,'')+'…':txt;
 }
 /* 说明区排版：范文点评按「标题 / 开头 / 论述段N / 结尾」分段列点，
    参考答案说明按（1）（2）或整段拆条，都去掉外层的【】和「参考答案说明：」前缀 */
@@ -1546,25 +1637,26 @@ function wsRefRender(a){
   const splitA=refSplitBody(a.a||'');
   const splitX=refSplitBody(a.x||'');
   const essay=type==='zuowen';
-  const split={body:splitA.body,
-    note:splitA.note.concat(splitX.note),
-    kind:splitA.kind||splitX.kind};
   const meta='<div class="ref-meta"><span>第 '+(WS.qIdx+1)+' 题</span><span>·</span><span>'+esc(typeName)+'</span>'
     +(max?'<span>·</span><span>'+max+' 分</span>':'')
     +'<span>·</span><span>来源 </span>'+refSourceHTML(a)+'</div>';
   const note='<div class="ref-note'+(a.tier==='high'?' tip':'')+'">'+esc(tier[1])+'。这是机构或考生整理的答案，不是官方标准答案。</div>';
-  /* 答案正文：只放真实答案，按条排版 */
-  const hasBody=split.body.length>0;
+  /* 答案正文：只放真实答案，按条排版（范文按段落排） */
+  const hasBody=splitA.body.length>0;
   const ansHTML=hasBody?'<section class="ref-section ref-main" id="ref-main">'
     +'<div class="ref-sec-h"><b>'+(essay?'参考范文':'参考答案')+'</b><span>机构 / 考生整理版，非官方答案</span></div>'
-    +'<div class="ref-ans'+(essay?' ref-ans-essay':'')+'">'+refAnswerHTML(a.a,{essay:essay})+'</div></section>'
+    +'<div class="ref-ans'+(essay?' ref-ans-essay':'')+'">'
+    +(essay?refEssayHTML(splitA.body):refAnswerHTML(a.a))+ '</div>'
+    +'</section>'
     :'<section class="ref-section ref-main" id="ref-main"><div class="ref-sec-h"><b>'
     +'这道题的题库原文只有思路说明</b><span>没有给出成稿答案</span></div></section>';
-  /* 参考答案说明 / 范文点评：跟答案分开放，不混在正文里 */
-  let noteHTML=refNoteHTML(split.note,split.kind);
-  /* 原题库的解析字段（x）单独成块：考点与解析，避免跟答案说明混在一起 */
-  if(splitX.note.length&&splitX.body.length===0&&split.note.length){
-    noteHTML+=refNoteHTML(splitX.note,'x');
+  /* 说明区：答案里拆出来的（参考答案说明 / 范文点评）合并成一块，
+     题库解析字段（x）另起一块「题库解析」，两边内容相同就只留一份 */
+  let noteHTML='';
+  if(splitA.note.length) noteHTML+=refNoteHTML(splitA.note,splitA.kind);
+  if(splitX.note.length){
+    const same=splitA.note.length&&splitX.note.join('').slice(0,120)===splitA.note.join('').slice(0,120);
+    if(!same) noteHTML+=refNoteHTML(splitX.note,splitX.kind||'x');
   }
   const kList=(a.k&&a.k!=='未知'&&a.k!=='无')?'<span class="pill">'+esc(a.k)+'</span>':'';
   const head='<div class="ref-top">'
@@ -1579,8 +1671,9 @@ function wsRefRender(a){
       +'<div class="ref-score"><span>估分</span><b id="ref-est">0</b><span>/ '+max+' 分</span><div class="ref-meter"><i id="ref-meter" style="width:'+(pts.length?hits.length/pts.length*100:0)+'%"></i></div></div><p class="ref-tip">已按关键词自动勾了一遍，不准的地方自己改。</p></section>':'';
   const alts=(a.alts&&a.alts.length)?'<section class="ref-alts"><b>其他来源的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>{
       const sp=refSplitBody(x.a||'');
-      const altBody=sp.body.length?refAnswerHTML(x.a):'';
-      const altNote=sp.note.length?('<div class="ref-note-mini">'+esc(sp.note.join(' ').replace(/^(参考答案说明|答案说明|评分说明)[:：]\s*/,''))+'</div>'):'';
+      const altEssay=essay;
+      const altBody=sp.body.length?(altEssay?refEssayHTML(sp.body):refAnswerHTML(x.a)):'';
+      const altNote=sp.note.length?('<div class="ref-note-mini">'+esc(refNoteBrief(sp.note))+'</div>'):'';
       return '<details><summary><span class="ref-alt-name">'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</span>'+((REF_SRC[x.src]||{}).name&&x.label?'<span class="ref-alt-src">'+esc((REF_SRC[x.src]||{}).name)+'</span>':'')+'</summary>'
         +(altBody?'<div class="ref-ans">'+altBody+'</div>':'<p class="ref-alt-none">这份答案没有成稿，只有思路说明：</p>')
         +altNote+'</details>';

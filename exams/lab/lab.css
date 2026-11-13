@@ -145,6 +145,11 @@
 .lb-model p{font-size:var(--t-base);line-height:2.1;margin:0 0 12px;text-indent:2em}
 .lb-model p.mtitle{font-weight:600;font-size:var(--t-md);text-indent:0;text-align:center;margin-bottom:16px}
 .lb-pitfall{background:var(--gold-soft);border-left:3px solid var(--gold);border-radius:0 9px 9px 0;padding:10px 13px;font-size:var(--t-sm);line-height:1.85;margin-bottom:8px}
+.lb-refnote{margin-top:14px;border:1px solid var(--line);border-left:3px solid var(--line-strong);border-radius:var(--r-s);background:var(--surface-2)}
+.lb-refnote>summary{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:10px 14px;cursor:pointer;list-style:none;font-size:var(--t-sm);font-weight:600;color:var(--ink);min-height:44px}
+.lb-refnote>summary::-webkit-details-marker{display:none}
+.lb-refnote>summary .lb-small{font-weight:400}
+.lb-refnote>.in{padding:0 14px 12px;font-size:var(--t-base);line-height:1.85;color:var(--muted);white-space:pre-wrap}
 .lb-tipbox{background:var(--info-soft);border-radius:11px;padding:13px 15px;font-size:var(--t-sm);line-height:1.9;margin-bottom:12px}
 .lb-tipbox .h{font-weight:600;font-size:var(--t-xs);color:var(--brand);margin-bottom:4px}
 .lb-argref{background:var(--surface-2);border-radius:11px;padding:12px 14px;margin-bottom:9px}

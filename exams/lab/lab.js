@@ -30,6 +30,9 @@
 
   /* ---------- 基础工具 ---------- */
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  /* 题库原文里的 Markdown 反斜杠转义（如「给定资料1\-5」）在页面上只留字符本身 */
+  const mdClean = s => String(s == null ? '' : s).replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/g, '$1');
+  const escMd = s => esc(mdClean(s));
   const pad = n => String(n).padStart(2, '0');
   const todayStr = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const dayShift = n => { const d = new Date(); d.setDate(d.getDate() + n); return todayStr(d); };
@@ -239,6 +242,33 @@
   }
 
   /* ---------- 参考排版 ---------- */
+  /* 题库把「答题演示」全文塞进过答案里：那是审题—读料的演示过程，不是答案；
+     另外抓取时带下来的 <u> 高亮标签也不该出现在答案区 */
+  const DEMO_RE = /(^|\n)[^\n]{0,30}答题演示[（(]粉笔页面原文[\s\S]*$/;
+  function cleanAnswer(text) {
+    return String(text || '')
+      .replace(DEMO_RE, '')
+      .replace(/<\/?u>/gi, '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[a-z][^>]*>/gi, '')
+      .trim();
+  }
+  /* 答案正文里的「参考答案说明」也拆出来，不跟答案混排。
+     标记前必须是行首或句末标点，避免把答案里引用的「参考答案说明」切开 */
+  const NOTE_RE = /(^|[\n。；！？])[ \t]*(参考答案说明|答案说明|评分说明)\s*[:：]/;
+  function splitAnswer(text) {
+    const raw = cleanAnswer(text);
+    const m = raw.match(NOTE_RE);
+    if (!m) return { body: raw, note: '' };
+    /* m[0] 可能以句末标点开头；标记真正开始的位置是 index + m[1].length */
+    const start = raw.indexOf(m[0]);
+    const at = start + (m[1] || '').length;              /* 「参考答案说明」开头 */
+    const body = raw.slice(0, at).replace(/[。；！？\s]+$/, '').trim();
+    /* 前面几乎没有内容：整条就是说明，不当答案显示（去掉标记本身） */
+    if (body.length < 8) return { body: '', note: raw.slice(0, at).trim() ? raw : raw.replace(NOTE_RE, '').trim() };
+    const note = raw.slice(at + (m[2] ? m[2].length : 0) + 1).trim();
+    return { body, note };
+  }
   function answerRows(text) {
     const lines = String(text || '').split(/\n+/).map(t => t.trim()).filter(Boolean);
     let n = 0; const out = [];
@@ -364,7 +394,7 @@
     <div class="rowlist">
       ${queue.length ? queue.map(x => `
         <button class="row" data-lb="go" data-m="${x._m}" data-id="${esc(x.id)}">
-          <span class="row-main"><b>${esc(x.title || x.theme || x.source || '未命名')}</b>
+          <span class="row-main"><b>${escMd(x.title || x.theme || x.source || '未命名')}</b>
             <span>${LABEL[x._m]}${x.region ? ' · ' + esc(x.region) : ''}${x.year ? ' · ' + esc(x.year) : ''}${x._m === 'sum' && x.limit ? ' · ' + esc(x.limit) + ' 字以内' : ''}</span></span>
           ${ico('right')}
         </button>`).join('') : '<div class="row-empty">题目还没有加载出来。</div>'}
@@ -390,7 +420,7 @@
       return `<button class="lb-row" data-lb="go" data-m="${k}" data-id="${esc(x.id)}">
         <span class="idx">${pad(IDX(k, x.id))}</span>
         <span>
-          <span class="ttl">${esc(x.title || x.theme || x.source || '未命名')}</span>
+          <span class="ttl">${escMd(x.title || x.theme || x.source || '未命名')}</span>
           <span class="sub">${sub.filter(Boolean).map(t => `<span>${esc(t)}</span>`).join('')}</span>
         </span>
         ${rec ? `<span class="score${band}">${rec.best}%</span>` : '<span></span>'}
@@ -454,7 +484,7 @@
     <button class="lb-back" type="button" data-lb="tab" data-tab="${m}">${ico('left')}${esc(LABEL[m])}</button>
     <div class="lb-phead">
       <div class="lb-chips">${head}</div>
-      <h1>${esc(cut(title, 60))}</h1>
+      <h1>${escMd(cut(title, 60))}</h1>
       ${sub ? `<div class="lb-src">${esc(sub)}</div>` : ''}
       ${item.hand ? '<div class="lb-chips" style="margin-top:9px"><span class="lb-chip gold">人工精析</span></div>' : ''}
     </div>
@@ -462,9 +492,9 @@
     <div class="lb-ws">
       <div class="lb-pane">
         <div class="label">题目</div>
-        <div class="lb-stem">${esc(item.stem || item.task || '')}</div>
-        ${item.req ? `<div class="lb-req"><b>作答要求</b>${esc(item.req)}</div>` : ''}
-        ${item.task ? `<div class="lb-req"><b>本次只写</b>${esc(item.task)}</div>` : ''}
+        <div class="lb-stem">${escMd(item.stem || item.task || '')}</div>
+        ${item.req ? `<div class="lb-req"><b>作答要求</b>${escMd(item.req)}</div>` : ''}
+        ${item.task ? `<div class="lb-req"><b>本次只写</b>${escMd(item.task)}</div>` : ''}
         ${item.skeleton ? `<div class="lb-req"><b>骨架</b>${esc(item.skeleton)}</div>` : ''}
         <div class="lb-mat" id="lb_mat_wrap"${item.material ? '' : ' data-nomat="1"'}>
           <div class="lb-mat-hd">
@@ -547,9 +577,11 @@
 
     let ref = '';
     if (isSum) {
+      const sp = splitAnswer(item.answer);
       ref = `<section class="lb-ref" id="lb_ref">
         <div class="lb-refhd"><span class="tag">参考答案</span><span class="note">题库整理版 · 非官方答案</span></div>
-        ${answerRows(item.answer)}
+        ${answerRows(sp.body)}
+        ${sp.note ? `<details class="lb-refnote"><summary>参考答案说明<span class="lb-small lb-dim">评分思路，不是答案正文</span></summary><div class="in">${esc(sp.note)}</div></details>` : ''}
         ${item.note ? `<div class="lb-tipbox" style="margin-top:16px"><div class="h">说明</div>${esc(item.note)}</div>` : ''}
         ${item.tips ? `<div class="lb-pitfall">${esc(item.tips)}</div>` : ''}
       </section>`;
@@ -716,7 +748,7 @@
           const due = r.next <= todayStr();
           return `<button class="lb-row" data-lb="go" data-m="${it._m}" data-id="${esc(id)}">
             <span class="idx">${pad(IDX(it._m, id))}</span>
-            <span><span class="ttl">${esc(cut(it.title || it.theme || it.source || '', 40))}</span>
+            <span><span class="ttl">${escMd(cut(it.title || it.theme || it.source || '', 40))}</span>
             <span class="sub"><span>${LABEL[it._m]}</span><span>最佳 ${r.best}%</span><span>${due ? '今天该复习' : '下次 ' + esc(r.next)}</span></span></span>
             <span class="score${r.best >= 80 ? '' : r.best >= 55 ? ' mid' : ' lo'}">${due ? '待复习' : esc(r.next.slice(5))}</span>
           </button>`;
@@ -854,7 +886,9 @@
     const hasMat = !!(item.material && String(item.material).trim());
     const parasOf = () => {
       if (hasMat) {
-        return String(item.material).replace(/【材料\s*\d+】/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean);
+        /* 抓下来的材料里带 <u> 高亮标签：当纯文本渲染会露出标签，先去掉 */
+        return mdClean(String(item.material)).replace(/<\/?u>/gi, '').replace(/<[a-z][^>]*>/gi, '')
+          .replace(/【材料\s*\d+】/g, '\n').split(/\n+/).map(t => t.trim()).filter(Boolean);
       }
       // 无材料：把训练任务当“题干”，再加一块空白草稿区
       const head = [item.theme || '', item.stem || '', item.task || '', item.skeleton ? '骨架：' + item.skeleton : '']

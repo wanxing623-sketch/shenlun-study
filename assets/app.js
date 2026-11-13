@@ -1343,13 +1343,31 @@ function wsUpdateRefBtn(){
   b.title=a?(seen&&seen.seen?'已看过参考答案':''):'这道题在公开题库里没有找到可靠的答案';
   if(st) st.innerHTML='';
 }
+/* 取「参考答案说明」：优先用数据里的 note 字段；老数据里混在正文的也切出来 */
+function refNoteOf(a,keepOnly){
+  if(!a) return '';
+  const body=String(a.a||'');
+  const m=body.search(/参考答案说明\s*[：:]/);
+  let out=a.note||'';
+  if(m>0){
+    const inline=body.slice(m).replace(/^参考答案说明\s*[：:]\s*/,'').trim();
+    /* 老数据里 note 与正文内的说明往往重复，去个重 */
+    if(inline&&out.indexOf(inline.slice(0,20))<0) out=(out?out+'\n\n':'')+inline;
+  }
+  if(keepOnly) return String(a.a||'').slice(0,m>0?m:undefined).trim();
+  return String(out).trim();
+}
 function refAnswerHTML(t){
   /* Markdown 反斜杠转义（如 30\~10 分钟）在纯文本面板里还原 */
   t=String(t||'').replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/g,'$1');
+  const at=String(t||'').search(/参考答案说明\s*[：:]/);
+  if(at>0) t=String(t).slice(0,at);
   const blocks=String(t||'').split(/\n{2,}/);
   return blocks.map(b=>{
     b=b.trim();if(!b)return '';
-    if(/^参考答案[一二三四五六七八九十\d]*$/.test(b)) return '<span class="rv">'+esc(b)+'</span>';
+    if(/^参考答案[一二三四五六七八九十\d]*$/.test(b)) return '';
+    if(/^(参考答案说明|解析|考点|来源)\s*[：:]/.test(b)) return '';
+    if(/^第\s*\d+\s*题\s*[·・]\s*答案与解析$/.test(b)) return '';
     return '<p>'+esc(b).replace(/\n/g,'<br>')+'</p>';
   }).join('');
 }
@@ -1440,16 +1458,20 @@ function wsRefRender(a){
     +(max?'<span>·</span><span>'+max+' 分</span>':'')
     +'<span>·</span><span>来源 </span>'+refSourceHTML(a)+'</div>';
   const note='<div class="ref-note'+(a.tier==='high'?' tip':'')+'">'+esc(tier[1])+'。这是机构或考生整理的答案，不是官方标准答案。</div>';
-  const ansHTML='<div class="ref-ans">'+refAnswerHTML(a.a)+'</div>';
+  const ansHTML='<div class="ref-sec"><div class="ref-sec-h">参考答案<span>'+esc((REF_SRC[a.src]||{}).name||'公开题库')+'·仅供对照</span></div>'
+    +'<div class="ref-ans">'+refAnswerHTML(a.a)+'</div></div>';
   const chk=pts.length?'<div class="ref-check"><div class="ref-check-head"><b>要点自检</b><span>写到 <em id="ref-hit">'+hits.length+'</em> / '+pts.length+' 条</span><span class="grow"></span><button class="ref-auto" id="ref-auto">重新比对</button></div>'
       +'<div class="ref-pts" id="ref-pts">'+pts.map((p,idx)=>{
         const on=hits.indexOf(idx)>=0;
         return '<label class="ref-pt'+(on?' hit':'')+'" data-idx="'+idx+'"><input type="checkbox" data-pt="'+idx+'"'+(on?' checked':'')+'><span class="ref-idx">'+(idx+1)+'</span><span>'+esc(p)+'</span></label>';
       }).join('')+'</div>'
       +'<div class="ref-score"><span>估分</span><b id="ref-est">0</b><span>/ '+max+' 分</span><div class="ref-meter"><i id="ref-meter" style="width:'+(pts.length?hits.length/pts.length*100:0)+'%"></i></div></div><p class="ref-tip">已按关键词自动勾了一遍，不准的地方自己改。</p></div>':'';
-  const alts=(a.alts&&a.alts.length)?'<div class="ref-alts"><b>其他来源的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>'<details><summary>'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</summary><div class="ref-meta">'+refSourceHTML(x)+'</div><div class="ref-ans">'+refAnswerHTML(x.a)+'</div></details>').join('')+'</div>':'';
+  /* 「参考答案说明」解释的是答案怎么组织的，属于解析，不再混在答案正文里 */
+  const noteBody=refNoteOf(a);
+  const noteHTML=noteBody?'<details class="ref-alts ref-extra ref-howto"><summary>参考答案说明（答案是怎么组织的）</summary><div class="ref-ans">'+refAnswerHTML(noteBody)+'</div></details>':'';
+  const alts=(a.alts&&a.alts.length)?'<div class="ref-alts"><b>其他版本的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>'<details><summary>'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</summary><div class="ref-meta">'+refSourceHTML(x)+'</div><div class="ref-ans">'+refAnswerHTML(refNoteOf(x,1))+'</div></details>').join('')+'</div>':'';
   const extra=(a.x||a.k)?'<details class="ref-alts ref-extra"><summary>解析与考点</summary><div class="ref-ans">'+(a.k?'<p><b>考点：</b>'+esc(a.k)+'</p>':'')+(a.x?refAnswerHTML(a.x):'')+'</div></details>':'';
-  body.innerHTML=meta+note+ansHTML+chk+alts+extra
+  body.innerHTML=meta+note+ansHTML+chk+noteHTML+alts+extra
     +'<div class="ref-acts"><button class="mini-btn" id="ref-mine-btn">看我的作答</button><button class="mini-btn" id="ref-copy">复制答案</button><button class="mini-btn" id="ref-close2" hidden>关闭</button></div>'
     +'<div class="ref-mine" id="ref-mine" hidden></div>';
   const mine=$('#ref-mine');
@@ -1856,6 +1878,18 @@ $('#ws-ref .ref-mask').addEventListener('click',wsRefClose);
  renderDashboard();renderVocab();renderStrategy();renderCases();renderFormat();renderReview();renderSettings();
  (function(){const h=(location.hash||'').slice(1);if(viewNames[h]&&h!=='dashboard'){openView(h,{fromHistory:true});pushView(h,true)}else{document.body.dataset.view='dashboard';pushView('dashboard',true)}})();
  window.openView=openView;window.SH_RENDERALL=renderAll;window.SH_CONFIRM=appConfirm;window.SH_TOAST=toast;
+ /* 调试与自动化测试用的只读入口：按试卷 ID 取某题渲染后的参考答案结构 */
+ window.SH_REF_PROBE=function(id,i){
+   const ex=(window.SH_EXAMS||[]).find(x=>x.id===id);
+   if(!ex) return {err:'no exam'};
+   const old=WS.exam,oldI=WS.qIdx;
+   WS.exam=ex;WS.qIdx=i;
+   const a=wsAnsAt(ex,i);
+   const out=a?{no:a.no,tier:a.tier,q:(ex.q[i]||{}).t,
+     body:refAnswerHTML(a.a),note:refNoteOf(a),x:a.x||'',k:a.k||'',alts:(a.alts||[]).length}:null;
+   WS.exam=old;WS.qIdx=oldI;
+   return out;
+ };
  window.SH_WSFLOAT=function(){try{return wsSyncFloat()}catch(e){}};
  window.addEventListener('resize',function(){if(window.SH_WSFLOAT)window.SH_WSFLOAT()});
  window.addEventListener('orientationchange',function(){setTimeout(function(){if(window.SH_WSFLOAT)window.SH_WSFLOAT()},260)});

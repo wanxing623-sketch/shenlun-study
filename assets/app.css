@@ -616,10 +616,15 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .ref-li-v{flex:1;min-width:0}
 .ref-li-plain{display:block}
 .ref-ol .ref-li-plain{text-indent:2em}
+/* 公文里的称呼顶格、落款和日期靠右，跟正文段落区分开 */
+.ref-ans .ref-li-addr{text-indent:0;text-align:left}
+.ref-li-sign{text-indent:0;text-align:right}
+.ref-ol .ref-li-sign{text-indent:0;text-align:right}
 .ref-ans-essay{line-height:2}
 .ref-ans-essay .ref-title{text-align:center;font-weight:600;font-size:var(--t-lg);margin:0 0 1em;text-indent:0}
 .ref-ans-essay .ref-para{text-indent:2em;margin:0 0 .9em}
 .ref-ans-essay .ref-para:last-child{margin-bottom:0}
+.ref-ans .rv-doc{margin:0 0 1em}
 .ref-ans .rv{display:block;font-family:var(--sans);font-size:var(--t-sm);font-weight:600;color:var(--muted);margin:0 0 8px;padding-bottom:6px;border-bottom:1px dashed var(--line)}
 .ref-ans .rv-doc{font-weight:600;text-align:center;font-size:var(--t-read)}
 .ref-ans p{margin:0 0 .8em}

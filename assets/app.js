@@ -1293,6 +1293,13 @@ const REF_TIER={
   loose:['仅供参考','只有题干相近，不一定是这道题的答案']
 };
 const REF_DIMS=['立意和范文方向一致','结构完整：标题、开头、分论点、结尾','每个分论点都有材料或事例支撑','语言规范，没有明显的口语'];
+/* 要点自检里的每一条只显示「概括句」，原文太长扫不动；完整内容在答案正文里 */
+function refPointBrief(p){
+  let s=String(p||'').trim().replace(REF_ITEM_RE,'');
+  const m=s.match(/^[^。！？]{4,40}[。！？]/);
+  if(m&&s.length>m[0].length+6) return m[0];
+  return s.length>60?s.slice(0,60).replace(/[，、；]$/,'')+'…':s;
+}
 function wsAnsGrp(){
   const id=WS.exam?WS.exam.id:'';
   const m=(window.SH_EXAM_INDEX||[]).find(x=>x.id===id);
@@ -1373,6 +1380,61 @@ const REF_DEMO_RE=/(^|\n)[^\n]{0,30}答题演示[（(]粉笔页面原文[\s\S]*$
 function refStripDemo(t){
   return String(t||'').replace(REF_DEMO_RE,'').replace(/\n{3,}/g,'\n\n').trim();
 }
+/* 「来源：2013年…」「> 粉笔页面…」这类行是抓取附带的出处信息，不是答案也不是说明 */
+function refNoteClean(arr){
+  return (arr||[]).map(n=>String(n||'')
+    .split(/\n{2,}/)
+    .map(x=>x.split('\n').filter(l=>!REF_NOISE_RE.test(l.trim())).join('\n').trim())
+    .filter(x=>x&&!REF_NOISE_RE.test(x))
+    .join('\n\n').trim())
+    .filter(Boolean);
+}
+/* PDF 分栏转文字时经常在句子中间插一个空行，看着像「一句话一段」。
+   上一段没有句末标点、下一段又不是新的条目 / 要求 / 出处，就把两段接回去。 */
+/* 段落只会以句末标点 / 冒号 / 收尾引号结束；以顿号、逗号收尾的一定是被折行截断的 */
+const REF_BREAK_END=/[。！？；…”』」】）)】.!?;:—]$/;
+const REF_LINE_HEAD=/^(要求|【|提示|注意|〔|（\d|\(\d|[（(][一二三四五六]|[一二三四五六七八九十]{1,2}、|\d{1,2}[.、．]|第[一二三四五六七八九十\d]{1,3}[题节]|XXXX|附件|来源|参考|答案|范文|注[:：])/;
+function refUnwrap(paras){
+  const out=[];
+  paras.forEach(p=>{
+    const t=String(p||'').trim();
+    if(!t) return;
+    const prev=out.length?out[out.length-1]:'';
+    /* 开头两段（版本标记、公文标题 / 范文标题）不参与拼接：标题本来就不带句号 */
+    const titleLike=out.length<=2&&prev.length<=32;
+    if(prev && !titleLike && !REF_BREAK_END.test(prev) && prev.length>=12 && !REF_LINE_HEAD.test(t)){
+      out[out.length-1]=prev+t; return;
+    }
+    out.push(t);
+  });
+  return out;
+}
+/* 题库偶尔把下一题的题干和要求一起抄进答案里（「第一题」+题干+要求…），
+   这几行不是作答内容，去掉整块 */
+const REF_STEM_RE=/^第[一二三四五六七八九十\d]{1,3}题$/;
+function refDropStem(paras){
+  const out=[];
+  for(let i=0;i<paras.length;i++){
+    const p=paras[i];
+    if(REF_STEM_RE.test(p)){
+      let j=i+1,hasReq=false,end=-1;
+      for(;j<Math.min(paras.length,i+10);j++){
+        const t=paras[j];
+        if(/^要求[:：]?$/.test(t)||(/^要求/.test(t)&&/字数|不超过|左右|不少于/.test(t))){hasReq=true;end=j;continue}
+        if(hasReq){
+          /* 只吃掉「要求」下面的条目；正文段落再长、再像条目都不算 */
+          const item=/^[（(]\d{1,2}[）)]/.test(t)||/^[（(][一二三四五六七八九十][）)]/.test(t)||/^\d{1,2}[.、．]/.test(t);
+          if(item&&t.length<=40){end=j;continue}
+          if(/字数|不超过|左右|不少于/.test(t)&&t.length<=60){end=j;continue}
+          break;
+        }
+      }
+      if(hasReq&&end>=i+2){ i=end; continue; }
+    }
+    out.push(p);
+  }
+  return out;
+}
 function refIsNoteBlock(t){
   const x=String(t||'').trim();
   if(!x) return false;
@@ -1384,6 +1446,26 @@ function refIsNoteBlock(t){
 }
 /* 大作文的「文章分析 / 范文分析」标记，可能独占一行，也可能紧跟在段落末尾 */
 const REF_FX_HEAD=/(?:^|[\n。！？…”』）)]|……)\s*(?:文章分析|范文分析|范文点评|参考解析)\s*[一二三四五\d]?\s*[:：]?/g;
+/* 题库里偶尔把一段「申论怎么答 / 阅卷怎么给分」的杂谈接在答案后面（另起小标题），
+   它属于讲解，不算作答内容：整段挪到说明区 */
+const REF_ASIDE_CUES=/申论|阅卷|命题|考生|得分点|采分|高分|培训机构|答题形式|答题内容|答题思路/g;
+function refLooksLikeAside(t){
+  const x=String(t||'');
+  if(x.length<300) return false;
+  const m=x.match(REF_ASIDE_CUES);
+  if(!m||m.length<6) return false;
+  return /(申论|考生|阅卷|命题)/.test(x);
+}
+/* 短段纯讲「这题怎么答」的文字（没有分条、没有成稿口吻）：属于解析，不该当答案 */
+const REF_THINK_CUES=/本题|作答|答题|考生|得分|要点|题干|审题|阅卷/g;
+function refIsThinkingText(t){
+  const x=String(t||'').trim();
+  if(!x||x.length>700) return false;
+  if(REF_ITEM_RE.test(x)) return false;
+  if(/[一二三四五六七八九十]、/.test(x)) return false;
+  const m=x.match(REF_THINK_CUES);
+  return !!(m&&m.length>=2&&/本题|作答|答题|考生|审题/.test(x));
+}
 /* 审题 / 答题思路：整块都是思路，不是答案 */
 function refLooksLikeThinking(t){
   const x=String(t||'');
@@ -1393,6 +1475,9 @@ function refLooksLikeThinking(t){
 }
 function refSplitBody(t){
   let raw=refStripDemo(refClean(t));
+  /* 先按段重建：修掉 PDF 分栏造成的中断，再去掉误抄进来的下一题题干 */
+  raw=raw.split('\n').filter(l=>!REF_NOISE_RE.test(l.trim())).join('\n');
+  raw=refDropStem(refUnwrap(raw.split(/\n{2,}/).map(x=>x.trim()).filter(Boolean))).join('\n\n');
   let kind='',note=[];
   /* 0) 只有「参考答案说明」没有答案：别把说明当成答案显示 */
   if(REF_NOTE_START.test(raw)&&raw.length<900){
@@ -1415,6 +1500,21 @@ function refSplitBody(t){
       kind='fenxi';
     }
   }
+  /* 2.5) 答案尾部接了一段讲课式杂谈：从小标题起整段挪进说明 */
+  if(!kind){
+    const paras=raw.split(/\n{2,}/).map(x=>x.trim()).filter(Boolean);
+    for(let j=2;j<paras.length;j++){
+      const head=paras[j];
+      if(head.length>24||/[。！？；]/.test(head)) continue;
+      const tail=paras.slice(j+1).join('\n\n');
+      if(refLooksLikeAside(tail)){
+        raw=paras.slice(0,j).join('\n\n');
+        note=[paras.slice(j).join('\n\n')];
+        kind='fenxi';
+        break;
+      }
+    }
+  }
   /* 3) 参考答案说明：逐块判断，不整段切（同一段里常有「参考答案二」等另一版答案） */
   let body=[];
   let seenVariant=false;   /* 已经遇到「参考答案二 / 参考范文2」：之后的内容是另一版答案 */
@@ -1434,23 +1534,39 @@ function refSplitBody(t){
     }
     /* 整段都是说明（带标记，或整段以说明口吻写成） */
     const itemStart=REF_ITEM_RE.test(bk);
+    if(body.length===0&&!itemStart&&refIsThinkingText(bk)){ note.push(bk);kind=kind||'shenti';return; }
     if(refIsNoteBlock(bk)||(!seenVariant&&!itemStart&&bk.length<700&&refCueCount(bk)>=3&&REF_NOTE_LEAD.test(bk))){
       note.push(bk);kind=kind||'note';return;
     }
     body.push(bk);
   });
-  note=note.map(n=>n.split(/\n{2,}/).filter(x=>!REF_NOISE_RE.test(x.trim())).join('\n\n').trim()).filter(Boolean);
+  note=refNoteClean(note);
   return {body,note,kind};
 }
 function refIsDocTitle(b){
   if(b.length>30||/\n/.test(b))return false;
   return /^(关于|致|给)/.test(b)||/^.{2,20}(简报|通报|公告|通知|报告|纪要|方案|提纲|倡议书|公开信|宣传稿|短评|讲话稿|主持词|启事|编者按|建议书|致辞|说明|材料)$/.test(b);
 }
-function refBlockHTML(b){
+function refBlockHTML(b,nextRaw){
   b=b.trim();if(!b)return '';
   if(/^(参考答案|参考范文|范文|答案)[一二三四五六七八九十\d]*[:：]?$/.test(b)) return '<span class="rv">'+esc(b)+'</span>';
   if(refIsDocTitle(b)) return '<p class="rv-doc">'+esc(b)+'</p>';
+  /* 没有序号的书信 / 公文：称呼顶格，落款和日期靠右 */
+  const cls=refLiClass(b,nextRaw);
+  if(cls==='ref-li-addr'||cls==='ref-li-sign') return '<p class="'+cls+'">'+refInline(b).replace(/\n/g,'<br>')+'</p>';
   return '<p>'+refInline(b).replace(/\n/g,'<br>')+'</p>';
+}
+/* 公文里夹在要点中的称呼 / 落款 / 日期：不要跟正文一样缩进，
+   称呼顶格，落款和日期靠右，看着才像一份公文 */
+const REF_DATE_RE=/^[XxＸｘ×X\d]{0,6}[年\-\/.][\dXxＸｘ×]{1,2}[月\-\/.][\dXxＸｘ×]{1,2}日?$|^X{2,}[年月日\s]*$/;
+function refLiClass(t,nextRaw){
+  const s=String(t||'').trim();
+  if(!s) return 'ref-li-plain';
+  if(/\n/.test(s)&&s.length>40) return 'ref-li-plain';
+  if(REF_DATE_RE.test(s)||(/^[XxＸｘ×\d][XxＸｘ×\d年月日\.\-\/\s]{5,}$/.test(s)&&s.length<=22)) return 'ref-li-sign';
+  if(/[:：]$/.test(s)&&s.length<=24) return 'ref-li-addr';
+  if(s.length<=18&&!/[。；，,：:！？]/.test(s)&&nextRaw&&refLiClass(nextRaw)==='ref-li-sign') return 'ref-li-sign';
+  return 'ref-li-plain';
 }
 /* 把编号从正文里挑出来，单独排一列，读的时候一条一条对 */
 const REF_ITEM_RE=/^(\d{1,2}[.、．]|[一二三四五六七八九十]{1,2}、|[（(]\d{1,2}[）)])\s*/;
@@ -1458,6 +1574,13 @@ function refAnswerHTML(t,opts){
   const body=refSplitBody(t).body;
   if(!body.length) return '<p>'+refInline(refClean(t))+'</p>';
   if(opts&&opts.essay) return refEssayHTML(body);
+  /* 「参考答案一：」这类版本标记单独一行，别混进要点列表里当一条 */
+  let head='';
+  while(body.length&&REF_VARIANT_RE.test(body[0].replace(/[:：]\s*$/,''))&&body[0].length<16){
+    head+='<span class="rv">'+esc(body.shift().replace(/[:：]$/,''))+'</span>';
+  }
+  /* 首段是公文标题（「关于…的汇报提纲」）：单独居中排，不跟着正文缩进 */
+  while(body.length&&refIsDocTitle(body[0])) head+='<p class="rv-doc">'+esc(body.shift())+'</p>';
   const items=[];
   body.forEach(bk=>{
     const seg=refClean(bk).replace(/([。；!？])\s*(?=(?:\d{1,2}[.、．]|[一二三四五六七八九十]{1,2}、|[（(]\d{1,2}[）)]))/g,'$1\u0001')
@@ -1471,11 +1594,11 @@ function refAnswerHTML(t,opts){
     }
   });
   if(items.filter(x=>x.k).length>=2){
-    return '<ol class="ref-ol">'+items.map(x=>x.raw!==undefined
-      ? '<li class="ref-li-plain">'+refInline(x.raw).replace(/\n/g,'<br>')+'</li>'
+    return head+'<ol class="ref-ol">'+items.map((x,idx)=>x.raw!==undefined
+      ? '<li class="'+refLiClass(x.raw,items[idx+1]&&items[idx+1].raw)+'">'+refInline(x.raw).replace(/\n/g,'<br>')+'</li>'
       : '<li><span class="ref-li-k">'+esc(x.k)+'</span><span class="ref-li-v">'+refInline(x.v)+'</span></li>').join('')+'</ol>';
   }
-  return items.map(x=>refBlockHTML(x.raw!==undefined?x.raw:(x.k+x.v))).join('');
+  return head+items.map((x,idx)=>refBlockHTML(x.raw!==undefined?x.raw:(x.k+x.v),items[idx+1]&&items[idx+1].raw)).join('');
 }
 /* 大作文范文：标题单独排。
  * 题库里的标题有三种写法：干净的一行、标题后面紧接正文（同一段）、标题前带「参考范文1」。 */
@@ -1637,8 +1760,11 @@ function wsRefRender(a){
   const splitA=refSplitBody(a.a||'');
   const splitX=refSplitBody(a.x||'');
   const essay=type==='zuowen';
-  const meta='<div class="ref-meta"><span>第 '+(WS.qIdx+1)+' 题</span><span>·</span><span>'+esc(typeName)+'</span>'
+  const qNo=(q&&q.no)||((window.__qi!=null?window.__qi:WS.qIdx)+1);
+  const li=wsLimitInfo(q);
+  const meta='<div class="ref-meta"><span>第 '+qNo+' 题</span><span>·</span><span>'+esc(typeName)+'</span>'
     +(max?'<span>·</span><span>'+max+' 分</span>':'')
+    +(li.max?'<span>·</span><span>'+(li.min?li.min+'–':'')+li.max+' 字</span>':'')
     +'<span>·</span><span>来源 </span>'+refSourceHTML(a)+'</div>';
   const note='<div class="ref-note'+(a.tier==='high'?' tip':'')+'">'+esc(tier[1])+'。这是机构或考生整理的答案，不是官方标准答案。</div>';
   /* 答案正文：只放真实答案，按条排版（范文按段落排） */
@@ -1666,7 +1792,7 @@ function wsRefRender(a){
   const chk=(hasBody&&pts.length)?'<section class="ref-check"><div class="ref-check-head"><b>要点自检</b><span>写到 <em id="ref-hit">'+hits.length+'</em> / '+pts.length+' 条</span><span class="grow"></span><button class="ref-auto" id="ref-auto">重新比对</button></div>'
       +'<div class="ref-pts" id="ref-pts">'+pts.map((p,idx)=>{
         const on=hits.indexOf(idx)>=0;
-        return '<label class="ref-pt'+(on?' hit':'')+'" data-idx="'+idx+'"><input type="checkbox" data-pt="'+idx+'"'+(on?' checked':'')+'><span class="ref-idx">'+(idx+1)+'</span><span>'+esc(p)+'</span></label>';
+        return '<label class="ref-pt'+(on?' hit':'')+'" data-idx="'+idx+'" title="'+esc(p)+'"><input type="checkbox" data-pt="'+idx+'"'+(on?' checked':'')+'><span class="ref-idx">'+(idx+1)+'</span><span>'+esc(refPointBrief(p))+'</span></label>';
       }).join('')+'</div>'
       +'<div class="ref-score"><span>估分</span><b id="ref-est">0</b><span>/ '+max+' 分</span><div class="ref-meter"><i id="ref-meter" style="width:'+(pts.length?hits.length/pts.length*100:0)+'%"></i></div></div><p class="ref-tip">已按关键词自动勾了一遍，不准的地方自己改。</p></section>':'';
   const alts=(a.alts&&a.alts.length)?'<section class="ref-alts"><b>其他来源的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>{
@@ -1674,7 +1800,7 @@ function wsRefRender(a){
       const altEssay=essay;
       const altBody=sp.body.length?(altEssay?refEssayHTML(sp.body):refAnswerHTML(x.a)):'';
       const altNote=sp.note.length?('<div class="ref-note-mini">'+esc(refNoteBrief(sp.note))+'</div>'):'';
-      return '<details><summary><span class="ref-alt-name">'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</span>'+((REF_SRC[x.src]||{}).name&&x.label?'<span class="ref-alt-src">'+esc((REF_SRC[x.src]||{}).name)+'</span>':'')+'</summary>'
+      return '<details><summary><span class="ref-alt-name">'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</span>'+((REF_SRC[x.src]||{}).name&&x.label?'<span class="ref-alt-src">'+esc((REF_SRC[x.src]||{}).name)+'</span>':'')+'<span class="ref-alt-src">'+((x.a||'').replace(/\s/g,'').length)+' 字</span></summary>'
         +(altBody?'<div class="ref-ans">'+altBody+'</div>':'<p class="ref-alt-none">这份答案没有成稿，只有思路说明：</p>')
         +altNote+'</details>';
     }).join('')+'</section>':'';

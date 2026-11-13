@@ -1,13 +1,13 @@
 {
  "meta": {
   "generated": "2026-11-13",
-  "total": 981,
-  "covered": 957,
+  "total": 1008,
+  "covered": 955,
   "tiers": {
-   "high": 951,
+   "high": 949,
    "mid": 5,
    "loose": 1,
-   "miss": 30
+   "miss": 32
   },
   "sources": [
    {
@@ -374,7 +374,7 @@
   ],
   [
    "广西_2020_B类",
-   4,
+   2,
    4
   ],
   [

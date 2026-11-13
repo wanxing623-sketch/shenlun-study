@@ -47,6 +47,7 @@ jobs:
               if(d.lenMismatch.length) bad.push("答案条数与题数不符："+JSON.stringify(d.lenMismatch));
               if(d.weakMatch.length) bad.push("题干对不上："+JSON.stringify(d.weakMatch.slice(0,3)));
               if(d.dirtyBody.length) bad.push("答案正文混入说明/解析："+d.dirtyBody.length+" 处");
+              if(d.junk.length) bad.push("答案正文混入抓取附注/范文点评/链接："+d.junk.length+" 处");
               bad.forEach(x=>console.log("  ",x));
               if(bad.length) process.exit(1);
             });

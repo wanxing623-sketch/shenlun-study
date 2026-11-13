@@ -154,6 +154,45 @@
    openView(viewNames[v]?v:'dashboard',{fromHistory:true});
  });
 
+ /* 练习室题库 3.5MB，不进首屏：点开「练习」页才拉。
+    加载过的组会记住，失败时下次进入自动重试。 */
+ const LAB_SCRIPTS=['exams/lab/lab-data.js','exams/lab/lab.js'];
+ let LAB_P=null;
+ function ensureLab(){
+   if(window.SH_LABHOOK&&window.SH_LABHOOK.ready) return Promise.resolve(true);
+   if(LAB_P) return LAB_P;
+   const ver=(window.SH_ASSET_V||{});
+   const loading=$('#lb-main');
+   if(loading&&!window.SH_LAB) loading.innerHTML='<div class="lb-empty"><span class="gr-spin"></span> 正在加载练习题…</div>';
+   LAB_P=new Promise(resolve=>{
+     let i=0;
+     const next=()=>{
+       if(i>=LAB_SCRIPTS.length){resolve(!!(window.SH_LABHOOK&&window.SH_LABHOOK.ready));return}
+       const path=LAB_SCRIPTS[i++];
+       const s=document.createElement('script');
+       s.src=path+(ver[path]?'?v='+ver[path]:'');
+       s.async=false;
+       s.onload=next;
+       s.onerror=()=>{
+         LAB_P=null;
+         const box=$('#lb-main');
+         if(box) box.innerHTML='<div class="lb-empty"><b>练习题没有加载出来</b>可能是网络中断，<button class="mini-btn" id="lb-retry">重试</button></div>';
+         const btn=$('#lb-retry');
+         if(btn) btn.addEventListener('click',()=>{ensureLab().then(()=>{if(window.SH_LABHOOK)SH_LABHOOK.render()})});
+         resolve(false);
+       };
+       document.head.appendChild(s);
+     };
+     next();
+   });
+   return LAB_P;
+ }
+ /* 后台预热：兜底网络空闲时再拉，让第一次点「练习」也是瞬间打开 */
+ function warmLab(){
+   if(window.SH_LABHOOK) return;
+   const idle=window.requestIdleCallback||function(f){return setTimeout(f,1800)};
+   idle(()=>{ if(!window.SH_LABHOOK) ensureLab(); },{timeout:6000});
+ }
  function openView(view,opt){
    opt=opt||{};
    if(!viewNames[view])view='dashboard';
@@ -174,9 +213,9 @@
    document.body.dataset.view=view;
    if(view==='dashboard')renderDashboard();if(view==='vocab')renderVocab();if(view==='strategy')renderStrategy();if(view==='cases')renderCases();
    if(view==='format')renderFormat();if(view==='review')renderReview();if(view==='settings')renderSettings();if(view==='workspace')renderWorkspace();
-   if(view==='lab'&&window.SH_LABHOOK)SH_LABHOOK.render();
    if(window.SH_WSFLOAT)window.SH_WSFLOAT();
-   if(window.SH_LABHOOK&&SH_LABHOOK.syncFloat)SH_LABHOOK.syncFloat();
+   if(view==='lab')ensureLab().then(()=>{if(state.view==='lab'){if(window.SH_LABHOOK)SH_LABHOOK.render();if(SH_LABHOOK.syncFloat)SH_LABHOOK.syncFloat()}});
+   else if(window.SH_LABHOOK&&SH_LABHOOK.syncFloat)SH_LABHOOK.syncFloat();
    if(changed){
      if(!opt.fromHistory)pushView(view);
      /* 每个页面记住自己的滚动位置，切回来还在原处 */
@@ -556,8 +595,53 @@
    $('#review-due').textContent=weak;$('#review-mastered').textContent=mastered;$('#review-fav-num').textContent=Object.keys(state.favorites).length;
    $('#review-bar-fill').style.width=(DATA.vocab.length?mastered/DATA.vocab.length*100:0)+'%';
  }
+ /* 参考答案查漏：把看过的答案按「要点全命中 / 还差几条 / 没作答」分三档，
+    配合真题作答记录，直接告诉人下一步该重做哪几题 */
+ function wsRefWatchRows(){
+  const out=[];
+  try{
+    for(let i=0;i<LS.length;i++){
+      const k=LS.key(i);
+      if(!k||k.indexOf('sh_ws_ref_')!==0)continue;
+      const id=k.slice('sh_ws_ref_'.length);
+      const meta=(window.SH_EXAM_INDEX||[]).find(x=>x.id===id);
+      if(!meta)continue;
+      let st={};
+      try{st=JSON.parse(LS.getItem(k)||'{}')}catch(e){continue}
+      const keys=Object.keys(st);
+      if(!keys.length)continue;
+      const hits=keys.filter(q=>Array.isArray(st[q].hits)&&st[q].hits.length).length;
+      const seen=keys.length;
+      out.push({id:id,r:meta.r,y:meta.y,l:meta.l,q:seen,hit:hits});
+    }
+  }catch(e){}
+  return out.sort((a,b)=>b.q-a.q).slice(0,6);
+ }
+ function renderRefWatch(){
+   const box=$('#ref-watch');
+   if(!box)return;
+   const rows=wsRefWatchRows();
+   if(!rows.length){box.innerHTML='';return}
+   box.innerHTML='<div class="rw-head"><b>真题答案查漏</b><span>看过答案的题，可以回原卷把没写到的要点补一遍。</span></div>'
+     +'<div class="rw-list">'+rows.map(x=>{
+       const full=x.hit>=x.q;
+       return '<button class="rw-item" data-open-exam="'+esc(x.id)+'">'
+         +'<span class="rw-name">'+esc(x.r+' '+x.y+(x.l?' · '+x.l:''))+'</span>'
+         +'<span class="rw-num'+(full?' ok':'')+'">'+x.hit+' / '+x.q+'</span>'
+         +'<span class="rw-tip">'+(full?'要点写全了':'还有 '+(x.q-x.hit)+' 题没写全')+'</span>'
+         +'</button>';
+     }).join('')+'</div>';
+   $$('#ref-watch .rw-item').forEach(b=>b.addEventListener('click',()=>{
+     const id=b.dataset.openExam;
+     openView('workspace');
+     setTimeout(()=>{
+       const sel=$('#ws-exam');
+       if(sel&&sel.value!==id){sel.value=id;sel.dispatchEvent(new Event('change'))}
+     },80);
+   }));
+ }
  function renderReview(){
-   renderReviewNums();
+   renderReviewNums();renderRefWatch();
    const all=DATA.vocab.map((x,i)=>Object.assign({},x,{id:i}));
    const tab=state.reviewTab,isNotes=tab==='notes';
    $$('[data-review-tab]').forEach(b=>{const on=b.dataset.reviewTab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on)});
@@ -1458,8 +1542,13 @@ function wsRefRender(a){
     +(max?'<span>·</span><span>'+max+' 分</span>':'')
     +'<span>·</span><span>来源 </span>'+refSourceHTML(a)+'</div>';
   const note='<div class="ref-note'+(a.tier==='high'?' tip':'')+'">'+esc(tier[1])+'。这是机构或考生整理的答案，不是官方标准答案。</div>';
-  const ansHTML='<div class="ref-sec"><div class="ref-sec-h">参考答案<span>'+esc((REF_SRC[a.src]||{}).name||'公开题库')+'·仅供对照</span></div>'
-    +'<div class="ref-ans">'+refAnswerHTML(a.a)+'</div></div>';
+  const ansHTML='<div class="ref-sec"><div class="ref-sec-h">参考答案<span>'+esc((REF_SRC[a.src]||{}).name||'公开题库')+'·仅供对照</span>'
+    +'<span class="grow"></span>'
+    +(type!=='zuowen'?'<button class="ref-mini" id="ref-cmp" aria-pressed="false">对照我的作答</button>':'')
+    +'<button class="ref-mini" id="ref-copy-pts" hidden>按条复制</button>'
+    +'</div>'
+    +'<div class="ref-ans" id="ref-ans-main">'+refAnswerHTML(a.a)+'</div>'
+    +'<div class="ref-cmp" id="ref-cmp-box" hidden></div></div>';
   const chk=pts.length?'<div class="ref-check"><div class="ref-check-head"><b>要点自检</b><span>写到 <em id="ref-hit">'+hits.length+'</em> / '+pts.length+' 条</span><span class="grow"></span><button class="ref-auto" id="ref-auto">重新比对</button></div>'
       +'<div class="ref-pts" id="ref-pts">'+pts.map((p,idx)=>{
         const on=hits.indexOf(idx)>=0;
@@ -1470,12 +1559,52 @@ function wsRefRender(a){
   const noteBody=refNoteOf(a);
   const noteHTML=noteBody?'<details class="ref-alts ref-extra ref-howto"><summary>参考答案说明（答案是怎么组织的）</summary><div class="ref-ans">'+refAnswerHTML(noteBody)+'</div></details>':'';
   const alts=(a.alts&&a.alts.length)?'<div class="ref-alts"><b>其他版本的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>'<details><summary>'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</summary><div class="ref-meta">'+refSourceHTML(x)+'</div><div class="ref-ans">'+refAnswerHTML(refNoteOf(x,1))+'</div></details>').join('')+'</div>':'';
-  const extra=(a.x||a.k)?'<details class="ref-alts ref-extra"><summary>解析与考点</summary><div class="ref-ans">'+(a.k?'<p><b>考点：</b>'+esc(a.k)+'</p>':'')+(a.x?refAnswerHTML(a.x):'')+'</div></details>':'';
+  const extra=(a.x||a.k)?'<details class="ref-alts ref-extra"><summary>'+(a.k?'考点：'+esc(a.k):'解析')
+    +(a.x&&a.k?'（含解析）':'')+'</summary><div class="ref-ans">'
+    +(a.x?refAnswerHTML(a.x):'<p>题库只给了考点，没有附文字解析。</p>')+'</div></details>':'';
   body.innerHTML=meta+note+ansHTML+chk+noteHTML+alts+extra
     +'<div class="ref-acts"><button class="mini-btn" id="ref-mine-btn">看我的作答</button><button class="mini-btn" id="ref-copy">复制答案</button><button class="mini-btn" id="ref-close2" hidden>关闭</button></div>'
     +'<div class="ref-mine" id="ref-mine" hidden></div>';
   const mine=$('#ref-mine');
   if(mine) mine.textContent=wsAnswerText()||'（本题还没有作答）';
+
+  /* 对照模式：左边我的作答、右边参考答案，同一条命中就并排对齐 */
+  const cmpBtn=$('#ref-cmp'),cmpBox=$('#ref-cmp-box'),ansBox=$('#ref-ans-main');
+  if(cmpBtn&&cmpBox&&ansBox){
+    const myText=wsAnswerText();
+    cmpBtn.addEventListener('click',()=>{
+      const on=cmpBox.hidden;
+      cmpBox.hidden=!on;
+      ansBox.hidden=on;
+      cmpBtn.setAttribute('aria-pressed',on?'true':'false');
+      cmpBtn.textContent=on?'取消对照':'对照我的作答';
+      if(on&&!cmpBox.innerHTML){
+        if(!myText){
+          cmpBox.innerHTML='<div class="ref-empty2">这道题还没有作答。先写一遍，再回来对照——自己写过的题，看答案才有用。</div>';
+        }else{
+          const rows=pts.map((p,idx)=>{
+            const hit=hits.indexOf(idx)>=0;
+            return '<div class="ref-row'+(hit?' hit':'')+'"><div class="ref-row-mine">'+(hit?'已写到':'没写到')+'</div>'
+              +'<div class="ref-row-pt"><b>'+(idx+1)+'</b>'+esc(p)+'</div></div>';
+          }).join('');
+          const miss=pts.length-hits.length;
+          cmpBox.innerHTML='<div class="ref-cmp-head">你的作答覆盖了 <b>'+hits.length+'</b> / '+pts.length+' 条要点'
+            +(miss?'，还差 '+miss+' 条。<span>没写到的点，回到材料找依据，比抄一遍答案有用。</span>':'，要点基本齐了。')
+            +'</div><div class="ref-rows">'+rows+'</div>'
+            +'<details class="ref-extra"><summary>看我的作答原文</summary><div class="ref-ans ref-ans-mine">'+esc(myText)+'</div></details>';
+        }
+      }
+    });
+  }
+  /* 按条复制：一条一行，直接粘进笔记 */
+  const copyPts=$('#ref-copy-pts');
+  if(copyPts&&pts.length){
+    copyPts.hidden=false;
+    copyPts.addEventListener('click',()=>{
+      const text=pts.map((p,k)=>(k+1)+'. '+p).join('\n');
+      copy(text,'已复制 '+pts.length+' 条要点');
+    });
+  }
   const recalc=()=>{
     const now=[];
     $$('#ref-pts .ref-pt').forEach(el=>{
@@ -1607,6 +1736,40 @@ $('#ws-ref .ref-mask').addEventListener('click',wsRefClose);
       sp.textContent=wc;
     });
   }
+  /* 题干里提到的「资料 3」「材料 3、4」「资料 3～5」→ 去重后的材料序号（1 基） */
+  function wsCiteMats(q){
+    const txt=((q&&q.t)||'')+' '+((q&&q.rq)||'');
+    const n=WS.exam?WS.exam.m.length:0;
+    const out=[];
+    const push=x=>{const v=+x;if(v>0&&v<=n&&out.indexOf(v)<0)out.push(v)};
+    let m;
+    const range=/(?:资料|材料)\s*(\d{1,2})\s*[～~—\-－至到]\s*(\d{1,2})/g;
+    while((m=range.exec(txt))){for(let i=+m[1];i<=+m[2]&&i<=n;i++)push(i)}
+    const list=/(?:资料|材料)\s*(\d{1,2}(?:\s*[、,和与及]\s*\d{1,2})*)/g;
+    while((m=list.exec(txt))){
+      m[1].split(/[、,和与及]/).forEach(x=>push(String(x).trim()));
+    }
+    return out.sort((a,b)=>a-b);
+  }
+  /* 跳到某份材料；highlight 时把正文闪一下，让人一眼看到落点 */
+  function wsGotoMat(no,highlight){
+    if(!WS.exam)return;
+    const idx=no-1;
+    if(idx<0||idx>=WS.exam.m.length)return;
+    const same=WS.matIdx===idx;
+    WS.matIdx=idx;
+    wsRenderMaterial();wsMatTabs();
+    const mb=$('#ws-material');if(mb)mb.scrollLeft=0;
+    const ab=$('#ws-mat-tabs button.active');if(ab&&ab.scrollIntoView)ab.scrollIntoView({block:'nearest',inline:'center'});
+    /* 手机上是「材料 / 作答」两页，切成材料页 */
+    if(wsNarrow()) wsSetPane('mat');
+    wsPaneTop();
+    if(!same&&highlight){
+      const box=$('#ws-material');
+      if(box){box.classList.remove('ws-flash');void box.offsetWidth;box.classList.add('ws-flash');
+        setTimeout(()=>box.classList.remove('ws-flash'),1200)}
+    }
+  }
   function wsRenderQuestion(){
     const q=WS.exam.q[WS.qIdx];
     $('#ws-q-tabs').innerHTML=WS.exam.q.map((x,i)=>`<button class="${i===WS.qIdx?'active':''}" data-q="${i}">第 ${i+1} 题</button>`).join('');
@@ -1624,8 +1787,15 @@ $('#ws-ref .ref-mask').addEventListener('click',wsRefClose);
     else if(li.min) html+='<span class="pill">不少于 '+li.min+' 字</span>';
     html+='<span id="ws-ref-state"></span>';
     html+='</div>';
+    const cites=wsCiteMats(q);
+    if(cites.length&&WS.exam.m.length>1){
+      html+='<div class="ws-cites"><span class="ws-cites-l">看资料</span>'
+        +cites.map(n=>'<button class="ws-cite'+(WS.matIdx===n-1?' on':'')+'" data-goto-mat="'+n+'" title="跳到给定资料 '+n+'">资料 '+n+'</button>').join('')
+        +'</div>';
+    }
     if(q.rq) html+='<div class="ws-req"><b>要求　</b>'+esc(q.rq)+'</div>';
     $('#ws-question').innerHTML=html;
+    $$('#ws-question .ws-cite').forEach(b=>b.addEventListener('click',()=>wsGotoMat(+b.dataset.gotoMat,true)));
     wsRenderPeek();
     wsUpdateRefBtn();
   }
@@ -1875,10 +2045,23 @@ $('#ws-ref .ref-mask').addEventListener('click',wsRefClose);
 
   /* ---------- 启动 ---------- */
  applyTheme();applyPrefs();
+ /* 首屏渲染完再预热练习室，不抢首屏带宽 */
+ if(document.readyState==='complete') setTimeout(warmLab,2600);
+ else window.addEventListener('load',()=>setTimeout(warmLab,2600));
  renderDashboard();renderVocab();renderStrategy();renderCases();renderFormat();renderReview();renderSettings();
  (function(){const h=(location.hash||'').slice(1);if(viewNames[h]&&h!=='dashboard'){openView(h,{fromHistory:true});pushView(h,true)}else{document.body.dataset.view='dashboard';pushView('dashboard',true)}})();
  window.openView=openView;window.SH_RENDERALL=renderAll;window.SH_CONFIRM=appConfirm;window.SH_TOAST=toast;
  /* 调试与自动化测试用的只读入口：按试卷 ID 取某题渲染后的参考答案结构 */
+ window.SH_REF_RENDER=function(id,i){
+   const ex=(window.SH_EXAMS||[]).find(x=>x.id===id);
+   if(!ex||!window.SH_ANSWERS||!window.SH_ANSWERS[id]) return false;
+   const p=$('#ws-ref');if(!p) return false;
+   WS.exam=ex;WS.qIdx=i;
+   const a=(window.SH_ANSWERS[id]||[])[i];
+   p.hidden=false;
+   wsRefRender(a);
+   return true;
+ };
  window.SH_REF_PROBE=function(id,i){
    const ex=(window.SH_EXAMS||[]).find(x=>x.id===id);
    if(!ex) return {err:'no exam'};

@@ -1,0 +1,53 @@
+name: 数据与页面校验
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 脚本语法
+        run: |
+          for f in assets/app.js exams/kk.js exams/lab/lab.js tools/audit/*.js; do
+            node --check "$f" || exit 1
+          done
+
+      - name: 资源指纹
+        run: python3 tools/stamp_assets.py --check
+
+      - name: 真题结构审计（套 ↔ 材料 ↔ 题号）
+        run: |
+          node tools/audit/audit_exams.js --json > /tmp/exams.json
+          node -e '
+            const d=require("/tmp/exams.json");
+            const bad=d.items.filter(x=>x.oor.length&&!x.srcGap);
+            const gap=d.items.filter(x=>x.srcGap);
+            console.log("越界引用",bad.length,"处；上游源卷残缺",gap.length,"处（不计失败）");
+            bad.forEach(x=>console.log("  !!",x.id,"Q"+x.qi,x.oor.join(",")));
+            gap.forEach(x=>console.log("  源卷残缺",x.id,"Q"+x.qi,"引用",x.refs.join(","),"材料",x.mats));
+            if(bad.length) process.exit(1);
+          '
+
+      - name: 参考答案审计（题号对齐 / 正文是否混入说明）
+        run: node tools/audit/audit_answers.js --json | node -e '
+            let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+              const d=JSON.parse(s);
+              console.log("覆盖",d.covered+"/"+d.questions,"("+d.rate+"%)");
+              const bad=[];
+              if(d.lenMismatch.length) bad.push("答案条数与题数不符："+JSON.stringify(d.lenMismatch));
+              if(d.weakMatch.length) bad.push("题干对不上："+JSON.stringify(d.weakMatch.slice(0,3)));
+              if(d.dirtyBody.length) bad.push("答案正文混入说明/解析："+d.dirtyBody.length+" 处");
+              bad.forEach(x=>console.log("  ",x));
+              if(bad.length) process.exit(1);
+            });
+          '

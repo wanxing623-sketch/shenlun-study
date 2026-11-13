@@ -490,7 +490,7 @@ def main():
         out[e['id']] = arr
         report.append((e['id'], sum(1 for x in arr if x), len(arr)))
 
-    total = sum(len(v) for v in out.values())
+    total = sum(len(e['q']) for e in exams)      # 以全量题数为准，缺口卷也计入分母
     covered = sum(1 for v in out.values() for x in v if x)
     meta = dict(generated=__import__('time').strftime('%Y-%m-%d'), total=total, covered=covered,
                 tiers={k: stats[k] for k in ('high', 'mid', 'loose', 'miss')},

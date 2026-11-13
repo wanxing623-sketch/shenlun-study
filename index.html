@@ -14,7 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="assets/icon-180.png" />
-<link rel="stylesheet" href="assets/app.css?v=df5042e2" />
+<link rel="stylesheet" href="assets/app.css?v=724c9813" />
 <link rel="stylesheet" href="exams/kk.css?v=eb86643b" />
 <link rel="stylesheet" href="exams/lab/lab.css?v=57ff8fe1" />
 <script>/* 首屏前定好主题 / 字号 / 阅读字体，避免闪烁 */(function(){try{var L=localStorage,r=document.documentElement,p=L.getItem("sh_theme")||"auto";var d=p==="dark"||(p==="auto"&&window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches);r.setAttribute("data-theme",d?"dark":"light");var win=/Win/i.test(navigator.platform||"")||/Windows/i.test(navigator.userAgent||"");if(win)r.setAttribute("data-os","win");r.setAttribute("data-read",L.getItem("sh_read")||(win?"sans":"serif"));r.setAttribute("data-font",L.getItem("sh_font")||"normal");var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",d?"#171614":"#f4f2ed")}catch(e){}})();</script>
@@ -241,6 +241,7 @@
   <div class="list-meta review-toolbar"><span id="review-count">0 条</span><span class="grow"></span><span id="fav-tools" hidden><span id="fav-count" hidden>0 条</span><button class="text-btn danger" id="clear-favs">清空收藏</button></span></div>
   <div id="note-pane" hidden><div class="note-panel"><textarea id="note-text" placeholder="随手记：这个词能用在什么题里？和哪条对策能搭配？" aria-label="学习笔记"></textarea><div class="save-row"><span id="note-status">只保存在本机</span><button class="primary" id="save-note">保存</button></div></div></div>
   <div class="review-list" id="review-list"></div>
+  <div class="ref-watch" id="ref-watch"></div>
 </section>
 
 <!-- 设置 -->
@@ -300,13 +301,13 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>icoHydrate()</script>
+<script>window.SH_ASSET_V={"exams/lab/lab-data.js":"085a7d34","exams/lab/lab.js":"3844c7ec"};</script>
 <script src="exams/index.js?v=301308e0"></script>
-<script src="exams/answers-meta.js?v=b2b91d74"></script>
+<script src="exams/answers-meta.js?v=83692b51"></script>
 <script src="exams/kk.js?v=7c27d6fe"></script>
 <script src="data/formats.js?v=c3ba3af2"></script>
 <script src="data/problems.js?v=1b1bf7d9"></script>
 <script src="data/library.js?v=be243a6e"></script>
-<script src="assets/app.js?v=8d3103d7"></script>
-<script src="exams/lab/lab-data.js?v=085a7d34"></script>
-<script src="exams/lab/lab.js?v=3844c7ec"></script>
+<script src="assets/app.js?v=727ef71e"></script>
+<!-- 练习室（3.5MB 题库）不在首屏加载，点开「练习」页时再由 app.js 拉取 -->
 </body></html>

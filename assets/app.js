@@ -1343,70 +1343,130 @@ function wsUpdateRefBtn(){
   b.title=a?(seen&&seen.seen?'已看过参考答案':''):'这道题在公开题库里没有找到可靠的答案';
   if(st) st.innerHTML='';
 }
-function refAnswerHTML(t){
-  /* Markdown 反斜杠转义（如 30\~10 分钟）在纯文本面板里还原 */
-  t=String(t||'').replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/g,'$1');
-  const blocks=String(t||'').split(/\n{2,}/);
-  return blocks.map(b=>{
-    b=b.trim();if(!b)return '';
-    if(/^参考答案[一二三四五六七八九十\d]*$/.test(b)) return '<span class="rv">'+esc(b)+'</span>';
-    return '<p>'+esc(b).replace(/\n/g,'<br>')+'</p>';
-  }).join('');
-}
-function refSplit(t){
-  const out=[];
-  String(t||'').split(/\n{2,}/).forEach(p=>{
-    p=p.trim();if(!p)return;
-    /* 只在句末标点之后切分条序号，避免把 1.5 倍、7.24 这类数字切开；不用后行断言，兼容旧版 WebView */
-    p=p.replace(/([。；!?])\s*(?=(?:\d{1,2}[.、]|[一二三四五六七八九十]{1,2}、))/g,'$1\n');
-    p.split('\n').forEach(x=>{
-      x=x.trim();if(!x)return;
-      if(/^参考答案[一二三四五六七八九十\d]*$/.test(x))return;
-      if(/^(解析|考点|来源|参考答案说明)/.test(x))return;
-      out.push(x);
-    });
+/* ---------- 参考答案：把「正文」和「说明」拆开 ----------
+ * 题库的「解析」字段常把三样东西混在一起：
+ *   1) 答案正文（分条列点、公文版式、范文段落）——这是要看的真实答案；
+ *   2) 参考答案说明——为什么这么分条、每处踩的是哪个得分点；
+ *   3) 范文点评（大作文的「文章分析」）——逐段评优点，属于解析。
+ * 面板里三者分开：正文按条排版，「说明 / 点评」各自收进折叠块。
+ */
+const REF_NOISE_RE=/^(来源[:：]|>|粉笔页面)/;
+const REF_NOTE_HEAD=/^(参考答案说明|答案说明|评分说明)\s*[:：]?/;
+const REF_NOTE_LEAD=/参考答案说明|答案说明|评分说明/;
+const REF_FX_RE=/\n\s*(文章分析|范文点评|参考解析|题目解析)\s*\n/;
+function refClean(t){return String(t||'').replace(/\\([\\`*_{}\[\]()#+\-.!~|>])/g,'$1');}
+function refInline(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');}
+function refIsNote(t){return REF_NOTE_HEAD.test(t)||(REF_NOTE_LEAD.test(t)&&t.length<600);}
+/* 范文点评：常见的「【标题的优点：…】」「【论述段2的优点：…】」以及「注意：…」，
+   都是评卷思路，不是答案正文，抽出来单放 */
+function refSplitBody(t){
+  let raw=refClean(t);
+  let kind='',note=[];
+  const fxNote=/^【[^【】]{4,}(】|$)/;
+  const noteLike=/^(注意|解析|评析|点评)[:：]/;
+  const pullFx=paras=>{
+    const keep=[];
+    paras.forEach(x=>{ if(fxNote.test(x)||noteLike.test(x)) note.push(x.replace(/^【/,'').replace(/】$/,'')); else keep.push(x); });
+    return keep;
+  };
+  /* 1) 范文与「文章分析」：大作文的点评不是范文的一部分 */
+  const fx=raw.match(REF_FX_RE);
+  if(fx&&fx.index>40){
+    const head=raw.slice(0,fx.index).trim();
+    const tail=raw.slice(fx.index).replace(REF_FX_RE,()=>'\n').trim();
+    if(head.length>40&&tail.length>40){raw=head;note=[tail];kind='fenxi';}
+  }
+  /* 2) 参考答案说明：从标记处切开 */
+  if(!kind){
+    const i=raw.search(/(^|\n)\s*(参考答案说明|答案说明|评分说明)\s*[:：]/);
+    if(i>40){note=[raw.slice(i)];raw=raw.slice(0,i).trim();kind='note';}
+  }
+  let body=[];
+  raw.split(/\n{2,}/).map(x=>x.trim()).filter(Boolean).forEach(bk=>{
+    if(REF_NOISE_RE.test(bk)) return;
+    if(!kind&&refIsNote(bk)){note.push(bk);kind='note';return}
+    if(fxNote.test(bk)||noteLike.test(bk)){note.push(bk.replace(/^【/,'').replace(/】$/,''));kind=kind||'fenxi';return}
+    body.push(bk);
   });
-  let items=out.filter(x=>x.replace(/[\s\d.．、（）()一二三四五六七八九十条点]/g,'').length>=12);
-  if(items.length<2){
-    items=String(t||'').split(/[。；]/).map(x=>x.trim()).filter(x=>x.replace(/\s/g,'').length>=14);
+  /* 范文段落里夹着的【…】点评也要挑出来 */
+  if(!kind){
+    const kept=pullFx(body);
+    if(kept.length!==body.length){body=kept;kind='fenxi'}
   }
-  return items.slice(0,10);
+  /* 说明里混进来的「来源」行去掉 */
+  note=note.map(n=>n.split(/\n{2,}/).filter(x=>!REF_NOISE_RE.test(x.trim())).join('\n\n').trim()).filter(Boolean);
+  return {body,note,kind};
 }
-function refTerms(s){
-  const t=GRADE.norm(s).replace(/\d+/g,'');
-  const out=[];const seen={};
-  for(let n=4;n>=2;n--){
-    for(let i=0;i+n<=t.length;i++){
-      const g=t.slice(i,i+n);
-      if(/^(.)\1+$/.test(g))continue;
-      if(!seen[g]){seen[g]=1;out.push(g)}
+function refIsDocTitle(b){
+  if(b.length>30||/\n/.test(b))return false;
+  return /^(关于|致|给)/.test(b)||/^.{2,20}(简报|通报|公告|通知|报告|纪要|方案|提纲|倡议书|公开信|宣传稿|短评|讲话稿|主持词|启事|编者按|建议书|致辞|说明|材料)$/.test(b);
+}
+function refBlockHTML(b){
+  b=b.trim();if(!b)return '';
+  if(/^(参考答案|参考范文|范文|答案)[一二三四五六七八九十\d]*$/.test(b)) return '<span class="rv">'+esc(b)+'</span>';
+  if(refIsDocTitle(b)) return '<p class="rv-doc">'+esc(b)+'</p>';
+  return '<p>'+refInline(b).replace(/\n/g,'<br>')+'</p>';
+}
+/* 把编号从正文里挑出来，单独排一列，读的时候一条一条对 */
+const REF_ITEM_RE=/^(\d{1,2}[.、．]|[一二三四五六七八九十]{1,2}、|[（(]\d{1,2}[）)])\s*/;
+function refAnswerHTML(t,opts){
+  const body=refSplitBody(t).body;
+  if(!body.length) return '<p>'+refInline(refClean(t))+'</p>';
+  if(opts&&opts.essay) return refEssayHTML(body);
+  const items=[];
+  body.forEach(bk=>{
+    const seg=refClean(bk).replace(/([。；!？])\s*(?=(?:\d{1,2}[.、．]|[一二三四五六七八九十]{1,2}、|[（(]\d{1,2}[）)]))/g,'$1\u0001')
+      .split('\u0001').map(x=>x.trim()).filter(Boolean);
+    if(seg.length>1&&seg.every(x=>REF_ITEM_RE.test(x))){
+      seg.forEach(x=>{const m=x.match(REF_ITEM_RE);items.push({k:m[0].trim(),v:x.slice(m[0].length)})});
+    }else if(seg.length===1&&REF_ITEM_RE.test(seg[0])&&bk.length>60){
+      const m=seg[0].match(REF_ITEM_RE);items.push({k:m[0].trim(),v:seg[0].slice(m[0].length)});
+    }else{
+      items.push({raw:bk});
     }
+  });
+  if(items.filter(x=>x.k).length>=2){
+    return '<ol class="ref-ol">'+items.map(x=>x.raw!==undefined
+      ? '<li class="ref-li-plain">'+refInline(x.raw).replace(/\n/g,'<br>')+'</li>'
+      : '<li><span class="ref-li-k">'+esc(x.k)+'</span><span class="ref-li-v">'+refInline(x.v)+'</span></li>').join('')+'</ol>';
   }
+  return items.map(x=>refBlockHTML(x.raw!==undefined?x.raw:(x.k+x.v))).join('');
+}
+/* 大作文范文：首段若像标题就单独排 */
+function refEssayHTML(paras){
+  let out='',list=paras.slice();
+  if(list.length&&list[0].length<=32&&!/[。！？；]/.test(list[0])) out+='<p class="ref-title">'+esc(list.shift())+'</p>';
+  out+=list.map(x=>'<p class="ref-para">'+refInline(x).replace(/\n/g,'<br>')+'</p>').join('');
   return out;
 }
-function refCovered(point,ans){
-  const a=GRADE.norm(ans);
-  if(!a) return false;
-  const terms=refTerms(point);
-  if(!terms.length) return false;
-  const hit=terms.filter(x=>a.indexOf(x)>=0);
-  const long=hit.filter(x=>x.length>=4).length;
-  return long>=1 || (hit.length>=2 && hit.length/terms.length>=0.15);
+/* 复制时只给真实答案正文，不带说明 */
+function refPlain(t){
+  const sp=refSplitBody(t);
+  return sp.body.join('\n\n').replace(/^(参考答案|参考范文|范文)[一二三四五六七八九十\d]*$/gm,'').trim();
 }
-function refEsc(t){return esc(t)}
-function refSourceHTML(a){
-  const s=REF_SRC[a.src]||{name:a.src,repo:'',branch:'main'};
-  if(!s.repo) return '<span>'+esc(s.name)+'</span>';
-  let url=s.repo;
-  if(a.path&&a.src!=='pdf'){
-    url=s.repo+'/blob/'+s.branch+'/'+a.path.split('/').map(encodeURIComponent).join('/');
-  }
-  return '<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(s.name)+'</a>';
-}
-function refScoreText(q,hits,total){
-  const max=GRADE.inferMax(q,GRADE.qType(q))||0;
-  const est=max?Math.round(max*hits/total*10)/10:0;
-  return {max,est};
+function refNoteHTML(note,kind){
+  if(!note||!note.length) return '';
+  const txt=note.join('\n\n').replace(REF_NOTE_HEAD,'').trim();
+  if(!txt) return '';
+  let items=[];
+  txt.replace(/\n{2,}/g,'\n').split(/\n/).forEach(x=>{
+    x=x.trim();if(!x)return;
+    const m=x.match(/[（(]\d{1,2}[）)][^（(]*/g);
+    if(m&&m.length>1&&!/^(来源|【)/.test(x)) m.forEach(s=>items.push(s.trim()));
+    else items.push(x);
+  });
+  items=items.filter(Boolean);
+  const body=items.length>1
+    ? '<ul>'+items.map(x=>'<li>'+refInline(x)+'</li>').join('')+'</ul>'
+    : '<p>'+refInline(items[0]||txt)+'</p>';
+  const fx=kind==='fenxi';
+  /* 长说明默认收起，先把答案露出来；短说明直接摊开，不用多点一下 */
+  const open=!fx&&txt.length<=260;
+  return '<details class="ref-note-block'+(fx?' ref-note-fx':'')+'"'+(open?' open':'')+'>'
+    +'<summary><span class="ref-note-tag">'+(fx?'解析 · 范文点评':'参考答案说明')+'</span>'
+    +'<span class="ref-note-sub">'+(fx?'评卷思路，不是答案正文':'评分思路，不是答案正文')+'</span>'
+    +'<span class="ref-note-chev" aria-hidden="true"></span></summary>'
+    +'<div class="ref-note-body">'+body+'</div></details>';
 }
 function wsRefRender(a){
   const exam=WS.exam,q=exam.q[WS.qIdx],i=WS.qIdx,body=$('#ref-body');
@@ -1414,15 +1474,14 @@ function wsRefRender(a){
   const type=GRADE.qType(q);
   const typeName=GRADE.TYPE_NAME[type]||'';
   const max=GRADE.inferMax(q,type)||q.sc||0;
-  $('#ref-src').hidden=true;
-  $('#ref-tier').textContent=a?(REF_TIER[a.tier]||['已匹配'])[0]:'';$('#ref-tier').hidden=!a;
   if(!a){
     const links=Object.keys(REF_SRC).map(k=>'<a href="'+esc(REF_SRC[k].repo)+'" target="_blank" rel="noopener">'+esc(REF_SRC[k].name)+'</a>').join('');
     body.innerHTML='<div class="ref-empty"><b>这道题暂时没有参考答案</b>在 4 个公开题库里都没有找到对得上的答案，所以没有硬凑一份。<br>可以先提交批改，看要点、结构和表达上的问题。'
       +'<div class="ref-links">'+links+'</div></div>';
     return;
   }
-  const pts=type==='zuowen'?REF_DIMS:refSplit(a.a);
+  /* 要点只在答案正文里找：说明 / 范文点评不参与要点拆解 */
+  const pts=type==='zuowen'?REF_DIMS:refSplit(refSplitBody(a.a).body.join('\n\n'));
   const stored=wsRefGet(exam,i);
   let hits=stored&&Array.isArray(stored.hits)?stored.hits.slice():null;
   if(!hits){
@@ -1436,21 +1495,37 @@ function wsRefRender(a){
     wsRefSet(exam,i,{seen:1,at:Date.now(),hits:hits.slice()});
   }
   const tier=REF_TIER[a.tier]||['已匹配',''];
+  const split=refSplitBody(a.x||'');
+  const essay=type==='zuowen';
   const meta='<div class="ref-meta"><span>第 '+(WS.qIdx+1)+' 题</span><span>·</span><span>'+esc(typeName)+'</span>'
     +(max?'<span>·</span><span>'+max+' 分</span>':'')
     +'<span>·</span><span>来源 </span>'+refSourceHTML(a)+'</div>';
   const note='<div class="ref-note'+(a.tier==='high'?' tip':'')+'">'+esc(tier[1])+'。这是机构或考生整理的答案，不是官方标准答案。</div>';
-  const ansHTML='<div class="ref-ans">'+refAnswerHTML(a.a)+'</div>';
-  const chk=pts.length?'<div class="ref-check"><div class="ref-check-head"><b>要点自检</b><span>写到 <em id="ref-hit">'+hits.length+'</em> / '+pts.length+' 条</span><span class="grow"></span><button class="ref-auto" id="ref-auto">重新比对</button></div>'
+  /* 答案正文：只放真实答案，按条排版 */
+  const ansHTML='<section class="ref-section ref-main" id="ref-main">'
+    +'<div class="ref-sec-h"><b>'+(essay?'参考范文':'参考答案')+'</b><span>机构 / 考生整理版，非官方答案</span></div>'
+    +'<div class="ref-ans'+(essay?' ref-ans-essay':'')+'">'+refAnswerHTML(a.a,{essay:essay})+'</div></section>';
+  /* 参考答案说明 / 范文点评：跟答案分开放，不混在正文里 */
+  const noteHTML=refNoteHTML(split.note,split.kind);
+  const kList=(a.k&&a.k!=='未知'&&a.k!=='无')?'<span class="pill">'+esc(a.k)+'</span>':'';
+  const head='<div class="ref-top">'
+    +'<div class="ref-topline"><span class="ref-tier '+(a.tier==='high'?'ok':a.tier==='mid'?'mid':'loose')+'">'+esc(tier[0])+'</span>'+kList
+    +(pts.length?'<span class="pill">'+pts.length+' 条要点</span>':'')+'</div>'
+    +meta+note+'</div>';
+  const chk=pts.length?'<section class="ref-check"><div class="ref-check-head"><b>要点自检</b><span>写到 <em id="ref-hit">'+hits.length+'</em> / '+pts.length+' 条</span><span class="grow"></span><button class="ref-auto" id="ref-auto">重新比对</button></div>'
       +'<div class="ref-pts" id="ref-pts">'+pts.map((p,idx)=>{
         const on=hits.indexOf(idx)>=0;
         return '<label class="ref-pt'+(on?' hit':'')+'" data-idx="'+idx+'"><input type="checkbox" data-pt="'+idx+'"'+(on?' checked':'')+'><span class="ref-idx">'+(idx+1)+'</span><span>'+esc(p)+'</span></label>';
       }).join('')+'</div>'
-      +'<div class="ref-score"><span>估分</span><b id="ref-est">0</b><span>/ '+max+' 分</span><div class="ref-meter"><i id="ref-meter" style="width:'+(pts.length?hits.length/pts.length*100:0)+'%"></i></div></div><p class="ref-tip">已按关键词自动勾了一遍，不准的地方自己改。</p></div>':'';
-  const alts=(a.alts&&a.alts.length)?'<div class="ref-alts"><b>其他来源的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>'<details><summary>'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</summary><div class="ref-meta">'+refSourceHTML(x)+'</div><div class="ref-ans">'+refAnswerHTML(x.a)+'</div></details>').join('')+'</div>':'';
-  const extra=(a.x||a.k)?'<details class="ref-alts ref-extra"><summary>解析与考点</summary><div class="ref-ans">'+(a.k?'<p><b>考点：</b>'+esc(a.k)+'</p>':'')+(a.x?refAnswerHTML(a.x):'')+'</div></details>':'';
-  body.innerHTML=meta+note+ansHTML+chk+alts+extra
-    +'<div class="ref-acts"><button class="mini-btn" id="ref-mine-btn">看我的作答</button><button class="mini-btn" id="ref-copy">复制答案</button><button class="mini-btn" id="ref-close2" hidden>关闭</button></div>'
+      +'<div class="ref-score"><span>估分</span><b id="ref-est">0</b><span>/ '+max+' 分</span><div class="ref-meter"><i id="ref-meter" style="width:'+(pts.length?hits.length/pts.length*100:0)+'%"></i></div></div><p class="ref-tip">已按关键词自动勾了一遍，不准的地方自己改。</p></section>':'';
+  const alts=(a.alts&&a.alts.length)?'<section class="ref-alts"><b>其他来源的答案（'+a.alts.length+'）</b>'+a.alts.map((x,k)=>{
+      const sp=refSplitBody(x.a||'');
+      return '<details><summary><span class="ref-alt-name">'+esc(x.label||((REF_SRC[x.src]||{}).name||x.src))+'</span>'+((REF_SRC[x.src]||{}).name&&x.label?'<span class="ref-alt-src">'+esc((REF_SRC[x.src]||{}).name)+'</span>':'')+'</summary>'
+        +'<div class="ref-ans">'+(refAnswerHTML(x.a)||'<p>（这份答案为空）</p>')+'</div>'
+        +(sp.note.length?'<div class="ref-note-mini">'+esc(sp.note.join(' ').replace(/^(参考答案说明|答案说明|评分说明)[:：]\s*/,''))+'</div>':'')+'</details>';
+    }).join('')+'</section>':'';
+  body.innerHTML=head+ansHTML+noteHTML+chk+alts
+    +'<div class="ref-acts"><button class="mini-btn" id="ref-mine-btn">看我的作答</button><button class="mini-btn" id="ref-copy">复制答案</button></div>'
     +'<div class="ref-mine" id="ref-mine" hidden></div>';
   const mine=$('#ref-mine');
   if(mine) mine.textContent=wsAnswerText()||'（本题还没有作答）';
@@ -1481,9 +1556,9 @@ function wsRefRender(a){
   });
   const s0=refScoreText(q,hits.length,pts.length);
   const e0=$('#ref-est');if(e0)e0.textContent=s0.est;
-  $('#ref-copy').addEventListener('click',()=>copy(a.a,'答案已复制'));
+  $('#ref-copy').addEventListener('click',()=>copy(refPlain(a.a)||a.a,'答案已复制'));
   $('#ref-mine-btn').addEventListener('click',()=>{mine.hidden=!mine.hidden;mine.textContent=wsAnswerText()||'（本题还没有作答）'});
-  $('#ref-close2').addEventListener('click',wsRefClose);
+  const c2=$('#ref-close2');if(c2)c2.addEventListener('click',wsRefClose);
   wsUpdateRefBtn();
 }
 function wsRefOpen(){

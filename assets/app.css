@@ -586,20 +586,70 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .gr-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--ink);animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-.ref-body{display:flex;flex-direction:column;gap:16px}
+/* ---------- 参考答案面板 ----------
+   结构：来源信息 → 真实答案 → 参考答案说明（折叠） → 要点自检 → 其他来源 */
+.ref-body{display:flex;flex-direction:column;gap:14px}
+.ref-top{display:flex;flex-direction:column;gap:8px;padding-bottom:2px}
+.ref-topline{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ref-tier{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-xs);font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted);background:var(--surface-2)}
+.ref-tier::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.ref-tier.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 32%,var(--line));background:var(--ok-soft)}
+.ref-tier.mid{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 32%,var(--line));background:var(--gold-soft)}
+.ref-tier.loose{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--line));background:var(--accent-soft)}
 .ref-note{font-size:var(--t-sm);line-height:1.75;color:var(--muted);padding-left:12px;border-left:2px solid var(--line-strong)}
 .ref-note.tip{border-left-color:var(--ok)}
 .ref-meta{display:flex;gap:4px 6px;flex-wrap:wrap;align-items:center;font-size:var(--t-xs);color:var(--faint)}
 .ref-meta a,.ref-links a{color:var(--muted);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
-.ref-ans{white-space:pre-wrap;font-family:var(--read);line-height:1.9;font-size:var(--t-read);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-s);padding:14px 16px}
-.ref-ans .rv{display:block;font-family:var(--sans);font-size:var(--t-sm);font-weight:600;color:var(--muted);margin:0 0 6px}
+
+/* 区块标题：答案 / 说明 用同一套小标题，一眼分得开 */
+.ref-section{display:flex;flex-direction:column;gap:8px}
+.ref-sec-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ref-sec-h b{font-size:var(--t-md);font-weight:600;color:var(--ink)}
+.ref-sec-h span{font-size:var(--t-xs);color:var(--faint)}
+
+/* 真实答案 */
+.ref-ans{white-space:pre-wrap;font-family:var(--read);line-height:1.95;font-size:var(--t-read);color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-s);padding:16px 18px}
+/* 答案按条排版：编号单独一列，正文对齐成一栏，扫读时能一条一条对 */
+.ref-ol{margin:0;padding:0;list-style:none;counter-reset:none;display:flex;flex-direction:column;gap:10px}
+.ref-ol li{display:flex;gap:8px;align-items:baseline}
+.ref-li-k{flex:none;min-width:2.2em;font-family:var(--sans);font-size:var(--t-sm);font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:.1em}
+.ref-li-v{flex:1;min-width:0}
+.ref-li-plain{display:block}
+.ref-ol .ref-li-plain{text-indent:2em}
+.ref-ans-essay{line-height:2}
+.ref-ans-essay .ref-title{text-align:center;font-weight:600;font-size:var(--t-lg);margin:0 0 1em;text-indent:0}
+.ref-ans-essay .ref-para{text-indent:2em;margin:0 0 .9em}
+.ref-ans-essay .ref-para:last-child{margin-bottom:0}
+.ref-ans .rv{display:block;font-family:var(--sans);font-size:var(--t-sm);font-weight:600;color:var(--muted);margin:0 0 8px;padding-bottom:6px;border-bottom:1px dashed var(--line)}
+.ref-ans .rv-doc{font-weight:600;text-align:center;font-size:var(--t-read)}
 .ref-ans p{margin:0 0 .8em}
 .ref-ans p:last-child{margin-bottom:0}
+.ref-ans b{font-weight:600}
+
+/* 参考答案说明：可折叠块，视觉上跟答案分开 */
+.ref-note-block{border:1px solid var(--line);border-left:3px solid var(--line-strong);border-radius:var(--r-s);background:var(--surface-2)}
+.ref-note-block summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;cursor:pointer;list-style:none;min-height:44px}
+.ref-note-block summary::-webkit-details-marker{display:none}
+.ref-note-tag{font-size:var(--t-sm);font-weight:600;color:var(--ink)}
+.ref-note-sub{font-size:var(--t-xs);color:var(--faint)}
+.ref-note-chev{margin-left:auto;width:8px;height:8px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translateY(-2px);transition:transform .2s var(--ease);flex:none}
+.ref-note-block[open] .ref-note-chev{transform:rotate(-135deg) translateY(-2px)}
+.ref-note-body{padding:2px 14px 14px;font-size:var(--t-base);line-height:1.85;color:var(--muted)}
+.ref-note-body p{margin:0 0 .6em}
+.ref-note-body p:last-child{margin-bottom:0}
+.ref-note-body ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.ref-note-body li{position:relative;padding-left:14px}
+.ref-note-body li::before{content:"";position:absolute;left:2px;top:.78em;width:4px;height:4px;border-radius:50%;background:var(--line-strong)}
+.ref-note-body b{color:var(--ink);font-weight:600}
+.ref-note-inline{border-left-color:var(--gold)}
+.ref-note-mini{margin-top:10px;font-size:var(--t-xs);line-height:1.7;color:var(--faint);padding-left:10px;border-left:2px solid var(--line-strong)}
+
+/* 要点自检 */
 .ref-check{border:1px solid var(--line);border-radius:var(--r-s);overflow:hidden}
 .ref-check-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);font-size:var(--t-sm);color:var(--muted);flex-wrap:wrap}
 .ref-check-head b{font-size:var(--t-base);font-weight:600;color:var(--ink)}
 .ref-check-head em{font-style:normal;color:var(--ink);font-weight:600}
-.ref-auto{min-height:30px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-xs);padding:0 10px;font-size:var(--t-xs);color:var(--muted)}
+.ref-auto{min-height:32px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-xs);padding:0 10px;font-size:var(--t-xs);color:var(--muted)}
 .ref-auto:hover{color:var(--ink);border-color:var(--ink)}
 .ref-pts{display:flex;flex-direction:column}
 .ref-pt{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;cursor:pointer;font-size:var(--t-base);line-height:1.75;color:var(--muted);border-bottom:1px solid var(--line)}
@@ -611,16 +661,19 @@ html.sheet-open,html.sheet-open body{overflow:hidden}
 .ref-score b{font-size:var(--t-xl);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .ref-meter{height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;flex:1;min-width:80px}
 .ref-meter i{display:block;height:100%;background:var(--ok);border-radius:2px;transition:width .3s}
-
 .ref-tip{font-size:var(--t-xs);color:var(--faint);padding:0 12px 10px}
-.ref-extra{border-top:1px solid var(--line);padding-top:12px}
-.ref-extra summary{cursor:pointer;font-size:var(--t-base);color:var(--muted)}
-.ref-extra .ref-ans{margin-top:10px;font-size:var(--t-base)}
-.ref-alts .ref-meta{margin:8px 0 4px}
-.ref-alts>b{display:block;font-size:var(--t-sm);font-weight:500;color:var(--faint);margin-bottom:8px}
-.ref-alts details{border-top:1px solid var(--line);padding:10px 0}
-.ref-alts summary{cursor:pointer;font-size:var(--t-base);color:var(--muted)}
-.ref-alts .ref-ans{margin-top:10px}
+
+/* 其他来源的答案 */
+.ref-alts>b{display:block;font-size:var(--t-sm);font-weight:500;color:var(--faint);margin-bottom:4px}
+.ref-alts details{border-top:1px solid var(--line);padding:8px 0}
+.ref-alts details:first-of-type{border-top:0}
+.ref-alts summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer;font-size:var(--t-base);color:var(--muted);min-height:36px;list-style:none}
+.ref-alts summary::-webkit-details-marker{display:none}
+.ref-alts summary::before{content:"";width:6px;height:6px;border-right:1.5px solid var(--faint);border-bottom:1.5px solid var(--faint);transform:rotate(-45deg);transition:transform .2s var(--ease);flex:none}
+.ref-alts details[open] summary::before{transform:rotate(45deg)}
+.ref-alt-name{color:var(--ink)}
+.ref-alt-src{font-size:var(--t-xs);color:var(--faint)}
+.ref-alts .ref-ans{margin-top:10px;font-size:var(--t-base)}
 .ref-acts{display:flex;gap:8px;flex-wrap:wrap}
 .ref-mine{white-space:pre-wrap;font-size:var(--t-base);line-height:1.85;background:var(--surface-2);border-radius:var(--r-s);padding:12px 14px}
 .ref-empty{text-align:center;padding:32px 12px;color:var(--muted);font-size:var(--t-base);line-height:1.8}

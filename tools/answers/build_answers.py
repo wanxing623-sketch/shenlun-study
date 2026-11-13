@@ -112,9 +112,58 @@ ARTIFACT_RE = re.compile(r'微信公众号|扫码关注|扫码添加|（责任�
                          r'以上内容由|客服|APP内|下载粉笔')
 
 
+# 题干外的「抓取附注」：来源说明、本题来源记录链接、依据同题证据……都不是答案内容
+PROV_NOTE = re.compile(
+    r'(?:来源说明|出处说明|参考答案来源|答案来源)\s*[：:]'
+    r'|本文来源\s*[：:]'
+    r'|\[?本题来源记录\]?\s*\('
+    r'|依据同题证据|原记录卷型|不将来源整卷视为本卷|字形等价处理|完整答案取自'
+    r'|源文件与行号|你已保存的原始资料')
+# 大作文「文章分析」：对范文的逐段点评，属于解析，不是答案
+# 「文章分析」有时带冒号、有时后面跟标点，别只认独占一行的写法
+ARTICLE_ANALYSIS = re.compile(r'(?m)^[ \t]*(?:文章分析|范文分析|答案分析|文章点评|范文点评)[ \t]*[：:.．]?[ \t]*$')
+RUBRIC_LINE = re.compile(r'(?m)^\s*【[^】]{0,14}(?:的优点|的点评|分析)】')
+URL = re.compile(r'\[([^\]]{1,30})\]\((https?://[^)\s]+)\)|https?://[^\s，。；）)]+')
+
+
+def split_article_analysis(text):
+    """返回 (正文, 点评)。点评是给阅卷/讲评用的，单独放到解析里。"""
+    t = text or ''
+    m = ARTICLE_ANALYSIS.search(t)
+    if m and m.start() > 60:
+        return t[:m.start()], t[m.start():]
+    m2 = RUBRIC_LINE.search(t)
+    if m2 and m2.start() > 60:
+        return t[:m2.start()], t[m2.start():]
+    return t, ''
+
+
+def strip_prov_notes(text):
+    """把附注整段切掉（附注一般独占一段，或以「来源说明：」起头）"""
+    if not text:
+        return text
+    out = []
+    for blk in re.split(r'(\n{2,})', text):
+        if blk.startswith('\n'):
+            out.append(blk)
+            continue
+        m = PROV_NOTE.search(blk)
+        if m and m.start() > 0:
+            out.append(blk[:m.start()].rstrip())
+        elif m:
+            continue                      # 整段都是附注
+        else:
+            out.append(blk)
+    t = URL.sub('', ''.join(out))         # 裸链接和 markdown 链接都清掉
+    # 附注常和正文挤在同一段，切完会留下「，不是官方标准答案。」这类尾巴
+    t = re.sub(r'(?m)^[，,。；;、\s]*(?:不是官方标准答案|非官方答案|仅供参考)[。；;，,]?[ \t]*$', '', t)
+    t = re.sub(r'\n{3,}', '\n\n', t).strip()
+    return t
+
+
 def tidy(t):
     """去掉抓取残留、接回 OCR 硬换行；保留分条与分段"""
-    t = (t or '').replace('\ue000', '')
+    t = strip_prov_notes((t or '').replace('\ue000', ''))
     lines = []
     for ln in (t or '').split('\n'):
         s = ln.strip()
@@ -457,6 +506,14 @@ def main():
             note = re.sub(r'(?m)^\s*(?:参考答案说明|答案说明|答题说明)\s*[：:]?\s*', '', note).strip()
             note = re.sub(r'^[：:，,。、\s]+', '', note).strip()
             body, stray = split_inline_notes(item['a'])
+            # 大作文的「文章分析」逐段点评：从正文切出来，作为解析
+            body2, art = split_article_analysis(body)
+            if art:
+                body = body2
+                if not item['x']:
+                    item = dict(item, x=art)
+                else:
+                    item = dict(item, x=(item['x'] + '\n\n' + art))
             # 正文末尾若还挂着「解析 / 考点 / 来源」小标题，一并切到解析里
             mtail = re.search(r'(?m)^\s*(?:(?:解析|考点|来源)(?:\s*[：:].*)?\s*$|解析(?=\S))', body)
             if mtail:
